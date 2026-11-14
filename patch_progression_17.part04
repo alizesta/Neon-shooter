@@ -1,0 +1,66 @@
+        "piercing" -> "BULLETS PIERCE MORE TARGETS"
+        "stasis" -> "SLOW ALL ENEMIES"
+        "scavenger" -> "MORE CREDITS PER KILL"
+        "multishot" -> "ADD SIDE-FIRING LANES"
+        "phoenix" -> "ONE AUTOMATIC REVIVE"
+        else -> "TEMPORARY FAST SHOTS"
+    }''', "new ability descriptions")
+rep('''        "hull" -> 0xFF4ADE80.toInt()
+        else -> 0xFFB8E7FF.toInt()''', '''        "hull", "health_regen", "phoenix" -> 0xFF4ADE80.toInt()
+        "armor", "stasis" -> 0xFF22D3EE.toInt()
+        "critical", "explosive" -> 0xFFFF5B4D.toInt()
+        "overdrive" -> 0xFFFFB020.toInt()
+        "piercing", "multishot" -> 0xFFA78BFA.toInt()
+        "scavenger" -> 0xFFFFD45C.toInt()
+        else -> 0xFFB8E7FF.toInt()''', "new ability colors")
+rep('''            "chain" -> { c.drawOval(ox-9f*s,oy-5f*s,ox+1f*s,oy+5f*s,paint); c.drawOval(ox-1f*s,oy-5f*s,ox+9f*s,oy+5f*s,paint) }
+            "hull" -> { c.drawLine(ox-7f*s,oy,ox+7f*s,oy,paint); c.drawLine(ox,oy-7f*s,ox,oy+7f*s,paint) }
+            else ->''', '''            "chain" -> { c.drawOval(ox-9f*s,oy-5f*s,ox+1f*s,oy+5f*s,paint); c.drawOval(ox-1f*s,oy-5f*s,ox+9f*s,oy+5f*s,paint) }
+            "hull", "health_regen", "phoenix" -> { c.drawLine(ox-7f*s,oy,ox+7f*s,oy,paint); c.drawLine(ox,oy-7f*s,ox,oy+7f*s,paint); c.drawCircle(ox,oy,9f*s,paint) }
+            "armor", "stasis" -> { c.drawCircle(ox,oy,8f*s,paint); c.drawLine(ox-6f*s,oy,ox+6f*s,oy,paint); c.drawLine(ox,oy-6f*s,ox,oy+6f*s,paint) }
+            "critical" -> { c.drawCircle(ox,oy,7f*s,paint); c.drawLine(ox-9f*s,oy,ox-3f*s,oy,paint); c.drawLine(ox+3f*s,oy,ox+9f*s,oy,paint); c.drawLine(ox,oy-9f*s,ox,oy-3f*s,paint); c.drawLine(ox,oy+3f*s,ox,oy+9f*s,paint) }
+            "overdrive", "explosive" -> { c.drawCircle(ox,oy,3f*s,paint); c.drawLine(ox,oy-10f*s,ox,oy-5f*s,paint); c.drawLine(ox+10f*s,oy,ox+5f*s,oy,paint); c.drawLine(ox,oy+10f*s,ox,oy+5f*s,paint); c.drawLine(ox-10f*s,oy,ox-5f*s,oy,paint) }
+            "piercing" -> { c.drawLine(ox-8f*s,oy+5f*s,ox+7f*s,oy-5f*s,paint); c.drawLine(ox+7f*s,oy-5f*s,ox+3f*s,oy-5f*s,paint); c.drawLine(ox+7f*s,oy-5f*s,ox+6f*s,oy-1f*s,paint) }
+            "scavenger" -> { c.drawCircle(ox,oy,7f*s,paint); c.drawLine(ox-3f*s,oy,ox+3f*s,oy,paint); c.drawLine(ox,oy-4f*s,ox,oy+4f*s,paint) }
+            "multishot" -> { for (dx in floatArrayOf(-6f,0f,6f)) c.drawLine((cx+dx)*s,(cy+6f)*s,(cx+dx)*s,(cy-7f)*s,paint) }
+            else ->''', "new ability glyphs")
+# Rank display on cards uses the new shared rank helper.
+rep('''            val rank = when (id) {
+                "firepower" -> weaponLevel
+                "missile" -> missileLevel
+                "laser" -> laserLevel
+                "drone" -> droneLevel
+                "magnet" -> magnetLevel
+                "shield" -> shieldRank
+                "dash" -> dashRank
+                "chain" -> chainLevel
+                "hull" -> lives
+                else -> rapidLevel
+            }
+            text(c, upgradeTitle(id) + "  " + (rank + 1) + "/5", cx, wh * 0.515f, 5.8f, WHT)''', '''            val rank = abilityRank(id)
+            text(c, upgradeTitle(id) + "  " + (rank + 1) + "/5", cx, wh * 0.515f, 5.8f, WHT)''', "rank display for all abilities")
+rep('''        text(c, "CHOOSE ONE UPGRADE", W / 2f, wh * 0.37f, 13f, 0xFF9CEBFF.toInt())''', '''        text(c, if (extraAbilitiesUnlocked) "CHOOSE ONE  •  " + selectedAbilities.size + " UNLOCKED" else "CHOOSE ONE  •  " + selectedAbilities.size + "/5 SLOTS", W / 2f, wh * 0.37f, 11f, 0xFF9CEBFF.toInt())
+        text(c, if (extraAbilitiesUnlocked) "NEW ABILITIES UNLOCKED" else "MAX FIVE ABILITIES UNTIL LEVEL 50", W / 2f, wh * 0.405f, 6f, 0xFFFFD45C.toInt())''', "loadout capacity information")
+
+# Upgrade after every wave; shop remains a separate screen every five waves.
+rep('''                    if (wave > 0 && wave % 5 == 0 && intermissionHandledWave != wave) { intermissionHandledWave = wave; st = St.SHOP; waiting = true; waveT = 0.8f; return }
+                    if (wave > 0 && wave % 2 == 0 && intermissionHandledWave != wave) { intermissionHandledWave = wave; prepareUpgradeChoices(); st = if (upgradeChoices.isNotEmpty()) St.UPGRADE else St.PLAY; waiting = true; waveT = 0.8f; return }''', '''                    if (wave > 0 && wave % 5 == 0 && shopHandledWave != wave) { shopHandledWave = wave; st = St.SHOP; waiting = true; waveT = 0.8f; return }
+                    if (wave > 0 && upgradeHandledWave != wave) { upgradeHandledWave = wave; prepareUpgradeChoices(); st = if (upgradeChoices.isNotEmpty()) St.UPGRADE else St.PLAY; waiting = true; waveT = 0.8f; return }''', "upgrade draft on every wave")
+rep('''        upgradesTaken = 0; intermissionHandledWave = -1; upgradeChoices = emptyList()''', '''        upgradesTaken = 0; intermissionHandledWave = -1; shopHandledWave = -1; upgradeHandledWave = -1; upgradeChoices = emptyList()
+        selectedAbilities.clear(); extraAbilitiesUnlocked = false; hullRank = 0; healthRegenRank = 0; armorRank = 0; criticalRank = 0; overdriveRank = 0
+        explosiveRank = 0; piercingRank = 0; stasisRank = 0; scavengerRank = 0; multishotRank = 0; phoenixRank = 0
+        healthRegenTimer = 0f; phoenixUsed = false; legendaryTime = 0f; legendaryCooldown = 0f''', "reset new progression state")
+
+# Bump version and rebuild the source archive so the APK and source match.
+gradle = gradle_file.read_text(encoding="utf-8")
+gradle = re.sub(r"versionCode\s*=\s*\d+", "versionCode = 10", gradle)
+gradle = re.sub(r'versionName\s*=\s*"[^"]+"', 'versionName = "1.7"', gradle)
+gradle_file.write_text(gradle, encoding="utf-8")
+game_file.write_text(g, encoding="utf-8")
+archive = next(Path(".").glob("NeonShooter_*.zip"))
+tmp = archive.with_suffix(".progression.tmp.zip")
+with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+    for f in sorted(root.rglob("*")):
+        if f.is_file(): z.write(f, Path(root.name) / f.relative_to(root))
+tmp.replace(archive)
+print("Neon Shooter 1.7: 20 abilities, five-slot level-50 progression, per-wave drafts, health regen, double health and ship legendaries ready.")
