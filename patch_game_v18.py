@@ -33,7 +33,7 @@ rep('        val enemyDt = dt * when { enemySlowTimer > 0f -> 0.1f; stasisRank >
             }
         }
 ''', 'emp pulse update')
-rep('            rapidTimer > 0f -> "RAPID " + (rapidTimer.toInt() + 1)\n', '            empRank > 0 -> "EMP PULSE " + empRank + "  " + (empPulseTimer.toInt().coerceAtLeast(0)) + "s\n            rapidTimer > 0f -> "RAPID " + (rapidTimer.toInt() + 1)\n', 'emp hud')
+rep('            rapidTimer > 0f -> "RAPID " + (rapidTimer.toInt() + 1)\n', '            empRank > 0 -> "EMP PULSE " + empRank + "  " + (empPulseTimer.toInt().coerceAtLeast(0)) + "s"\n            rapidTimer > 0f -> "RAPID " + (rapidTimer.toInt() + 1)\n', 'emp hud')
 
 rep('        "health_regen" -> "HEALTH REGEN"\n', '        "health_regen" -> "HEALTH REGEN"\n        "emp" -> "EMP PULSE"\n', 'emp title')
 rep('        "health_regen" -> "REPAIR HULL OVER TIME"\n', '        "health_regen" -> "REPAIR HULL OVER TIME"\n        "emp" -> "PULSE DAMAGES ALL ENEMIES"\n', 'emp info')
