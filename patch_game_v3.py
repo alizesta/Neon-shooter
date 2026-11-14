@@ -151,6 +151,38 @@ draw_item = """    private fun drawItem(c: Canvas, item: Item) {
 g = g[:start] + draw_item + g[end:]
 game_file.write_text(g)
 
+// GAMEPLAY V4: remove all artificial bloom, flatten every sprite, improve projectile feel,
+// and give successive bosses distinct movement patterns.
+g = g.replace("private val YEL = 0xFFFFEA00.toInt()", "private val YEL = 0xFF35D9F2.toInt()")
+g = g.replace("private val YEL = 0xFFFFD400.toInt()", "private val YEL = 0xFF35D9F2.toInt()")
+g = g.replace("dy / d * 82f", "dy / d * 112f").replace("dy / d * 75f", "dy / d * 105f")
+g = g.replace("0f, 66f, false", "0f, 102f, false").replace("0f, 70f, false", "0f, 108f, false")
+g = g.replace("0f, -145f, true", "0f, -210f, true")
+g = g.replace("if (player) 3 else 4", "if (player) 3 else 3")
+g = g.replace("if (player) 8 else 4", "if (player) 5 else 4")
+g = g.replace("val width = if (player) 3 else 4\\n        val height = if (player) 8 else 4",
+              "val width = if (player) 3 else 3\\n        val height = if (player) 5 else 4")
+# Boss style cycles every five waves. The same boss family now has three attack/movement profiles.
+g = g.replace("E(W / 2, -20f, 2, 42 + wave * 7, W / 2, 0f, 0f)",
+              "E(W / 2, -20f, 2, 42 + wave * 7, W / 2, 0f, ((wave / 5) % 3).toFloat())")
+g = g.replace("e.x = W / 2 + sin(e.age * 0.82f) * (W / 2 - e.hw - 8f)",
+"""when (e.t0.toInt() % 3) {
+                    0 -> e.x = W / 2 + sin(e.age * 0.82f) * (W / 2 - e.hw - 8f)
+                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
+                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
+                }""")
+game_file.write_text(g)
+
+# No glow layers or bitmap shadows: sprites are crisp, flat, and have no square bloom.
+import re
+sp = re.sub(r"for \\(i in 3 downTo 1\\) \\{.*?canvas\\.drawPath\\(path, p\\)\\n\\s*\\}", "", sp, flags=re.S)
+sp = re.sub(r"for \\(i in 3 downTo 1\\) \\{.*?canvas\\.drawOval\\(rect, p\\)\\n\\s*\\}", "", sp, flags=re.S)
+sp = re.sub(r"^.*setShadowLayer\\(.*\\)\\s*$", "", sp, flags=re.M)
+sp = re.sub(r"^.*maskFilter = BlurMaskFilter.*$\\n?", "", sp, flags=re.M)
+sp = re.sub(r"^.*shader = (?:LinearGradient|RadialGradient).*\\n?", "", sp, flags=re.M)
+sp = sp.replace("val glow = Paint(Paint.ANTI_ALIAS_FLAG)", "val glow = Paint(Paint.ANTI_ALIAS_FLAG)")
+sprites_file.write_text(sp)
+
 # Flat 2D ship and enemy art; replace blur-mask glows with smooth concentric strokes.
 sp = sprites_file.read_text()
 sp = rep(sp, "val width = if (player) 4 else 7\n        val height = if (player) 9 else 7",
