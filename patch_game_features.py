@@ -36,6 +36,7 @@ rep("    private var kills = 0\n    private val unlocked = HashSet<Int>()",
     private var dailyKills = prefs.getInt("daily_kills", 0)
     private var dailyDone = prefs.getBoolean("daily_done", false)
     private var upgradeChoices = emptyList<String>()
+    private var upgradesTaken = 0
     private var bonusDamage = 0
     private var fireRateBonus = 0f
     private var magnetLevel = 0
@@ -349,10 +350,10 @@ rep('            else { waveT -= dt; if (waveT <= 0f) { spawnWave(); waiting = f
             }""", "wave upgrade and shop intermission")
 
 # Event clocks and meteor shower volleys.
-rep('        if (st != St.PLAY) return\n\n        time += dt;',
+rep('        time += dt; invul -= dt; fireT -= dt; bannerT -= dt',
 """        if (st != St.PLAY) return
 
-        time += dt;
+        time += dt; invul -= dt; fireT -= dt; bannerT -= dt
         if (eventTimer > 0f) {
             eventTimer = max(0f, eventTimer - dt)
             if (eventKind == 1) {
@@ -367,7 +368,7 @@ rep('        if (st != St.PLAY) return\n\n        time += dt;',
         }""", "random event timers")
 
 # Enemy roles: healer and hunter movement, boss phase thresholds, and warning clocks.
-rep('        for (e in enemies) {\n            if (e.type == 2) {',
+rep('        for (e in enemies) {\n            e.age += enemyDt',
 """        for (e in enemies) {
             e.age += enemyDt
             e.warning = max(0f, e.warning - enemyDt)
@@ -455,7 +456,7 @@ rep('        for (b in bullets) {\n            val bulletDt = if (b.mine) dt els
 # Magnet plus shield combo strengthens the pull; the passive magnet works all run.
 rep('            if (magnetTimer > 0f) {\n                item.x += (px - item.x) * min(1f, 3.0f * dt)\n                item.y += (py - item.y) * min(1f, 3.0f * dt)',
     '            if (magnetTimer > 0f || magnetLevel > 0) {\n                val pullRate = if (magnetLevel > 0 && shieldLevel > 0) 5.2f else if (magnetLevel > 0) 3.8f else 3.0f\n                item.x += (px - item.x) * min(1f, pullRate * dt)\n                item.y += (py - item.y) * min(1f, pullRate * dt)', "magnet shield combo")
-rep('                10 -> piercingTimer = max(piercingTimer, 8f)\n                else -> activateSquadron()',
+rep('                10 -> piercingTimer = max(piercingTimer, 8f)\n                11 -> enemySlowTimer = max(enemySlowTimer, 10f)\n                else -> activateSquadron()',
     '                10 -> piercingTimer = max(piercingTimer, 8f)\n                11 -> enemySlowTimer = max(enemySlowTimer, 10f)\n                12 -> { credits += 300; score += 500; lives = min(5, lives + 1); prefs.edit().putInt("credits", credits).apply() }\n                else -> activateSquadron()', "slowdown and golden crate pickup")
 # Strengthen damage, chain-lightning jumps from each player hit to a nearby enemy.
 rep('                    e.hp--; boom(b.x, b.y, 2, 25f)\n                    if (e.hp <= 0) kill(e)',
