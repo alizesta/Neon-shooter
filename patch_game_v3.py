@@ -1443,7 +1443,7 @@ game_file.write_text(g, encoding="utf-8")
 # Increment app version so Android accepts the new package as a newer release.
 gradle_file = root / "app/build.gradle.kts"
 gradle_text = gradle_file.read_text(encoding="utf-8")
-gradle_text = re.sub(r"versionCode\s*=\s*\d+", "versionCode = 3", gradle_text)
+gradle_text = re.sub(r"versionCode\s*=\s*\d+", "versionCode = 4", gradle_text)
 gradle_text = re.sub(r'versionName\s*=\s*"[^"]+"', 'versionName = "1.1"', gradle_text)
 if 'create("release")' not in gradle_text:
     gradle_text = gradle_text.replace(
@@ -1501,10 +1501,10 @@ game_text = game_text.replace("c.drawLine(laser.x * s, 0f, laser.x * s, sh.toFlo
 game_text = game_text.replace("if (st != St.PLAY || laserCooldown > 0f) return", "if (st != St.PLAY || laserLevel <= 0 || laserCooldown > 0f) return")
 game_text = game_text.replace("        if (laserCooldown <= 0f) fireLaser()", "        if (laserLevel > 0 && laserCooldown <= 0f) fireLaser()")
 game_text = game_text.replace("playerBeams.add(PlayerBeam(px, py, width, 0.24f))", "playerBeams.add(PlayerBeam(px, py, width, 0.52f))")
-game_text = game_text.replace("roll < 0.83f -> 7\\n                roll < 0.90f -> 8", "roll < 0.78f -> 7\\n                roll < 0.88f -> 6\\n                roll < 0.94f -> 8")
-game_text = game_text.replace("            drawWeaponControls(c)\\n", "").replace("        drawWeaponControls(c)\\n", "")
-game_text = game_text.replace("                        } else if (y >= wh - 34f && x >= W - 96f) {\\n                            if (x >= W - 52f) fireLaser() else launchMissiles()\\n                            controlTouch = true\\n                        }", "")
-game_text = game_text.replace("                    val pull = min(1240f, hole.strength * 10f / (d2 + 80f)) * dt\\n                    b.vx = (b.vx + dx / distance * pull).coerceIn(-220f, 220f)\\n                    b.vy = (b.vy + dy / distance * pull).coerceIn(-220f, 220f)", "                    val pull = min(1800f, hole.strength * 13f / (d2 + 65f)) * dt\\n                    b.vx = (b.vx + dx / distance * pull).coerceIn(-420f, 420f)\\n                    b.vy = (b.vy + dy / distance * pull).coerceIn(-420f, 420f)\\n                    if (distance < hole.radius * 0.30f) {\\n                        val tangentX = -dy / distance\\n                        val tangentY = dx / distance\\n                        val kick = min(260f, (hole.radius * 0.30f - distance) * 8f) * dt\\n                        val side = if (b.vx * tangentX + b.vy * tangentY >= 0f) 1f else -1f\\n                        b.vx = (b.vx - dx / distance * kick * 1.8f + tangentX * kick * side).coerceIn(-460f, 460f)\\n                        b.vy = (b.vy - dy / distance * kick * 1.8f + tangentY * kick * side).coerceIn(-460f, 460f)\\n                    }")
+game_text = game_text.replace("roll < 0.83f -> 7\n                roll < 0.90f -> 8", "roll < 0.78f -> 7\n                roll < 0.88f -> 6\n                roll < 0.94f -> 8")
+game_text = game_text.replace("            drawWeaponControls(c)\n", "").replace("        drawWeaponControls(c)\n", "")
+game_text = game_text.replace("                        } else if (y >= wh - 34f && x >= W - 96f) {\n                            if (x >= W - 52f) fireLaser() else launchMissiles()\n                            controlTouch = true\n                        }", "")
+game_text = game_text.replace("                    val pull = min(1240f, hole.strength * 10f / (d2 + 80f)) * dt\n                    b.vx = (b.vx + dx / distance * pull).coerceIn(-220f, 220f)\n                    b.vy = (b.vy + dy / distance * pull).coerceIn(-220f, 220f)", "                    val pull = min(1800f, hole.strength * 13f / (d2 + 65f)) * dt\n                    b.vx = (b.vx + dx / distance * pull).coerceIn(-420f, 420f)\n                    b.vy = (b.vy + dy / distance * pull).coerceIn(-420f, 420f)\n                    if (distance < hole.radius * 0.30f) {\n                        val tangentX = -dy / distance\n                        val tangentY = dx / distance\n                        val kick = min(260f, (hole.radius * 0.30f - distance) * 8f) * dt\n                        val side = if (b.vx * tangentX + b.vy * tangentY >= 0f) 1f else -1f\n                        b.vx = (b.vx - dx / distance * kick * 1.8f + tangentX * kick * side).coerceIn(-460f, 460f)\n                        b.vy = (b.vy - dy / distance * kick * 1.8f + tangentY * kick * side).coerceIn(-460f, 460f)\n                    }")
 game_file.write_text(game_text, encoding="utf-8")
 # Google Play Games: report missing Play Console configuration and API failures.
 play_source = """package com.claude.neonshooter
