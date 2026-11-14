@@ -919,9 +919,10 @@ if "7 -> Path().apply" not in sp:
     sp = sp.replace('glow(c, body, glowColor, if (kind == 2) 5.2f else 3.6f)', 'glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f')
 
 
-sp = sp.replace(
-    "glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f",
-    "glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f)"
+sp = re.sub(
+    r"glow\\(c, body, glowColor, if \\(kind >= 5\\) 5\\.8f else if \\(kind == 2\\) 5\\.2f else 3\\.6f\\)+",
+    "glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f)",
+    sp
 )
 
 sprites_file.write_text(sp)
