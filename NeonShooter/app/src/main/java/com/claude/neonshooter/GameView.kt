@@ -11,8 +11,8 @@ import kotlin.random.Random
 
 class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Callback, Runnable {
 
-    private enum class St { MENU, PLAY, OVER }
-    private class B(var x: Float, var y: Float, val vx: Float, val vy: Float, val mine: Boolean)
+    private enum class St { MENU, PLAY, PAUSE, OVER }
+    private class B(var x: Float, var y: Float, var vx: Float, var vy: Float, val mine: Boolean)
     private class E(var x: Float, var y: Float, val type: Int, var hp: Int, val bx: Float, val amp: Float, val t0: Float) {
         val maxHp = hp
         var age = 0f
@@ -31,7 +31,11 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private class Star(var x: Float, val y0: Float, val sp: Float, val sz: Float) {
         var y = y0
         var phase = Random.nextFloat() * 6.283f
-        val twinkle = Random.nextFloat() < 0.42f
+        val twinkle = Random.nextFloat() < 0.72f
+    }
+    private class BlackHole(var x: Float, var y: Float, val radius: Float, val strength: Float, val drift: Float) {
+        var age = 0f
+        var spin = Random.nextFloat() * 6.283f
     }
 
     // palette: gray / yellow / red / white (+ orange warning)
@@ -59,6 +63,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private val missiles = ArrayList<Missile>()
     private val enemyLasers = ArrayList<EnemyLaser>()
     private val squadShips = ArrayList<SweepShip>()
+    private val blackHoles = ArrayList<BlackHole>()
     private lateinit var bossSprites: Array<Bitmap>
     private var px = 90f; private var py = 270f
     private var lives = 3; private var score = 0; private var wave = 0
@@ -116,7 +121,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         bossSprites = Array(10) { i -> Sprites.enemy(bossPalette[i], bossPalette[i], ps, 5 + i) }
         bPB = Sprites.bullet(WHT, WGL, ps, true)
         bEB = Sprites.bullet(ORG, 0xFFFFD28C.toInt(), ps, false)
-        if (stars.isEmpty()) repeat(60) {
+        if (stars.isEmpty()) repeat(90) {
             val l = Random.nextInt(3)
             stars.add(Star(Random.nextFloat() * W, Random.nextFloat() * wh, floatArrayOf(8f, 16f, 28f)[l], if (l == 2) 1.6f else 1f))
         }
@@ -154,7 +159,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                     lx = e.x; ly = e.y; controlTouch = false
                     if (st == St.PLAY) {
                         val x = e.x / s; val y = e.y / s
-                        if (y >= wh - 34f && x >= W - 96f) {
+                        if (x >= W - 32f && y <= 30f) {
+                            st = St.PAUSE
+                            controlTouch = true
+                        } else if (y >= wh - 34f && x >= W - 96f) {
                             if (x >= W - 52f) fireLaser() else launchMissiles()
                             controlTouch = true
                         }
@@ -177,6 +185,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         when (id) {
             "play" -> startGame()
             "menu" -> st = St.MENU
+            "resume" -> st = St.PLAY
+            "pauseRestart" -> startGame()
             "lb" -> Play.showLeaderboard(act)
             "ach" -> Play.showAchievements(act)
             "signin" -> Play.signIn(act)
@@ -186,7 +196,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun buttons(): List<Btn> {
         val l = ArrayList<Btn>()
-        fun add(id: String, label: String, y: Float) { l.add(Btn(id, label, RectF(30f, y, 150f, y + 22f))) }
+        fun add(id: String, label: String, y: Float) { l.add(Btn(id, label, RectF(50f, y, 170f, y + 22f))) }
         when (st) {
             St.MENU -> {
                 val y = wh * 0.45f
@@ -196,6 +206,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 add("signin", if (Play.signedIn) "GOOGLE: ONLINE" else "GOOGLE SIGN-IN", y + 90f)
                 add("sound", if (sfx.enabled) "SOUND: ON" else "SOUND: OFF", y + 120f)
             }
+            St.PAUSE -> {
+                val y = wh * 0.42f
+                add("resume", "RESUME", y)
+                add("pauseRestart", "RESTART", y + 30f)
+                add("menu", "MAIN MENU", y + 60f)
+            }
             St.OVER -> { val y = wh * 0.58f; add("play", "RETRY", y); add("menu", "MENU", y + 30f) }
             else -> {}
         }
@@ -204,7 +220,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     // ---------- game logic ----------
     private fun startGame() {
-        bullets.clear(); enemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear()
+        bullets.clear(); enemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear(); blackHoles.clear()
         score = 0; lives = 3; wave = 0; kills = 0; invul = 2.2f; fireT = 0f; time = 0f
         weaponTimer = 0f; rapidTimer = 0f; shieldTimer = 0f; magnetTimer = 0f
         laserCooldown = 0f; missileCooldown = 0f
@@ -217,6 +233,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun spawnWave() {
         wave++
+        if (wave >= 3 && wave % 3 == 0 && blackHoles.size < 2) {
+            val side = if (Random.nextBoolean()) 1f else -1f
+            blackHoles.add(BlackHole(Random.nextFloat() * (W - 76f) + 38f, -18f, 48f + Random.nextFloat() * 12f, 72000f, side * (5f + Random.nextFloat() * 8f)))
+        }
         bannerT = 2.0f
         if (wave >= 10) ach(R.string.achievement_wave_10)
         if (wave % 5 == 0) {
@@ -257,11 +277,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (kills == 1) ach(R.string.achievement_first_kill)
         if (score >= 1000) ach(R.string.achievement_score_1000)
         if (e.type == 2) { ach(R.string.achievement_boss_slayer); bullets.removeAll { !it.mine } }
-        val dropChance = if (e.type == 2) 0.95f else 0.15f
+        val dropChance = if (e.type == 2) 0.95f else 0.24f
         if (Random.nextFloat() < dropChance) {
             val roll = Random.nextFloat()
             val kind = when {
-                lives <= 1 && roll < 0.10f -> 0
+                lives < 5 && roll < 0.28f -> 0
                 roll < 0.25f -> 1
                 roll < 0.39f -> 2
                 roll < 0.51f -> 3
@@ -348,7 +368,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun update(dt: Float) {
-        for (star in stars) { star.y += star.sp * dt; star.phase += dt * (1.2f + star.sp * 0.07f); if (star.y > wh) { star.y = 0f; star.x = Random.nextFloat() * W } }
+        for (star in stars) { star.y += star.sp * dt; star.phase += dt * (2.4f + star.sp * 0.16f); if (star.y > wh) { star.y = 0f; star.x = Random.nextFloat() * W } }
         for (p in parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt }
         parts.removeAll { it.life <= 0f }
         if (st == St.OVER) overT += dt
@@ -476,6 +496,15 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         enemyLasers.removeAll { it.warning <= 0f && it.active <= 0f }
         enemies.removeAll { it.y > wh + 12f }
 
+        // Gravitational wells bend both player and enemy projectiles as they pass nearby.
+        for (hole in blackHoles) {
+            hole.age += dt
+            hole.spin += dt * 1.8f
+            hole.y += 8f * dt
+            hole.x = (hole.x + sin(hole.age * 0.8f) * hole.drift * dt).coerceIn(18f, W - 18f)
+        }
+        blackHoles.removeAll { it.age > 11f || it.y > wh + 55f }
+        
         // Homing player missiles and four-lane support squadron sweep.
         for (missile in missiles) {
             missile.age += dt
@@ -510,7 +539,21 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         enemies.removeAll { it.dead }
 
         // bullets
-        for (b in bullets) { b.x += b.vx * dt; b.y += b.vy * dt }
+        for (b in bullets) {
+            for (hole in blackHoles) {
+                val dx = hole.x - b.x
+                val dy = hole.y - b.y
+                val d2 = dx * dx + dy * dy
+                if (d2 < hole.radius * hole.radius && d2 > 9f) {
+                    val distance = sqrt(d2)
+                    val pull = min(95f, hole.strength / (d2 + 100f)) * dt
+                    b.vx = (b.vx + dx / distance * pull).coerceIn(-220f, 220f)
+                    b.vy = (b.vy + dy / distance * pull).coerceIn(-220f, 220f)
+                }
+            }
+            b.x += b.vx * dt
+            b.y += b.vy * dt
+        }
         bullets.removeAll { it.y < -10f || it.y > wh + 10f || it.x < -10f || it.x > W + 10f }
 
         // floating pickups
@@ -645,22 +688,36 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         c.drawColor(BG)
         paint.style = Paint.Style.FILL
         for (star in stars) {
-            paint.color = STAR
-            paint.alpha = if (star.twinkle) (75f + (sin(star.phase) + 1f) * 90f).toInt().coerceIn(45, 240) else 190
-            c.drawRect(star.x * s, star.y * s, (star.x + star.sz) * s, (star.y + star.sz) * s, paint)
+            val pulse = (sin(star.phase) + 1f) * 0.5f
+            paint.color = if (star.twinkle) 0xFFBDEFFF.toInt() else STAR
+            paint.alpha = if (star.twinkle) (28f + pulse * 225f).toInt().coerceIn(20, 255) else 185
+            val size = star.sz * if (star.twinkle) (0.65f + pulse * 0.75f) else 1f
+            c.drawRect(star.x * s, star.y * s, (star.x + size) * s, (star.y + size) * s, paint)
         }
         paint.alpha = 255
         when (st) {
             St.MENU -> drawMenu(c)
             St.PLAY -> drawGame(c)
+            St.PAUSE -> { drawGame(c); drawPause(c) }
             St.OVER -> { drawGame(c); drawOver(c) }
         }
     }
 
     private fun drawGame(c: Canvas) {
+        for (hole in blackHoles) drawBlackHole(c, hole)
         for (e in enemies) {
             val sprite = when (e.type) { 2 -> bossSprites[e.t0.toInt().coerceIn(0, 9)]; 1 -> bE1; 3 -> bE2; 4 -> bE3; else -> bE0 }
             spr(c, sprite, e.x, e.y)
+            if (e.type != 2) {
+                val bw = max(10f, e.hw * 1.75f)
+                val top = e.y - e.hh - 4f
+                val frac = (e.hp.toFloat() / e.maxHp.toFloat()).coerceIn(0f, 1f)
+                paint.style = Paint.Style.FILL
+                paint.color = 0xCC222A35.toInt()
+                c.drawRect((e.x - bw / 2f) * s, top * s, (e.x + bw / 2f) * s, (top + 2.2f) * s, paint)
+                paint.color = if (frac > 0.55f) 0xFF54DDAA.toInt() else if (frac > 0.25f) 0xFFFFC857.toInt() else 0xFFFF5868.toInt()
+                c.drawRect((e.x - bw / 2f) * s, top * s, (e.x - bw / 2f + bw * frac) * s, (top + 2.2f) * s, paint)
+            }
         }
         for (item in items) drawItem(c, item)
         for (b in bullets) spr(c, if (b.mine) bPB else bEB, b.x, b.y)
@@ -690,7 +747,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             c.drawCircle(px * s, py * s, 16f * s, paint)
             paint.clearShadowLayer(); paint.style = Paint.Style.FILL
         }
-        if (st == St.PLAY && (invul <= 0f || (time * 12).toInt() % 2 == 0)) spr(c, bPlayer, px, py)
+        if ((st == St.PLAY || st == St.PAUSE) && (invul <= 0f || (time * 12).toInt() % 2 == 0)) spr(c, bPlayer, px, py)
         for (p in parts) {
             val k = 1f - p.life / p.max
             paint.color = if (k < 0.3f) WHT else if (k < 0.6f) YEL else RED
@@ -700,6 +757,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.alpha = 255
         text(c, "SCORE $score", 6f, 14f, 9f, YEL, Paint.Align.LEFT)
         for (i in 0 until lives) spr(c, bMini, W - 12f - i * 12f, 10f)
+        text(c, "HP", 7f, 27f, 6f, 0xFF9CEBFF.toInt(), Paint.Align.LEFT)
+        paint.style = Paint.Style.FILL
+        paint.color = 0xCC25313D.toInt()
+        c.drawRoundRect(18f * s, 21f * s, 72f * s, 25f * s, 1.8f * s, 1.8f * s, paint)
+        paint.color = if (lives >= 3) 0xFF55DDAA.toInt() else if (lives == 2) 0xFFFFC857.toInt() else 0xFFFF5968.toInt()
+        c.drawRoundRect(18f * s, 21f * s, (18f + 54f * lives / 5f) * s, 25f * s, 1.8f * s, 1.8f * s, paint)
         val powerLabel = when {
             shieldTimer > 0f -> "SHIELD " + (shieldTimer.toInt() + 1)
             rapidTimer > 0f -> "RAPID " + (rapidTimer.toInt() + 1)
@@ -715,6 +778,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 paint.color = 0xFF63DDBB.toInt(); c.drawPath(wing, paint)
             }
             drawWeaponControls(c)
+            drawPauseControl(c)
         }
         enemies.firstOrNull { it.type == 2 }?.let { bs ->
             text(c, "BOSS " + (bs.t0.toInt() + 1) + "/10", W / 2f, 17f, 7f, WHT)
@@ -727,6 +791,61 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val boss = wave % 5 == 0
             text(c, if (boss) "!! BOSS !!" else "WAVE $wave", W / 2, wh * 0.4f, 16f, if (boss) RED else WHT)
         }
+    }
+
+    private fun drawBlackHole(c: Canvas, hole: BlackHole) {
+        val cx = hole.x * s
+        val cy = hole.y * s
+        val r = hole.radius * s
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.1f * s
+        paint.color = 0xFF8C63FF.toInt()
+        c.drawCircle(cx, cy, r * (0.68f + 0.035f * sin(hole.spin)), paint)
+        paint.strokeWidth = 0.7f * s
+        paint.color = 0xFF35D9F2.toInt()
+        c.drawCircle(cx, cy, r * (0.84f + 0.025f * cos(hole.spin * 1.3f)), paint)
+        c.save()
+        c.rotate(Math.toDegrees(hole.spin.toDouble()).toFloat(), cx, cy)
+        paint.strokeWidth = 1.5f * s
+        paint.color = 0xFFFF75D8.toInt()
+        c.drawArc(cx - r, cy - r, cx + r, cy + r, 18f, 118f, false, paint)
+        c.drawArc(cx - r, cy - r, cx + r, cy + r, 198f, 118f, false, paint)
+        c.restore()
+        paint.style = Paint.Style.FILL
+        paint.color = 0xFF020308.toInt()
+        c.drawCircle(cx, cy, r * 0.52f, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.5f * s
+        paint.color = 0xFFB59BFF.toInt()
+        c.drawCircle(cx, cy, r * 0.54f, paint)
+        paint.style = Paint.Style.FILL
+    }
+
+    private fun drawPauseControl(c: Canvas) {
+        val left = (W - 31f) * s
+        val top = 5f * s
+        val right = (W - 7f) * s
+        val bottom = 27f * s
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 0.9f * s
+        paint.color = 0xFF9CEBFF.toInt()
+        c.drawRoundRect(left, top, right, bottom, 3f * s, 3f * s, paint)
+        paint.style = Paint.Style.FILL
+        c.drawRoundRect((W - 24f) * s, 10f * s, (W - 21f) * s, 22f * s, 1f * s, 1f * s, paint)
+        c.drawRoundRect((W - 17f) * s, 10f * s, (W - 14f) * s, 22f * s, 1f * s, 1f * s, paint)
+    }
+
+    private fun drawPause(c: Canvas) {
+        paint.style = Paint.Style.FILL
+        paint.color = 0xD9101722.toInt()
+        c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.2f * s
+        paint.color = 0xFF47DFFF.toInt()
+        c.drawRoundRect(25f * s, (wh * 0.34f) * s, 195f * s, (wh * 0.69f) * s, 8f * s, 8f * s, paint)
+        text(c, "PAUSED", W / 2f, wh * 0.395f, 19f, 0xFF9CEBFF.toInt())
+        paint.style = Paint.Style.FILL
+        drawButtons(c)
     }
 
     private fun drawWeaponControls(c: Canvas) {
