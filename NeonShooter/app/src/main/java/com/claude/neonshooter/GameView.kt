@@ -69,8 +69,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var droneLevel = prefs.getInt("upgrade_drone", 0).coerceIn(0, 2)
     private var weaponTimer = 0f
     private var rapidTimer = 0f; private var shieldTimer = 0f
-    private var rocketTimer = 0f; private var magnetTimer = 0f
-    private var rocketTimer = 0f
+private var rocketTimer = 0f; private var magnetTimer = 0f
     private var laserCooldown = 0f; private var missileCooldown = 0f
     private var controlTouch = false
     private var waiting = false; private var waveT = 0f; private var bannerT = 0f; private var overT = 0f
@@ -208,7 +207,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         bullets.clear(); enemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear()
         score = 0; lives = 3; wave = 0; kills = 0; invul = 2.2f; fireT = 0f; time = 0f
         weaponTimer = 0f; rapidTimer = 0f; shieldTimer = 0f; magnetTimer = 0f
-        laserCooldown = 0f; missileCooldown = 0f; rocketTimer = 0f
+        laserCooldown = 0f; missileCooldown = 0f
         px = W / 2; py = wh - 45f; waiting = true; waveT = 1.4f
         st = St.PLAY
         sfx.play("start")
@@ -359,13 +358,11 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         weaponTimer = max(0f, weaponTimer - dt)
         rapidTimer = max(0f, rapidTimer - dt)
         shieldTimer = max(0f, shieldTimer - dt)
-        rocketTimer = max(0f, rocketTimer - dt)
         magnetTimer = max(0f, magnetTimer - dt)
         laserCooldown = max(0f, laserCooldown - dt)
         missileCooldown = max(0f, missileCooldown - dt)
         for (beam in playerBeams) beam.life -= dt
         playerBeams.removeAll { it.life <= 0f }
-        rocketTimer = max(0f, rocketTimer - dt)
         if (fireT <= 0f) { fireT = if (rapidTimer > 0f) 0.075f else max(0.085f, 0.17f - (weaponLevel - 1) * 0.012f); shoot() }
 
         // waves
