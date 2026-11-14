@@ -218,24 +218,27 @@ g = "\n".join(g_lines) + "\n"
 
 # GAMEPLAY V5 - canonical weapons, permanent upgrades, boss attacks and touch controls
 if "# GAMEPLAY V5 - canonical weapons, permanent upgrades, boss attacks and touch controls" not in g:
+    g = g.replace(chr(1) + "if (e.type == 2) {", "if (e.type == 2) {")
     g = re.sub(r'(^    private var rocketTimer = 0f\n)+', '    private var rocketTimer = 0f\n', g, flags=re.M)
     g = re.sub(r'(^        rocketTimer = max\(0f, rocketTimer - dt\)\n)+', '        rocketTimer = max(0f, rocketTimer - dt)\n', g, flags=re.M)
-    g = g.replace(
-        '    private class Item(var x: Float, var y: Float, val type: Int) { var age = 0f }',
-        '''    private class Item(var x: Float, var y: Float, val type: Int) { var age = 0f }
+    if 'private class PlayerBeam' not in g:
+        g = g.replace(
+            '    private class Item(var x: Float, var y: Float, val type: Int) { var age = 0f }',
+            '''    private class Item(var x: Float, var y: Float, val type: Int) { var age = 0f }
     private class PlayerBeam(val x: Float, val bottom: Float, val width: Float, var life: Float)
     private class Missile(var x: Float, var y: Float, var vx: Float, var vy: Float, val damage: Int, var age: Float = 0f)
     private class EnemyLaser(var x: Float, var warning: Float, var active: Float, val width: Float, val drift: Float)
     private class SweepShip(var x: Float, var y: Float)'''
-    )
-    g = g.replace(
-        '    private class Star(var x: Float, val y0: Float, val sp: Float, val sz: Float) { var y = y0 }',
-        '''    private class Star(var x: Float, val y0: Float, val sp: Float, val sz: Float) {
+        )
+    if 'var phase = Random.nextFloat()' not in g:
+        g = g.replace(
+            '    private class Star(var x: Float, val y0: Float, val sp: Float, val sz: Float) { var y = y0 }',
+            '''    private class Star(var x: Float, val y0: Float, val sp: Float, val sz: Float) {
         var y = y0
         var phase = Random.nextFloat() * 6.283f
         val twinkle = Random.nextFloat() < 0.42f
     }'''
-    )
+        )
     old_power_fields = '''    private var weaponLevel = 1; private var weaponTimer = 0f
     private var rapidTimer = 0f; private var shieldTimer = 0f
     private var rocketTimer = 0f'''
@@ -424,9 +427,10 @@ if "# GAMEPLAY V5 - canonical weapons, permanent upgrades, boss attacks and touc
     }
 
     private fun update(dt: Float)'''
-    g, shoot_count = re.subn(shoot_pattern, shoot_replacement, g, count=1)
-    if shoot_count != 1:
-        raise RuntimeError("V5: could not install player laser and missile controls")
+    if "private fun fireLaser()" not in g:
+        g, shoot_count = re.subn(shoot_pattern, shoot_replacement, g, count=1)
+        if shoot_count != 1:
+            raise RuntimeError("V5: could not install player laser and missile controls")
 
     touch_pattern = r'    override fun onTouchEvent\(e: MotionEvent\): Boolean \{[\s\S]*?\n    \}\n\n    private fun onBtn'
     touch_replacement = r'''    override fun onTouchEvent(e: MotionEvent): Boolean {
@@ -576,9 +580,10 @@ if "# GAMEPLAY V5 - canonical weapons, permanent upgrades, boss attacks and touc
             }
             items.add(Item(e.x, e.y, kind))
         }'''
-    g, drop_count = re.subn(drop_pattern, drop_replacement, g, count=1)
-    if drop_count != 1:
-        raise RuntimeError("V5: pickup drop table not found")
+    if "val dropChance = if (e.type == 2) 0.95f else 0.15f" not in g:
+        g, drop_count = re.subn(drop_pattern, drop_replacement, g, count=1)
+        if drop_count != 1:
+            raise RuntimeError("V5: pickup drop table not found")
     g = g.replace(
         '''            4 -> 0xFFFF8A35.toInt()
             else -> 0xFFB68CFF.toInt()''',
