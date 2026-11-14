@@ -23,6 +23,8 @@ jobs:
         run: |
           cat patch_progression_17.part01 patch_progression_17.part02 patch_progression_17.part03 patch_progression_17.part04 > patch_game_progression.py
           python3 patch_game_progression.py
+      - name: Apply Neon Shooter 1.8 health HUD, upgrade cards and EMP ability
+        run: python3 patch_game_v18.py
       - name: Upload patched Android project ZIP
         uses: actions/upload-artifact@v4
         with:
