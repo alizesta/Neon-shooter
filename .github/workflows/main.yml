@@ -11,6 +11,8 @@ jobs:
         run: rm -rf NeonShooter && unzip -oq NeonShooter_*.zip
       - name: Apply 2D art and gameplay refinement
         run: python3 patch_game_v3.py
+      - name: Add progression, ships, bosses and dynamic events
+        run: python3 patch_game_features.py
       - name: Upload patched Android project ZIP
         uses: actions/upload-artifact@v4
         with:
