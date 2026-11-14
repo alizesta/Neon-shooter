@@ -153,7 +153,7 @@ draw_item = """    private fun drawItem(c: Canvas, item: Item) {
 g = g[:start] + draw_item + g[end:]
 game_file.write_text(g)
 
-// GAMEPLAY V4: remove all artificial bloom, flatten every sprite, improve projectile feel,
+# GAMEPLAY V4: remove all artificial bloom, flatten every sprite, improve projectile feel,
 // and give successive bosses distinct movement patterns.
 g = g.replace("private val YEL = 0xFFFFEA00.toInt()", "private val YEL = 0xFF35D9F2.toInt()")
 g = g.replace("private val YEL = 0xFFFFD400.toInt()", "private val YEL = 0xFF35D9F2.toInt()")
