@@ -1627,6 +1627,75 @@ if "000000000000" not in strings_text:
         '<string name="app_name">Neon Shooter</string>\n    <string name="app_id" translatable="false">000000000000</string>\n    <string name="leaderboard_high_score" translatable="false">REPLACE_ME</string>\n    <string name="achievement_first_kill" translatable="false">REPLACE_ME</string>\n    <string name="achievement_score_1000" translatable="false">REPLACE_ME</string>\n    <string name="achievement_boss_slayer" translatable="false">REPLACE_ME</string>\n    <string name="achievement_wave_10" translatable="false">REPLACE_ME</string>')
 strings_file.write_text(strings_text, encoding="utf-8")
 
+# Final Persian localization and recognizable pickup icon pass.
+game_text = game_file.read_text(encoding="utf-8")
+icon_start = game_text.find("            else -> { // guided rocket")
+if icon_start < 0:
+    raise RuntimeError("pickup icon block not found")
+icon_end = game_text.find("\n            }\n        }\n        c.restore()", icon_start)
+if icon_end < 0:
+    raise RuntimeError("pickup icon block end not found")
+icon_cases = """            5 -> { // guided missile
+                val rocket = Path().apply { moveTo(0f, -7f); quadTo(4f, -2f, 2.5f, 3f); lineTo(0f, 5f); lineTo(-2.5f, 3f); quadTo(-4f, -2f, 0f, -7f); close() }
+                c.drawPath(rocket, p)
+                c.drawLine(-2f, 2f, -5f, 5f, p); c.drawLine(2f, 2f, 5f, 5f, p)
+                c.drawLine(0f, 5f, 0f, 7f, p)
+            }
+            6 -> { // laser beam
+                c.drawLine(0f, -7f, 0f, 7f, p)
+                c.drawLine(-3f, -4f, 3f, -4f, p); c.drawLine(-3f, 4f, 3f, 4f, p)
+                c.drawLine(-5f, -6f, -3f, -4f, p); c.drawLine(5f, 6f, 3f, 4f, p)
+            }
+            7 -> { // support drone
+                c.drawCircle(0f, 0f, 3f, p)
+                c.drawLine(-7f, -3f, -3f, -1f, p); c.drawLine(3f, -1f, 7f, -3f, p)
+                c.drawLine(-6f, 3f, -2f, 2f, p); c.drawLine(2f, 2f, 6f, 3f, p)
+                c.drawCircle(-7f, -3f, 1.2f, p); c.drawCircle(7f, -3f, 1.2f, p)
+            }
+            8 -> { // magnet
+                val magnet = Path().apply { moveTo(-5f, -5f); lineTo(-5f, 2f); quadTo(-5f, 7f, 0f, 7f); quadTo(5f, 7f, 5f, 2f); lineTo(5f, -5f) }
+                c.drawPath(magnet, p)
+                c.drawLine(-7f, -5f, -3f, -5f, p); c.drawLine(3f, -5f, 7f, -5f, p)
+            }
+            else -> { // squadron
+                for (x in floatArrayOf(-5f, 0f, 5f)) {
+                    val ship = Path().apply { moveTo(x, -5f); lineTo(x + 3f, 4f); lineTo(x, 2f); lineTo(x - 3f, 4f); close() }
+                    c.drawPath(ship, p)
+                }
+            }"""
+game_text = game_text.substring(0, icon_start) + icon_cases + game_text.substring(icon_end + "\n            }".length)
+game_text = game_text.replace("c.drawCircle(0f, 0f, 8f, paint)", "c.drawCircle(0f, 0f, 9f, paint)")
+game_text = game_text.replace("c.drawCircle(0f, 0f, 6.4f, paint)", "c.drawCircle(0f, 0f, 7.2f, paint)")
+# Translate every player-facing label while keeping internal IDs and code identifiers untouched.
+val_map = {
+    '"PAUSED"':'"بازی متوقف شد"',
+    '"RETRY"':'"شروع دوباره"',
+    '"MENU"':'"منو"',
+    '"MAIN MENU"':'"منوی اصلی"',
+    '"RESUME"':'"ادامه"',
+    '"RESTART"':'"شروع مجدد"',
+    '"MISSILE"':'"موشک"',
+    '"LASER"':'"لیزر"',
+    '"HP"':'"جان"',
+    '"BOSS "':'"غول "',
+    '"MAGNET "':'"آهنربا "',
+    '"WEAPON LV "':'"قدرت سلاح "',
+    '"POWER "':'"قدرت "',
+    '"SHIELD "':'"سپر "',
+    '"PIERCING "':'"گلوله نفوذی "',
+    '"SCORE"':'"امتیاز"',
+    '"WAVE"':'"موج"',
+    '"GAME OVER"':'"پایان بازی"',
+    '"START"':'"شروع بازی"',
+    '"LEADERBOARD"':'"جدول امتیازات"',
+    '"ACHIEVEMENTS"':'"دستاوردها"',
+    '"HIGH SCORE"':'"بیشترین امتیاز"',
+    '"TAP TO START"':'"برای شروع لمس کن"',
+}
+for old, new in val_map.items():
+    game_text = game_text.replace(old, new)
+game_file.write_text(game_text, encoding="utf-8")
+
 # Refresh the workspace archive for this build only. CI must not push from a runner.
 tmp = archive.with_suffix(".tmp.zip")
 with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
