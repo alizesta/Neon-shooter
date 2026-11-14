@@ -13,6 +13,11 @@ def rep(old, new, label):
     if old not in g: raise RuntimeError("Polish patch anchor missing: " + label)
     g = g.replace(old, new, 1)
 
+# If every upgrade is capped, skip the empty choice screen instead of trapping the run.
+rep('if (wave > 0 && wave % 2 == 0 && intermissionHandledWave != wave) { intermissionHandledWave = wave; prepareUpgradeChoices(); st = St.UPGRADE; waiting = true; waveT = 0.8f; return }',
+    'if (wave > 0 && wave % 2 == 0 && intermissionHandledWave != wave) { intermissionHandledWave = wave; prepareUpgradeChoices(); st = if (upgradeChoices.isNotEmpty()) St.UPGRADE else St.PLAY; waiting = true; waveT = 0.8f; return }',
+    "skip empty capped upgrade screen")
+
 # Five ranks per ability, with maxed abilities removed from the choice deck.
 rep("    private var droneLevel = 0\n", "    private var droneLevel = 0\n    private var rapidLevel = 0\n    private var dashRank = 0\n    private var shieldRank = 0\n", "upgrade rank fields")
 rep('''        val pool = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "rapid")
