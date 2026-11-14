@@ -1314,7 +1314,7 @@ v7rep("val hp = when (type) { 1 -> 3 + wave / 10; 3 -> 2 + wave / 12; 4 -> 2; el
 v7rep("42 + wave * 7", "110 + wave * 18", "boss hp")
 v7rep("val dropChance = if (e.type == 2) 0.95f else 0.24f",
       "val dropChance = if (e.type == 2) 0.88f else 0.15f", "drop chance")
-v7rep("                roll < 0.51f -> 4", "                roll < 0.42f -> 4", "nuke chance")
+v7rep("                roll < 0.61f -> 4", "                roll < 0.54f -> 4", "nuke chance")
 v7rep("                else -> 9\n", "                roll < 0.985f -> 9\n                else -> 10\n", "piercing drop")
 v7rep("val count = min(1 + (weaponLevel - 1) * 2, 9)", "val count = min(1 + (weaponLevel - 1), 5)", "bullet cap")
 v7rep("else max(0.085f, 0.17f - (weaponLevel - 1) * 0.012f)", "else 0.19f", "fire rate")
