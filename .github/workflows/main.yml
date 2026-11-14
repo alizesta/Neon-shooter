@@ -18,11 +18,31 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
-      - name: Build debug APK
-        run: cd NeonShooter && gradle assembleDebug --no-daemon
+      - name: Configure persistent release signing
+        env:
+          KEYSTORE_B64: ${{ secrets.NEON_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/neon-shooter-release.jks"
+          fi
+      - name: Build APK
+        env:
+          NEON_KEYSTORE_PATH: ${{ runner.temp }}/neon-shooter-release.jks
+          NEON_KEYSTORE_PASSWORD: ${{ secrets.NEON_KEYSTORE_PASSWORD }}
+          NEON_KEY_ALIAS: ${{ secrets.NEON_KEY_ALIAS }}
+          NEON_KEY_PASSWORD: ${{ secrets.NEON_KEY_PASSWORD }}
+        run: |
+          cd NeonShooter
+          if [ -f "$NEON_KEYSTORE_PATH" ]; then
+            gradle assembleRelease --no-daemon
+            mkdir -p app/build/outputs/apk/debug
+            cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/debug/app-debug.apk
+          else
+            gradle assembleDebug --no-daemon
+          fi
       - name: Publish refined APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gameplay-v5
-          name: Neon Shooter - Combat, Weapons & Bosses V5
+          tag_name: gameplay-v6
+          name: Neon Shooter - Pause, HP & Gravity V6
           files: NeonShooter/app/build/outputs/apk/debug/app-debug.apk
