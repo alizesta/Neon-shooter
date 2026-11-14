@@ -484,8 +484,9 @@ rep('                    e.hp--; boom(b.x, b.y, 2, 25f)\n                    if 
 # New enemy sprites, combo and event rendering.
 rep('            val sprite = when (e.type) { 2 -> bossSprites[e.t0.toInt().coerceIn(0, 9)]; 1 -> bE1; 3 -> bE2; 4 -> bE3; else -> bE0 }',
     '            val sprite = when (e.type) { 2 -> bossSprites[e.t0.toInt().coerceIn(0, 9)]; 1 -> bE1; 3 -> bE2; 4 -> bE3; 5 -> bossSprites[5]; 6 -> bossSprites[6]; else -> bE0 }', "enemy role rendering")
-rep('            if (e.type != 2) {',
-"""            if (e.type == 2 && e.warning > 0f) {
+rep('            spr(c, sprite, e.x, e.y)\n            if (e.type != 2) {',
+"""            spr(c, sprite, e.x, e.y)
+            if (e.type == 2 && e.warning > 0f) {
                 paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.1f * s
                 paint.color = 0xFFFFD45C.toInt()
                 c.drawLine(e.x * s, (e.y + 8f) * s, px * s, py * s, paint)
