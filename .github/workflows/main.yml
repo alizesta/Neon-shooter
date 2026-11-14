@@ -23,6 +23,6 @@ jobs:
       - name: Publish refined APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gameplay-v3
-          name: Neon Shooter - 2D Visual Refinement
+          tag_name: gameplay-v4
+          name: Neon Shooter - Gameplay & Flat Art V4
           files: NeonShooter/app/build/outputs/apk/debug/app-debug.apk
