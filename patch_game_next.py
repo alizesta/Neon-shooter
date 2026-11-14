@@ -326,6 +326,13 @@ if strings_file.exists():
     strings = re.sub(r'\s*<string name="(?:app_id|leaderboard_high_score)"[^>]*>.*?</string>', "", strings)
     strings_file.write_text(strings, encoding="utf-8")
 
+# Remove the unused Google Play Games manifest hook as well.
+manifest_file = root / "app/src/main/AndroidManifest.xml"
+if manifest_file.exists():
+    manifest = manifest_file.read_text(encoding="utf-8")
+    manifest = re.sub(r'\s*<meta-data android:name="com\.google\.android\.gms\.games\.APP_ID"[^>]*/>', "", manifest)
+    manifest_file.write_text(manifest, encoding="utf-8")
+
 # Bump package version for in-place installation over 1.5.
 gradle = gradle_file.read_text(encoding="utf-8")
 gradle = re.sub(r"versionCode\s*=\s*(\d+)", lambda m: "versionCode = " + str(int(m.group(1)) + 1), gradle, count=1)
