@@ -29,6 +29,15 @@ jobs:
           source.write_text(text, encoding="utf-8")
           print(f"Renamed {replacements} unqualified draw() occurrence(s)")
           PY
+      - name: Inspect game source
+        run: |
+          echo "=== SOURCE TREE ==="
+          find NeonShooter/app/src/main -type f | sort
+          echo "=== KOTLIN SOURCE ==="
+          while IFS= read -r file; do
+            echo "===== $file ====="
+            cat "$file"
+          done < <(find NeonShooter/app/src/main -type f -name '*.kt' | sort)
       - run: cd NeonShooter && gradle assembleDebug --no-daemon
       - uses: softprops/action-gh-release@v2
         with:
