@@ -459,6 +459,12 @@ rep('            if (magnetTimer > 0f) {\n                item.x += (px - item.x
     '            if (magnetTimer > 0f || magnetLevel > 0) {\n                val pullRate = if (magnetLevel > 0 && shieldLevel > 0) 5.2f else if (magnetLevel > 0) 3.8f else 3.0f\n                item.x += (px - item.x) * min(1f, pullRate * dt)\n                item.y += (py - item.y) * min(1f, pullRate * dt)', "magnet shield combo")
 rep('                10 -> piercingTimer = max(piercingTimer, 8f)\n                11 -> enemySlowTimer = max(enemySlowTimer, 10f)\n                else -> activateSquadron()',
     '                10 -> piercingTimer = max(piercingTimer, 8f)\n                11 -> enemySlowTimer = max(enemySlowTimer, 10f)\n                12 -> { credits += 300; score += 500; lives = min(5, lives + 1); prefs.edit().putInt("credits", credits).apply() }\n                else -> activateSquadron()', "slowdown and golden crate pickup")
+# Golden crate has its own gold color and chest icon.
+rep('            11 -> 0xFFFFD45C.toInt()\n            else -> 0xFFB68CFF.toInt()',
+    '            11 -> 0xFFFFD45C.toInt()\n            12 -> 0xFFFFC94A.toInt()\n            else -> 0xFFB68CFF.toInt()', "gold crate color")
+rep('            else -> { // squadron\n                for (x in floatArrayOf(-5f, 0f, 5f)) {',
+    '            12 -> { // golden crate\n                c.drawRoundRect(-5f, -4f, 5f, 5f, 1.2f, 1.2f, p)\n                c.drawLine(-5f, -1f, 5f, -1f, p); c.drawLine(0f, -4f, 0f, 5f, p)\n                c.drawLine(-2f, -6f, 2f, -6f, p)\n            }\n            else -> { // squadron\n                for (x in floatArrayOf(-5f, 0f, 5f)) {', "gold crate icon")
+
 # Strengthen damage, chain-lightning jumps from each player hit to a nearby enemy.
 rep('                    e.hp--; boom(b.x, b.y, 2, 25f)\n                    if (e.hp <= 0) kill(e)',
 """                    e.hp -= 1 + bonusDamage + if (currentShip == 3) 1 else 0
@@ -494,8 +500,8 @@ rep('        for (b in bullets) spr(c, if (b.mine) bPB else bEB, b.x, b.y)',
             paint.alpha = 255; paint.style = Paint.Style.FILL
         }
         for (b in bullets) spr(c, if (b.mine) bPB else bEB, b.x, b.y)""", "lightning arcs")
-rep('        if (shieldTimer > 0f) {',
-    '        if (shieldTimer > 0f || shieldLevel > 0) {', "reflective shield visual")
+rep('        paint.style = Paint.Style.FILL\n        if (shieldTimer > 0f) {',
+    '        paint.style = Paint.Style.FILL\n        if (shieldTimer > 0f || shieldLevel > 0) {', "reflective shield visual")
 rep('                val dx = if (i == 0) -17f else 17f\n                val wing = Path().apply { moveTo((px + dx) * s, (py - 5f) * s); lineTo((px + dx + 4f) * s, (py + 3f) * s); lineTo((px + dx) * s, (py + 1f) * s); lineTo((px + dx - 4f) * s, (py + 3f) * s); close() }',
     '                val angle = time * 2.25f + i * PI.toFloat()\n                val dx = cos(angle) * 18f\n                val dy = sin(angle) * 10f\n                val wing = Path().apply { moveTo((px + dx) * s, (py + dy - 5f) * s); lineTo((px + dx + 4f) * s, (py + dy + 3f) * s); lineTo((px + dx) * s, (py + dy + 1f) * s); lineTo((px + dx - 4f) * s, (py + dy + 3f) * s); close() }', "orbiting drone rendering")
 rep('        text(c, "SCORE $score", 6f, 14f, 9f, YEL, Paint.Align.LEFT)',
