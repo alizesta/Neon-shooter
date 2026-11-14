@@ -391,6 +391,10 @@ rep('                } else if (e.type == 4) {\n                    e.x = (e.bx 
                     e.x += (targetX - e.x).coerceIn(-shift, shift)
                 } else {""", "healer and hunter movement")
 
+# The baseline already opens the boss branch; remove the duplicate opener introduced above.
+rep('            if (e.type == 2) {\n            if (e.type == 2) {',
+    '            if (e.type == 2) {', "duplicate boss branch opener")
+
 # Boss attack warnings: a visible wind-up before each damaging pattern.
 rep('            if (e.fire <= 0f) {\n                if (e.type == 2) {',
 """            if (e.fire <= 0f) {
