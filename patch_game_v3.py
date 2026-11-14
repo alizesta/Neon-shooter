@@ -1735,7 +1735,7 @@ slow_game_replace(
 
 # Enemy movement, age, firing cadence, and boss patterns use enemyDt only.
 for old, new, label in [
-    ("        val summonedEnemies = ArrayList<E>()\\n        for (e in enemies) {", "        val summonedEnemies = ArrayList<E>()\\n        for (e in enemies) {\\n            e.age += enemyDt", "enemy animation clock"),
+    ("        val summonedEnemies = ArrayList<E>()\n        for (e in enemies) {", "        val summonedEnemies = ArrayList<E>()\n        for (e in enemies) {\n            e.age += enemyDt", "enemy animation clock"),
     ("if (e.y < 42f) e.y += 32f * dt", "if (e.y < 42f) e.y += 32f * enemyDt", "boss entry speed"),
     ("coerceIn(-55f * dt, 55f * dt)", "coerceIn(-55f * enemyDt, 55f * enemyDt)", "boss tracking speed"),
     ("e.y += spd * dt", "e.y += spd * enemyDt", "enemy descent"),
