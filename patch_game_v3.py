@@ -290,7 +290,15 @@ sprites_file.write_text(sp)
 play = play_file.read_text()
 if "import android.widget.Toast" not in play:
     play = play.replace("import com.google.android.gms.games.PlayGames", "import com.google.android.gms.games.PlayGames\nimport android.widget.Toast")
-play = "\n".join(dict.fromkeys(play.splitlines())) + "\n"
+play_lines = []
+toast_seen = False
+for line in play.splitlines():
+    if line == "import android.widget.Toast":
+        if toast_seen:
+            continue
+        toast_seen = True
+    play_lines.append(line)
+play = "\n".join(play_lines) + "\n"
 play = play.replace("""                signedIn = t.isSuccessful && t.result.isAuthenticated
             }
         } catch (e: Throwable) {}
