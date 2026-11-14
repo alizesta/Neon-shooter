@@ -39,6 +39,12 @@ def strip_google_play_games():
         'add("sound", if (sfx.enabled) "SOUND: ON" else "SOUND: OFF", y + 30f)',
         "sound menu placement",
     )
+    replace_regex(
+        GAME,
+        r'add\("ship", "SHIP: " \+ shipName\(\), y \+ 150f\)',
+        'add("ship", "SHIP: " + shipName(), y + 60f)',
+        "ship menu placement",
+    )
     replace_regex(GAME, r'^\s*private val unlocked = HashSet<Int>\(\)\s*\n', "", "achievement tracking state")
     replace_regex(GAME, r'^\s*private fun ach\(resId: Int\) \{ if \(unlocked\.add\(resId\)\) Play\.unlock\(act, resId\) \}\s*\n', "", "achievement helper")
     for pattern, label in [
