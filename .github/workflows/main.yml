@@ -23,7 +23,7 @@ jobs:
 
           source = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt")
           text = source.read_text(encoding="utf-8")
-          text, replacements = re.subn(r"(?<![\\w.])draw(?=\\s*\\()", "renderGameFrame", text)
+          text, replacements = re.subn(r"(?<![\w.])draw(?=\s*\()", "renderGameFrame", text)
           if replacements == 0:
               raise SystemExit("Expected unqualified draw() method or call was not found")
           source.write_text(text, encoding="utf-8")
