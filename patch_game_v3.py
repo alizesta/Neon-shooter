@@ -12,9 +12,9 @@ main_file = base / "MainActivity.kt"
 
 g = game_file.read_text()
 def rep(src, old, new, label):
+    if new in src:
+        return src
     if old not in src:
-        if new in src:
-            return src
         raise SystemExit("Missing patch anchor: " + label)
     return src.replace(old, new, 1)
 
@@ -180,6 +180,15 @@ for line in g.splitlines():
         continue
     g_lines.append(line)
 g = "\n".join(g_lines) + "\n"
+g_lines = []
+seen_g = set()
+for line in g.splitlines():
+    if ("private var rocketTimer" in line or "private lateinit var bE2" in line or "private lateinit var bE3" in line):
+        if line in seen_g:
+            continue
+        seen_g.add(line)
+    g_lines.append(line)
+g = "\n".join(g_lines) + "\n"
 game_file.write_text(g)
 
 # Flat 2D ship and enemy art; replace blur-mask glows with smooth concentric strokes.
@@ -271,11 +280,17 @@ sp = sp.replace("""        for (i in 3 downTo 1) {
         }""", "")
 sp = sp.replace("val width = if (player) 3 else 4", "val width = if (player) 3 else 3")
 sp = sp.replace("val height = if (player) 8 else 4", "val height = if (player) 5 else 4")
+print("SPRITES_DEBUG_BEGIN")
+for n, line in enumerate(sp.splitlines(), 1):
+    print(f"{n}: {line}")
+print("SPRITES_DEBUG_END")
 sprites_file.write_text(sp)
 
 # Google Play Games sign-in: initialize status on launch and expose failures instead of swallowing them.
 play = play_file.read_text()
-play = play.replace("import com.google.android.gms.games.PlayGames", "import com.google.android.gms.games.PlayGames\nimport android.widget.Toast")
+if "import android.widget.Toast" not in play:
+    play = play.replace("import com.google.android.gms.games.PlayGames", "import com.google.android.gms.games.PlayGames\nimport android.widget.Toast")
+play = "\n".join(dict.fromkeys(play.splitlines())) + "\n"
 play = play.replace("""                signedIn = t.isSuccessful && t.result.isAuthenticated
             }
         } catch (e: Throwable) {}
@@ -308,7 +323,8 @@ play = play.replace("""                signedIn = t.isSuccessful && t.result.isA
 play_file.write_text(play)
 
 main = main_file.read_text()
-main = main.replace("        setContentView(GameView(this))", "        setContentView(GameView(this))\n        Play.check(this)")
+if "Play.check(this)" not in main:
+    main = main.replace("        setContentView(GameView(this))", "        setContentView(GameView(this))\n        Play.check(this)")
 main_file.write_text(main)
 
 # Update archive, commit the source archive, then let CI build the APK.
