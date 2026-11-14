@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+"""Neon Shooter 1.7: five-slot progression, 20 abilities, ship legendaries and health layers."""
+from pathlib import Path
+import re
+import zipfile
+
+root = Path("NeonShooter")
+game_file = root / "app/src/main/java/com/claude/neonshooter/GameView.kt"
+gradle_file = root / "app/build.gradle.kts"
+g = game_file.read_text(encoding="utf-8")
+
+def rep(old, new, label):
+    global g
+    if new in g:
+        return
+    if old not in g and label == "20-ability five-slot deck":
+        previous = '''    private fun prepareUpgradeChoices() {
+        val all = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "rapid",
+            "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix")
+        val eligible = all.filter { id ->
+            abilityRank(id) < 5 && (wave > 50 || id in selectedAbilities || selectedAbilities.size < 5 && id !in selectedAbilities)
+        }
+        upgradeChoices = eligible.shuffled().take(3)
+        if (upgradeChoices.isEmpty()) { st = St.PLAY; waiting = true; waveT = 0.75f }
+    }'''
+        if previous in g:
+            g = g.replace(previous, new, 1)
+            return
+    if old not in g and label == "loadout capacity information":
+        previous = '''        text(c, if (extraAbilitiesUnlocked) "CHOOSE ONE  •  " + selectedAbilities.size + " UNLOCKED" else "CHOOSE ONE  •  " + selectedAbilities.size + "/5 SLOTS", W / 2f, wh * 0.37f, 11f, 0xFF9CEBFF.toInt())
+        text(c, if (wave <= 50) "MAX FIVE ABILITIES UNTIL LEVEL 50" else "NEW ABILITIES UNLOCKED", W / 2f, wh * 0.405f, 6f, 0xFFFFD45C.toInt())'''
+        if previous in g:
+            g = g.replace(previous, new, 1)
+            return
+    if old not in g:
+        raise RuntimeError("Progression patch anchor missing: " + label)
+    g = g.replace(old, new, 1)
+
+# New ranks and run-state.  The first five unique picks are the pre-level-50 loadout.
+rep('    private var shieldRank = 0\n', '''    private var shieldRank = 0
+    private var hullRank = 0
+    private var healthRegenRank = 0
+    private var armorRank = 0
+    private var criticalRank = 0
+    private var overdriveRank = 0
+    private var explosiveRank = 0
+    private var piercingRank = 0
+    private var stasisRank = 0
+    private var scavengerRank = 0
+    private var multishotRank = 0
+    private var phoenixRank = 0
+    private val selectedAbilities = linkedSetOf<String>()
+    private var extraAbilitiesUnlocked = false
+    private var healthRegenTimer = 0f
+    private var phoenixUsed = false
+    private var shopHandledWave = -1
+    private var upgradeHandledWave = -1
+    private var legendaryTime = 0f
+    private var legendaryCooldown = 0f
+''', "new ability ranks and legendary state")
+
+# Twenty selectable abilities.  Before level 51, only five distinct abilities can be selected;
+# their ranks can then be raised to five.  After level 50, the remaining abilities join the deck.
+rep('''    private fun prepareUpgradeChoices() {
+        val pool = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "rapid").filter { id ->
+            when (id) {
+                "firepower" -> weaponLevel < 5
+                "missile" -> missileLevel < 5
+                "laser" -> laserLevel < 5
+                "drone" -> droneLevel < 5
+                "magnet" -> magnetLevel < 5
+                "shield" -> shieldRank < 5
+                "dash" -> dashRank < 5
+                "chain" -> chainLevel < 5
+                "hull" -> lives < 5
+                "rapid" -> rapidLevel < 5
+                else -> false
+            }
+        }
+        upgradeChoices = pool.shuffled().take(3)
+        if (upgradeChoices.isEmpty()) { st = St.PLAY; waiting = true; waveT = 0.75f }
+    }''', '''    private fun abilityRank(id: String): Int = when (id) {
+        "firepower" -> weaponLevel
+        "missile" -> missileLevel
+        "laser" -> laserLevel
+        "drone" -> droneLevel
+        "magnet" -> magnetLevel
+        "shield" -> shieldRank
+        "dash" -> dashRank
+        "chain" -> chainLevel
+        "hull" -> hullRank
+        "rapid" -> rapidLevel
+        "health_regen" -> healthRegenRank
+        "armor" -> armorRank
+        "critical" -> criticalRank
+        "overdrive" -> overdriveRank
+        "explosive" -> explosiveRank
+        "piercing" -> piercingRank
+        "stasis" -> stasisRank
+        "scavenger" -> scavengerRank
+        "multishot" -> multishotRank
+        "phoenix" -> phoenixRank
+        else -> 5
+    }
+
+    private fun prepareUpgradeChoices() {
+        val all = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "rapid",
+            "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix")
+        if (!extraAbilitiesUnlocked && wave > 50 && selectedAbilities.size >= 5 && selectedAbilities.all { abilityRank(it) >= 5 }) {
+            extraAbilitiesUnlocked = true
+        }
+        val eligible = all.filter { id ->
+            abilityRank(id) < 5 && (id in selectedAbilities || selectedAbilities.size < 5 || extraAbilitiesUnlocked)
+        }
+        upgradeChoices = eligible.shuffled().take(3)
+        if (upgradeChoices.isEmpty()) { st = St.PLAY; waiting = true; waveT = 0.75f }
+    }''', "20-ability five-slot deck")
+
+# Upgrade effects and 5-rank caps.
+rep('''            "hull" -> lives = min(5, lives + 1)
+            "rapid" -> { rapidLevel = min(5, rapidLevel + 1); rapidTimer = max(rapidTimer, 8f + rapidLevel * 2f) }
+        }''', '''            "hull" -> { hullRank = min(5, hullRank + 1); lives = min(10, lives + 1) }
+            "rapid" -> { rapidLevel = min(5, rapidLevel + 1); rapidTimer = max(rapidTimer, 8f + rapidLevel * 2f) }
+            "health_regen" -> { healthRegenRank = min(5, healthRegenRank + 1); healthRegenTimer = min(healthRegenTimer, 5f) }
+            "armor" -> armorRank = min(5, armorRank + 1)
+            "critical" -> criticalRank = min(5, criticalRank + 1)
+            "overdrive" -> { overdriveRank = min(5, overdriveRank + 1); fireRateBonus = min(0.58f, fireRateBonus + 0.075f) }
+            "explosive" -> explosiveRank = min(5, explosiveRank + 1)
+            "piercing" -> piercingRank = min(5, piercingRank + 1)
+            "stasis" -> stasisRank = min(5, stasisRank + 1)
+            "scavenger" -> scavengerRank = min(5, scavengerRank + 1)
+            "multishot" -> multishotRank = min(5, multishotRank + 1)
+            "phoenix" -> phoenixRank = min(5, phoenixRank + 1)
+        }''', "new ability effects")
+rep('''        applyUpgrade(upgradeChoices[index])
+        upgradeChoices = emptyList()''', '''        val chosen = upgradeChoices[index]
+        selectedAbilities.add(chosen)
+        applyUpgrade(chosen)
+        upgradeChoices = emptyList()''', "track five selected abilities")
+
+# Hull/health can fill a second health bar.  Hearts and hull upgrades may raise lives to ten.
+rep('''                lives < 5 && roll < 0.28f -> 0''', '''                lives < 10 && roll < 0.28f -> 0''', "heart drop at second health tier")
+rep('''                0 -> score += 100''', '''                0 -> { lives = min(10, lives + 1); score += 100 }''', "heart pickup restores hull")
+rep('''        text(c, "×".repeat(lives), 80f, 27f, 7f, 0xFFFFD45C.toInt(), Paint.Align.LEFT)''', '''        if (lives > 5) text(c, "2x", 77f, 31f, 7f, 0xFFFFC857.toInt(), Paint.Align.LEFT)
+        else text(c, lives.toString() + "/5", 77f, 27f, 6f, 0xFFFFD45C.toInt(), Paint.Align.LEFT)''', "2x health indicator")
+rep('''        c.drawRoundRect(18f * s, 21f * s, 72f * s, 25f * s, 1.8f * s, 1.8f * s, paint)
+        paint.color = if (lives >= 3) 0xFF55DDAA.toInt() else if (lives == 2) 0xFFFFC857.toInt() else 0xFFFF5968.toInt()
+        c.drawRoundRect(18f * s, 21f * s, (18f + 54f * lives / 5f) * s, 25f * s, 1.8f * s, 1.8f * s, paint)''', '''        c.drawRoundRect(18f * s, 21f * s, 72f * s, 25f * s, 1.8f * s, 1.8f * s, paint)
+        val baseHealth = lives.coerceAtMost(5)
+        paint.color = if (baseHealth >= 3) 0xFF55DDAA.toInt() else if (baseHealth == 2) 0xFFFFC857.toInt() else 0xFFFF5968.toInt()
+        c.drawRoundRect(18f * s, 21f * s, (18f + 54f * baseHealth / 5f) * s, 25f * s, 1.8f * s, 1.8f * s, paint)
+        if (lives > 5) {
+            paint.color = 0xCC25313D.toInt(); c.drawRoundRect(18f*s, 27f*s, 72f*s, 31f*s, 1.8f*s, 1.8f*s, paint)
+            paint.color = 0xFFFFC857.toInt(); c.drawRoundRect(18f*s, 27f*s, (18f + 54f * (lives - 5).coerceAtMost(5) / 5f) * s, 31f*s, 1.8f*s, 1.8f*s, paint)
+        }''', "double-row health meter")
+# Remove miniature ship sprites from the health HUD; they were also leaking through Pause.
+old_life_sprites = '        for (i in 0 until lives) spr(c, bMini, W - 12f - i * 12f, 10f)\n'
+if old_life_sprites in g:
+    g = g.replace(old_life_sprites, "", 1)
+# Move shield meter below both hull rows.
