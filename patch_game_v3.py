@@ -925,6 +925,8 @@ sp = sp.replace(
 )
 
 sprites_file.write_text(sp)
+# Temporary CI source snapshot to pinpoint the remaining Kotlin syntax error.
+Path("SPRITES_V5_DUMP.kt").write_text(sp, encoding="utf-8")
 
 # Google Play Games sign-in: initialize status on launch and expose failures instead of swallowing them.
 play = play_file.read_text()
