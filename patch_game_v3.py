@@ -1663,7 +1663,7 @@ icon_cases = """            5 -> { // guided missile
                     c.drawPath(ship, p)
                 }
             }"""
-game_text = game_text.substring(0, icon_start) + icon_cases + game_text.substring(icon_end + "\n            }".length)
+game_text = game_text[:icon_start] + icon_cases + game_text[icon_end + len("\n            }"): ]
 game_text = game_text.replace("c.drawCircle(0f, 0f, 8f, paint)", "c.drawCircle(0f, 0f, 9f, paint)")
 game_text = game_text.replace("c.drawCircle(0f, 0f, 6.4f, paint)", "c.drawCircle(0f, 0f, 7.2f, paint)")
 # Translate every player-facing label while keeping internal IDs and code identifiers untouched.
