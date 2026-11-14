@@ -281,10 +281,24 @@ sp = sp.replace("""        for (i in 3 downTo 1) {
         }""", "")
 sp = sp.replace("val width = if (player) 3 else 4", "val width = if (player) 3 else 3")
 sp = sp.replace("val height = if (player) 8 else 4", "val height = if (player) 5 else 4")
-print("SPRITES_DEBUG_BEGIN")
-for n, line in enumerate(sp.splitlines(), 1):
-    print(f"{n}: {line}")
-print("SPRITES_DEBUG_END")
+sp = sp.replace("""        val fp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                intArrayOf(0xFFFFF4A8.toInt(), 0xFFFF9A32.toInt(), 0x00FF4D00),
+                null, Shader.TileMode.CLAMP)
+        }""", """        val fp = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = 0xFFFF9A32.toInt() }""")
+sp = sp.replace("""        val glass = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                intArrayOf(0xFFFFFFFF.toInt(), 0xFFB9F5FF.toInt(), 0xFF4C99C9.toInt()),
+                null, Shader.TileMode.CLAMP)
+        }""", """        val glass = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = 0xFFB9F5FF.toInt() }""")
+sp = sp.replace("""            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    intArrayOf(0xFFFFD0D2.toInt(), color, 0xFF9C183D.toInt()),
+                    null, Shader.TileMode.CLAMP)
+            }""", """            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }""")
+sp = sp.replace("""            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    intArrayOf(0xFFFFFFFF.toInt(), color, 0xFFFFFF82.toInt()),
+                    null, Shader.TileMode.CLAMP)
+                    intArrayOf(0xFFFFF0C8.toInt(), color, 0xFFFF7630.toInt()),
+                    null, Shader.TileMode.CLAMP)
+            }""", """            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }""")
 sprites_file.write_text(sp)
 
 # Google Play Games sign-in: initialize status on launch and expose failures instead of swallowing them.
