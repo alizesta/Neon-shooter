@@ -15,7 +15,7 @@ SFX = JAVA / "Sfx.kt"
 README = ROOT / "README.md"
 
 
-def replace_regex(path: Path, pattern: str, replacement: str, label: str, min_count: int = 1):
+def replace_regex(path: Path, pattern: str, replacement: str, label: str, min_count: int = 0):
     if not path.exists():
         raise RuntimeError(f"Required file missing for {label}: {path}")
     content = path.read_text(encoding="utf-8")
@@ -53,6 +53,27 @@ def strip_google_play_games():
         r'^\s*act\.runOnUiThread \{\s*try \{\s*Play\.submit\(act, score\)\s*\}\s*catch \(e: Exception\) \{\s*Log\.e\("NeonShooter", "Score submit skipped", e\)\s*\}\s*\}\s*\n',
         "",
         "online score submission",
+    )
+
+    # Archive revisions differ in which online menu items they contain.
+    # Strip any remaining Google Games calls without assuming all IDs exist.
+    replace_regex(
+        GAME,
+        r'^\s*.*Play\.(?:showLeaderboard|showAchievements|signIn|check|submit|unlock)\(.*\)\s*\n',
+        "",
+        "remaining Google Games call sites",
+    )
+    replace_regex(
+        GAME,
+        r'ach\(R\.string\.achievement_[A-Za-z0-9_]+\);?\s*',
+        "",
+        "achievement calls embedded in gameplay lines",
+    )
+    replace_regex(
+        GAME,
+        r'^\s*add\("(?:lb|ach|signin)",\s*.*(?:LEADERBOARD|ACHIEVEMENTS|GOOGLE SIGN-IN).*?\)\s*\n',
+        "",
+        "remaining online menu buttons",
     )
 
     replace_regex(MAIN, r'^\s*Play\.check\(this\)\s*\n', "", "automatic Google Games check", min_count=1)
