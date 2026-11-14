@@ -71,12 +71,16 @@ def strip_google_play_games():
     PLAY_CLASS.unlink(missing_ok=True)
 
     game_text = GAME.read_text(encoding="utf-8")
-    for forbidden in ("Play.", "R.string.achievement_", "LEADERBOARD", "ACHIEVEMENTS", "GOOGLE SIGN-IN"):
+    for forbidden in ("Play.", "ach(", "R.string.achievement_", "LEADERBOARD", "ACHIEVEMENTS", "GOOGLE SIGN-IN"):
         if forbidden in game_text:
             raise RuntimeError(f"Google Play Games reference remains in GameView.kt: {forbidden}")
     for path in (MAIN, MANIFEST, GRADLE, STRINGS):
         content = path.read_text(encoding="utf-8")
         if "com.google.android.gms.games" in content or "PlayGames" in content:
+            raise RuntimeError(f"Google Play Games reference remains in {path}")
+    for path in JAVA.rglob("*.kt"):
+        content = path.read_text(encoding="utf-8")
+        if "PlayGames" in content or "Play." in content:
             raise RuntimeError(f"Google Play Games reference remains in {path}")
 
 
