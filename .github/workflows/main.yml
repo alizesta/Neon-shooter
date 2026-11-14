@@ -11,6 +11,13 @@ jobs:
         run: rm -rf NeonShooter && unzip -oq NeonShooter_*.zip
       - name: Apply 2D art and gameplay refinement
         run: python3 patch_game_v3.py
+      - name: Upload patched Android project ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: NeonShooter-Android-Project
+          path: NeonShooter_*.zip
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
