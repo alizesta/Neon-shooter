@@ -508,8 +508,8 @@ rep('        text(c, "SCORE $score", 6f, 14f, 9f, YEL, Paint.Align.LEFT)',
     '        text(c, "SCORE $score", 6f, 14f, 9f, YEL, Paint.Align.LEFT)\n        if (comboCount >= 3) text(c, "COMBO x" + (1 + comboCount / 5).coerceAtMost(5), W / 2f, 14f, 8f, 0xFFFFD45C.toInt())', "combo HUD")
 rep('        val powerLabel = when {',
     '        val powerLabel = when {\n            magnetLevel > 0 && shieldLevel > 0 -> "MAGNETIC AEGIS"\n            shieldLevel > 0 -> "REFLECT " + shieldLevel', "upgrade status HUD")
-rep('            text(c, "BOSS " + (bs.t0.toInt() + 1) + "/10", W / 2f, 17f, 7f, WHT)',
-    '            text(c, "BOSS " + (bs.t0.toInt() + 1) + "/10  PHASE " + bs.phase, W / 2f, 17f, 7f, WHT)', "boss phase HUD")
+rep('            text(c, "غول " + (bs.t0.toInt() + 1) + "/10", W / 2f, 17f, 7f, WHT)',
+    '            text(c, "غول " + (bs.t0.toInt() + 1) + "/10  PHASE " + bs.phase, W / 2f, 17f, 7f, WHT)', "boss phase HUD")
 rep('        if (bannerT > 0f && st == St.PLAY) {\n            val boss = wave % 5 == 0\n            text(c, if (boss) "!! BOSS !!" else "WAVE $wave", W / 2, wh * 0.4f, 16f, if (boss) RED else WHT)\n        }',
 """        if (bannerT > 0f && st == St.PLAY) {
             val boss = wave % 5 == 0
