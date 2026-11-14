@@ -76,7 +76,7 @@ def strip_google_play_games():
         "remaining online menu buttons",
     )
 
-    replace_regex(MAIN, r'^\s*Play\.check\(this\)\s*\n', "", "automatic Google Games check", min_count=1)
+    replace_regex(MAIN, r'^\s*Play\.check\(this\)\s*\n', "", "automatic Google Games check")
     replace_regex(MANIFEST, r'^\s*<meta-data android:name="com\.google\.android\.gms\.games\.APP_ID"[^>]*/>\s*\n', "", "Google Games manifest metadata")
     replace_regex(MANIFEST, r'^\s*android:name="\.App"\s*\n', "", "custom Google Games Application class")
     replace_regex(GRADLE, r'^\s*implementation\("com\.google\.android\.gms:play-services-games-v2:[^"]+"\)\s*\n', "", "Google Play Games dependency")
