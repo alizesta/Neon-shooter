@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import base64, subprocess, zipfile, re
+import subprocess, zipfile, re
 
 root = Path("NeonShooter")
 archive = next(Path(".").glob("NeonShooter_*.zip"))
@@ -1386,28 +1386,41 @@ v7rep("            shieldTimer > 0f -> \"SHIELD \" + (shieldTimer.toInt() + 1)",
       "            piercingTimer > 0f -> \"PIERCING \" + (piercingTimer.toInt() + 1)\n            shieldTimer > 0f -> \"SHIELD \" + (shieldTimer.toInt() + 1)",
       "piercing status")
 
-# Install the generated Neon Shooter launcher artwork.
-icon_source = Path("neon_launcher_icon.jpg.b64")
-if not icon_source.is_file():
-    raise RuntimeError("Launcher icon source is missing")
-icon_bytes = base64.b64decode(icon_source.read_text(encoding="ascii").strip(), validate=True)
-if not icon_bytes.startswith(b"\xff\xd8\xff"):
-    raise RuntimeError("Launcher icon source is not a valid JPEG")
+# Install a crisp neon spacecraft launcher icon for legacy and adaptive Android launchers.
 res = root / "app/src/main/res"
-mipmap = res / "mipmap-nodpi"
-mipmap.mkdir(parents=True, exist_ok=True)
-(mipmap / "ic_launcher.jpg").write_bytes(icon_bytes)
-(mipmap / "ic_launcher_art.jpg").write_bytes(icon_bytes)
-adaptive = res / "mipmap-anydpi-v26"
-adaptive.mkdir(parents=True, exist_ok=True)
+vector_xml = """<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#050B1B" android:pathData="M0,0h108v108h-108z" />
+    <path android:fillColor="#0A1731" android:strokeColor="#17466B" android:strokeWidth="1.5" android:pathData="M54,7 L65,12 L82,28 L99,54 L85,86 L65,99 L43,99 L23,86 L9,54 L26,28 L43,12 Z" />
+    <path android:fillColor="#122847" android:strokeColor="#35DDF4" android:strokeWidth="2.2" android:strokeLineJoin="round" android:pathData="M54,13 L67,57 L93,82 L63,74 L54,99 L45,74 L15,82 L41,57 Z" />
+    <path android:fillColor="#FF4DCB" android:pathData="M40,60 L22,77 L43,71 Z M68,60 L86,77 L65,71 Z" />
+    <path android:fillColor="#1A3C5C" android:strokeColor="#42E8FF" android:strokeWidth="1.4" android:pathData="M54,22 L63,64 L54,82 L45,64 Z" />
+    <path android:fillColor="#63F3FF" android:pathData="M54,31 L60,63 L54,73 L48,63 Z" />
+    <path android:fillColor="#F7FDFF" android:pathData="M54,17 L57,31 L54,37 L51,31 Z" />
+    <path android:fillColor="#FF62D6" android:pathData="M43,75 L48,79 L46,94 L39,86 Z M65,75 L60,79 L62,94 L69,86 Z" />
+    <path android:fillColor="#3BE6FF" android:pathData="M48,84 L52,95 L48,93 Z M60,84 L56,95 L60,93 Z" />
+    <path android:fillColor="#B8F7FF" android:pathData="M18,26h2v2h-2z M88,22h2v2h-2z M13,61h2v2h-2z M93,61h2v2h-2z M30,14h1.5v1.5h-1.5z M77,14h1.5v1.5h-1.5z" />
+    <path android:strokeColor="#35DDF4" android:strokeWidth="1.4" android:strokeLineCap="round" android:fillColor="#00000000" android:pathData="M29,39 L22,47 M79,39 L86,47 M34,88 L27,94 M74,88 L81,94" />
+</vector>
+"""
+(res / "drawable").mkdir(parents=True, exist_ok=True)
+(res / "drawable/ic_launcher_foreground.xml").write_text(vector_xml, encoding="utf-8")
+(res / "mipmap-anydpi").mkdir(parents=True, exist_ok=True)
+(res / "mipmap-anydpi/ic_launcher.xml").write_text(vector_xml, encoding="utf-8")
+adaptive_dir = res / "mipmap-anydpi-v26"
+adaptive_dir.mkdir(parents=True, exist_ok=True)
 adaptive_xml = """<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@android:color/black" />
-    <foreground android:drawable="@mipmap/ic_launcher_art" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>
 """
-(adaptive / "ic_launcher.xml").write_text(adaptive_xml, encoding="utf-8")
-(adaptive / "ic_launcher_round.xml").write_text(adaptive_xml, encoding="utf-8")
+(adaptive_dir / "ic_launcher.xml").write_text(adaptive_xml, encoding="utf-8")
+(adaptive_dir / "ic_launcher_round.xml").write_text(adaptive_xml, encoding="utf-8")
 
 manifest_path = root / "app/src/main/AndroidManifest.xml"
 manifest_text = manifest_path.read_text(encoding="utf-8")
@@ -1425,7 +1438,6 @@ strings_text, label_count = re.subn(r'(<string\s+name="app_name"[^>]*>).*?(</str
 if label_count == 0:
     raise RuntimeError("app_name string not found")
 strings_path.write_text(strings_text, encoding="utf-8")
-
 game_file.write_text(g, encoding="utf-8")
 
 # Increment app version so Android accepts the new package as a newer release.
