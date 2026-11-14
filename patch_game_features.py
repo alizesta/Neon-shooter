@@ -519,6 +519,15 @@ rep('        if (bannerT > 0f && st == St.PLAY) {\n            val boss = wave %
             if (combo.isNotEmpty()) text(c, combo, W / 2f, wh * 0.4f + 13f, 7f, 0xFF72F0C0.toInt())
         }""", "event and combo banner")
 # Dash touch target and visible control.
+rep('            drawPauseControl(c)',
+"""            if (dashCharges > 0) {
+                paint.style = Paint.Style.STROKE; paint.strokeWidth = 0.9f * s
+                paint.color = if (dashCooldown <= 0f) 0xFF55DFFF.toInt() else 0xFF66717E.toInt()
+                c.drawRoundRect(8f * s, (wh - 32f) * s, 43f * s, (wh - 7f) * s, 4f * s, 4f * s, paint)
+                paint.style = Paint.Style.FILL
+                text(c, "DASH " + dashCharges, 25.5f, wh - 16f, 6f, 0xFF8BEFFF.toInt())
+            }
+            drawPauseControl(c)""", "dash visual")
 rep('                        } else if (y >= wh - 34f && x >= W - 96f) {',
     '                        } else if (y >= wh - 34f && x <= 42f) {\n                            performDash()\n                            controlTouch = true\n                        } else if (y >= wh - 34f && x >= W - 96f) {', "dash touch control")
 rep('px = (px + (e.x - lx) / s).coerceIn(10f, W - 10f)',
