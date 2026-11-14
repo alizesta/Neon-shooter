@@ -685,6 +685,11 @@ if "private class PlayerBeam" not in g:
 # insertion guard so rerunning CI on an already-patched archive stays safe.
 g = g.replace(chr(1) + "if (e.type == 2) {", "if (e.type == 2) {")
 g = "\n".join(line for line in g.splitlines() if not line.startswith("# V5 complete") and not line.startswith("# GAMEPLAY V5")) + "\n"
+# The previous V4 patch accidentally declared rocketTimer more than once.
+# V5 uses a dedicated missile cooldown, so discard the obsolete rocket timer entirely.
+g = re.sub(r'(?m)^\s*private var rocketTimer = 0f\s*\n', '', g)
+g = re.sub(r'(?m)^\s*rocketTimer = max\(0f, rocketTimer - dt\)\s*\n', '', g)
+g = g.replace('; rocketTimer = 0f', '')
 setup_keys = (
     "val bossPalette =", "bossSprites = Array(10)", "bE2 = Sprites.enemy(",
     "bE3 = Sprites.enemy(", "bBoss2 = Sprites.enemy(", "bBoss3 = Sprites.enemy("
