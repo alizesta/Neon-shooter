@@ -16,7 +16,8 @@ def rep(old, new, label):
 # Five ranks per ability, with maxed abilities removed from the choice deck.
 rep("    private var droneLevel = 0\n", "    private var droneLevel = 0\n    private var rapidLevel = 0\n    private var dashRank = 0\n    private var shieldRank = 0\n", "upgrade rank fields")
 rep('''        val pool = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "rapid")
-        upgradeChoices = pool.shuffled().take(3)''',
+        upgradeChoices = pool.shuffled().take(3)
+        if (upgradeChoices.isEmpty()) { st = St.PLAY; waiting = true; waveT = 0.75f }''',
 '''        val pool = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "rapid").filter { id ->
             when (id) {
                 "firepower" -> weaponLevel < 5
@@ -89,6 +90,9 @@ rep("    private val enemies = ArrayList<E>()",
     "    private val enemies = ArrayList<E>()\n    private val pendingWaveEnemies = ArrayList<E>()\n    private var waveTarget = 1\n    private var waveKills = 0", "wave queue fields")
 rep("        eventKind = 0; eventTimer = 0f; meteorTimer = 0f; goldenCrateSpawned = false\n",
     "        eventKind = 0; eventTimer = 0f; meteorTimer = 0f; goldenCrateSpawned = false\n        pendingWaveEnemies.clear(); waveKills = 0; waveTarget = 1\n", "reset wave queue")
+rep("        bullets.clear(); enemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear(); blackHoles.clear(); chainArcs.clear(); comets.clear()",
+    "        bullets.clear(); enemies.clear(); pendingWaveEnemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear(); blackHoles.clear(); chainArcs.clear(); comets.clear(); impactRings.clear()",
+    "clear queues and impact effects on new run")
 rep('''        if (wave % 5 == 0) {
             enemies.add(E(W / 2, -20f, 2, 150 + wave * 22, W / 2, 0f, ((wave / 5 - 1).coerceIn(0, 9)).toFloat()).also { it.fire = 1.35f })
             if (eventKind == 5) repeat(3) { val x = 25f + it * (W - 50f) / 2f; enemies.add(E(x, -42f - it * 20f, 6, 6 + wave / 8, x, 18f, it.toFloat())) }
@@ -96,7 +100,7 @@ rep('''        if (wave % 5 == 0) {
         }
         val n = min(8 + wave / 2, 15)''',
 '''        if (wave % 5 == 0) {
-            waveTarget = 1 + if (eventKind == 5) 3 else 0
+            waveTarget = enemies.count { !it.dead } + 1 + if (eventKind == 5) 3 else 0
             enemies.add(E(W / 2, -20f, 2, 300 + wave * 44, W / 2, 0f, ((wave / 5 - 1).coerceIn(0, 9)).toFloat()).also { it.fire = 1.35f })
             if (eventKind == 5) repeat(3) { val x = 25f + it * (W - 50f) / 2f; enemies.add(E(x, -42f - it * 20f, 6, 6 + wave / 8, x, 18f, it.toFloat())) }
             return
