@@ -154,7 +154,7 @@ g = g[:start] + draw_item + g[end:]
 game_file.write_text(g)
 
 # GAMEPLAY V4: remove all artificial bloom, flatten every sprite, improve projectile feel,
-// and give successive bosses distinct movement patterns.
+# and give successive bosses distinct movement patterns.
 g = g.replace("private val YEL = 0xFFFFEA00.toInt()", "private val YEL = 0xFF35D9F2.toInt()")
 g = g.replace("private val YEL = 0xFFFFD400.toInt()", "private val YEL = 0xFF35D9F2.toInt()")
 g = g.replace("dy / d * 82f", "dy / d * 112f").replace("dy / d * 75f", "dy / d * 105f")
@@ -173,6 +173,13 @@ g = g.replace("e.x = W / 2 + sin(e.age * 0.82f) * (W / 2 - e.hw - 8f)",
                     1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
                     else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
                 }""")
+# Remove all bitmap shadow and shader effects from gameplay rendering, including item badges.
+g_lines = []
+for line in g.splitlines():
+    if "setShadowLayer(" in line or "LinearGradient(" in line or "RadialGradient(" in line or "SweepGradient(" in line:
+        continue
+    g_lines.append(line)
+g = "\n".join(g_lines) + "\n"
 game_file.write_text(g)
 
 # Flat 2D ship and enemy art; replace blur-mask glows with smooth concentric strokes.
@@ -262,6 +269,8 @@ sp = sp.replace("""        for (i in 3 downTo 1) {
             }
             canvas.drawOval(rect, p)
         }""", "")
+sp = sp.replace("val width = if (player) 3 else 4", "val width = if (player) 3 else 3")
+sp = sp.replace("val height = if (player) 8 else 4", "val height = if (player) 5 else 4")
 sprites_file.write_text(sp)
 
 # Google Play Games sign-in: initialize status on launch and expose failures instead of swallowing them.
