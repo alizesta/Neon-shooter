@@ -37,6 +37,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         var age = 0f
         var spin = Random.nextFloat() * 6.283f
     }
+    private class Comet(var x: Float, var y: Float, val vx: Float, val vy: Float, val length: Float, var life: Float, val maxLife: Float)
 
     // palette: gray / yellow / red / white (+ orange warning)
     private val BG = 0xFF111318.toInt(); private val STAR = 0xFF454D59.toInt()
@@ -64,6 +65,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private val enemyLasers = ArrayList<EnemyLaser>()
     private val squadShips = ArrayList<SweepShip>()
     private val blackHoles = ArrayList<BlackHole>()
+    private val comets = ArrayList<Comet>()
     private lateinit var bossSprites: Array<Bitmap>
     private var px = 90f; private var py = 270f
     private var lives = 3; private var score = 0; private var wave = 0
@@ -75,6 +77,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var weaponTimer = 0f
     private var piercingTimer = 0f
     private var squadTimer = 0f; private var squadSpawnTimer = 0f
+    private var cometSpawnTimer = 2.5f
     private var rapidTimer = 0f; private var shieldTimer = 0f
 private var rocketTimer = 0f; private var magnetTimer = 0f
     private var laserCooldown = 0f; private var missileCooldown = 0f
@@ -368,6 +371,18 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun update(dt: Float) {
         for (star in stars) star.phase += dt * (2.4f + star.sp * 0.16f)
+        cometSpawnTimer -= dt
+        if (cometSpawnTimer <= 0f) {
+            val speed = 34f + Random.nextFloat() * 18f
+            comets.add(Comet(Random.nextFloat() * W, -3f, (Random.nextFloat() - 0.5f) * 8f, speed, 4f + Random.nextFloat() * 4f, 5.5f, 5.5f))
+            cometSpawnTimer = 5f + Random.nextFloat() * 7f
+        }
+        for (comet in comets) {
+            comet.x += comet.vx * dt
+            comet.y += comet.vy * dt
+            comet.life -= dt
+        }
+        comets.removeAll { it.life <= 0f || it.y > wh + 12f }
         for (p in parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt }
         parts.removeAll { it.life <= 0f }
         if (st == St.OVER) overT += dt
@@ -703,7 +718,16 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val size = star.sz * if (star.twinkle) (0.65f + pulse * 0.75f) else 1f
             c.drawRect(star.x * s, star.y * s, (star.x + size) * s, (star.y + size) * s, paint)
         }
+        paint.style = Paint.Style.STROKE
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeWidth = 0.55f * s
+        paint.color = 0xFF9FC7E5.toInt()
+        for (comet in comets) {
+            paint.alpha = (34f * (comet.life / comet.maxLife)).toInt().coerceIn(7, 34)
+            c.drawLine(comet.x * s, comet.y * s, (comet.x - comet.vx * 0.13f) * s, (comet.y - comet.length) * s, paint)
+        }
         paint.alpha = 255
+        paint.style = Paint.Style.FILL
         when (st) {
             St.MENU -> drawMenu(c)
             St.PLAY -> drawGame(c)
@@ -773,6 +797,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.color = if (lives >= 3) 0xFF55DDAA.toInt() else if (lives == 2) 0xFFFFC857.toInt() else 0xFFFF5968.toInt()
         c.drawRoundRect(18f * s, 21f * s, (18f + 54f * lives / 5f) * s, 25f * s, 1.8f * s, 1.8f * s, paint)
         val powerLabel = when {
+            piercingTimer > 0f -> "PIERCING " + (piercingTimer.toInt() + 1)
             shieldTimer > 0f -> "SHIELD " + (shieldTimer.toInt() + 1)
             rapidTimer > 0f -> "RAPID " + (rapidTimer.toInt() + 1)
             magnetTimer > 0f -> "MAGNET " + (magnetTimer.toInt() + 1)
