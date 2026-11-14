@@ -1,0 +1,65 @@
+rep('''            text(c, "SH", 7f, 36f, 5.5f, 0xFF8BDFFF.toInt(), Paint.Align.LEFT)
+            paint.color = 0x88303C4A.toInt(); c.drawRoundRect(18f*s, 30f*s, 72f*s, 33f*s, 1.5f*s, 1.5f*s, paint)
+            paint.color = if (shieldHp > shieldMaxHp / 3) 0xFF55DFFF.toInt() else 0xFFFF6688.toInt()
+            val shieldFrac = if (shieldMaxHp > 0) shieldHp.toFloat() / shieldMaxHp else 0f
+            c.drawRoundRect(18f*s, 30f*s, (18f + 54f*shieldFrac)*s, 33f*s, 1.5f*s, 1.5f*s, paint)''', '''            text(c, "SH", 7f, 42f, 5.5f, 0xFF8BDFFF.toInt(), Paint.Align.LEFT)
+            paint.color = 0x88303C4A.toInt(); c.drawRoundRect(18f*s, 36f*s, 72f*s, 39f*s, 1.5f*s, 1.5f*s, paint)
+            paint.color = if (shieldHp > shieldMaxHp / 3) 0xFF55DFFF.toInt() else 0xFFFF6688.toInt()
+            val shieldFrac = if (shieldMaxHp > 0) shieldHp.toFloat() / shieldMaxHp else 0f
+            c.drawRoundRect(18f*s, 36f*s, (18f + 54f*shieldFrac)*s, 39f*s, 1.5f*s, 1.5f*s, paint)''', "move shield bar under health")
+
+# Health regeneration, armor, criticals, explosive impacts, piercing, stasis, scavenging, multishot and phoenix.
+rep('''        time += dt; invul -= dt; fireT -= dt; bannerT -= dt''', '''        time += dt; invul -= dt; fireT -= dt; bannerT -= dt
+        if (healthRegenRank > 0) {
+            healthRegenTimer -= dt
+            if (healthRegenTimer <= 0f) {
+                if (lives < 10) { lives++; bannerT = max(bannerT, 0.9f) }
+                healthRegenTimer = max(7f, 34f - healthRegenRank * 5f)
+            }
+        }
+        legendaryTime = max(0f, legendaryTime - dt)
+        legendaryCooldown = max(0f, legendaryCooldown - dt)''', "health regeneration and legendary timers")
+rep('''        enemySlowTimer = max(0f, enemySlowTimer - dt)
+        val enemyDt = dt * if (enemySlowTimer > 0f) 0.1f else 1f''', '''        enemySlowTimer = max(0f, enemySlowTimer - dt)
+        val enemyDt = dt * when { enemySlowTimer > 0f -> 0.1f; stasisRank > 0 -> 1f - stasisRank * 0.08f; else -> 1f }''', "stasis field slow")
+rep('''    private fun hurt() {
+        if (invul > 0f) return''', '''    private fun hurt() {
+        if (invul > 0f || legendaryTime > 0f && currentShip == 3) return
+        if (armorRank > 0 && Random.nextFloat() < armorRank * 0.075f) { invul = 0.55f; boom(px, py, 8, 34f); return }''', "armor and phantom stealth defense")
+rep('''        if (lives == 0) {
+            st = St.OVER; overT = 0f; comboCount = 0; comboTimer = 0f''', '''        if (lives == 0 && phoenixRank > 0 && !phoenixUsed) {
+            phoenixUsed = true
+            lives = min(5, 1 + phoenixRank)
+            invul = 3.2f
+            boom(px, py, 46, 115f)
+            bannerT = 2.2f
+            sfx.play("power")
+        }
+        if (lives == 0) {
+            st = St.OVER; overT = 0f; comboCount = 0; comboTimer = 0f''', "one-time phoenix revive")
+rep('''            bullets.add(B(px + offset * 3.6f, py - 9f, offset * 13f, -178f, true))
+        }
+        if (droneLevel >= 1) {''', '''            bullets.add(B(px + offset * 3.6f, py - 9f, offset * 13f, -178f, true))
+        }
+        repeat(multishotRank) { rank ->
+            val spread = 12f + rank * 2.2f
+            bullets.add(B(px - spread, py - 7f, -18f - rank * 2f, -170f, true))
+            bullets.add(B(px + spread, py - 7f, 18f + rank * 2f, -170f, true))
+        }
+        if (droneLevel >= 1) {''', "multishot extra lanes")
+rep('''                    if (piercingTimer <= 0f) deadB.add(b)
+                    e.hp -= 1 + bonusDamage + if (currentShip == 3) 1 else 0''', '''                    if (piercingTimer <= 0f && b.hitEnemies.size > piercingRank) deadB.add(b)
+                    val criticalDamage = if (criticalRank > 0 && Random.nextFloat() < criticalRank * 0.09f) 2 else 0
+                    e.hp -= 1 + bonusDamage + (if (currentShip == 3) 1 else 0) + criticalDamage''', "ranked piercing and critical damage")
+rep('''                    boom(b.x, b.y, 4, 32f)
+                    if (chainLevel > 0 && chainCooldown <= 0f) {''', '''                    boom(b.x, b.y, 4, 32f)
+                    if (explosiveRank > 0) {
+                        for (nearby in enemies) if (nearby !== e && !nearby.dead && hypot(nearby.x - e.x, nearby.y - e.y) < 16f + explosiveRank * 3.5f) {
+                            nearby.hp -= explosiveRank
+                            if (nearby.hp <= 0) kill(nearby)
+                        }
+                    }
+                    if (chainLevel > 0 && chainCooldown <= 0f) {''', "explosive splash damage")
+rep('''        credits += if (e.type == 2) 90 else if (e.type == 5 || e.type == 6) 7 else 4''', '''        credits += if (e.type == 2) 90 + scavengerRank * 10 else if (e.type == 5 || e.type == 6) 7 + scavengerRank * 2 else 4 + scavengerRank * 2''', "scavenger credit bonus")
+
+# Legendary ship ability, unlocked at each ten-level milestone and independent of the five upgrade slots.
