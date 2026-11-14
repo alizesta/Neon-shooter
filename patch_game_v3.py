@@ -153,7 +153,7 @@ game_file.write_text(g)
 
 # Flat 2D ship and enemy art; replace blur-mask glows with smooth concentric strokes.
 sp = sprites_file.read_text()
-sp = rep(sp, "val width = if (player) 4 else 7\\n        val height = if (player) 9 else 7",
+sp = rep(sp, "val width = if (player) 4 else 7\n        val height = if (player) 9 else 7",
 """val width = if (player) 3 else 4
         val height = if (player) 8 else 4""", "small bullets")
 sp = rep(sp, "else RectF(0.5f, 0.5f, 6.5f, 6.5f)",
