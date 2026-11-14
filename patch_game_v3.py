@@ -690,8 +690,21 @@ setup_keys = (
     "bE3 = Sprites.enemy(", "bBoss2 = Sprites.enemy(", "bBoss3 = Sprites.enemy("
 )
 seen_setup = set()
+seen_decl = set()
 clean_lines = []
 for line in g.splitlines():
+    # Deduplicate fields inserted by multiple historical patch passes.
+    if "private var rocketTimer =" in line:
+        parts = []
+        for part in line.split(";"):
+            if "private var rocketTimer =" in part:
+                if "rocketTimer" in seen_decl:
+                    continue
+                seen_decl.add("rocketTimer")
+            parts.append(part.strip())
+        line = "; ".join(parts)
+        if not line:
+            continue
     key = next((k for k in setup_keys if line.strip().startswith(k)), None)
     if key:
         if key in seen_setup:
