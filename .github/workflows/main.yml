@@ -1,35 +1,14 @@
-name: Build APK
+name: Inspect Game Source
 on: [push, workflow_dispatch]
 permissions:
-  contents: write
+  contents: read
 jobs:
-  build:
+  inspect:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: unzip -q NeonShooter_*.zip
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.7
-      - name: Fix SurfaceView draw name clash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          source = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt")
-          text = source.read_text(encoding="utf-8")
-          text, replacements = re.subn(r"(?<![\w.])draw(?=\s*\()", "renderGameFrame", text)
-          if replacements == 0:
-              raise SystemExit("Expected unqualified draw() method or call was not found")
-          source.write_text(text, encoding="utf-8")
-          print(f"Renamed {replacements} unqualified draw() occurrence(s)")
-          PY
-      - name: Inspect game source
+      - name: Print source files
         run: |
           echo "=== SOURCE TREE ==="
           find NeonShooter/app/src/main -type f | sort
@@ -38,8 +17,3 @@ jobs:
             echo "===== $file ====="
             cat "$file"
           done < <(find NeonShooter/app/src/main -type f -name '*.kt' | sort)
-      - run: cd NeonShooter && gradle assembleDebug --no-daemon
-      - uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apk-latest
-          files: NeonShooter/app/build/outputs/apk/debug/app-debug.apk
