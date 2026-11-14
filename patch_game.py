@@ -9,7 +9,37 @@ archive = next(Path(".").glob("NeonShooter_*.zip"))
 marker = root / ".gameplay-update-v1"
 
 if marker.exists():
-    print("Gameplay update is already present in the source archive.")
+    # The gameplay patch is already in the ZIP. Apply the small follow-up
+    # Kotlin fix without re-running the original source transformations.
+    sprites_file = root / "app/src/main/java/com/claude/neonshooter/Sprites.kt"
+    sprites = sprites_file.read_text(encoding="utf-8")
+    fixes = [
+        ("            color = 0xFFFFF7D1.toInt()", "            this.color = 0xFFFFF7D1.toInt()"),
+        ("apply { color = 0xFFFFF5D8.toInt() }", "apply { this.color = 0xFFFFF5D8.toInt() }"),
+        ("apply { color = 0xFFFFF1C4.toInt() }", "apply { this.color = 0xFFFFF1C4.toInt() }"),
+    ]
+    changed = False
+    for before, after in fixes:
+        if before in sprites:
+            sprites = sprites.replace(before, after, 1)
+            changed = True
+    if changed:
+        sprites_file.write_text(sprites, encoding="utf-8")
+        tmp = archive.with_suffix(".tmp.zip")
+        with zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+            for path in sorted(root.rglob("*")):
+                if path.is_file():
+                    zf.write(path, Path(root.name) / path.relative_to(root))
+        tmp.replace(archive)
+        subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=True)
+        subprocess.run(["git", "config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"], check=True)
+        subprocess.run(["git", "add", archive.name], check=True)
+        if subprocess.run(["git", "diff", "--cached", "--quiet"]).returncode != 0:
+            subprocess.run(["git", "commit", "-m", "fix(game): correct vector sprite paint colors"], check=True)
+            subprocess.run(["git", "push", "origin", "HEAD:main"], check=True)
+            print("Committed the vector sprite color fix.")
+    else:
+        print("Vector sprite color fix was already present.")
     sys.exit(0)
 
 game_file = root / "app/src/main/java/com/claude/neonshooter/GameView.kt"
