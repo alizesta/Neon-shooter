@@ -1487,6 +1487,25 @@ game_text = game_text.replace('val pull = min(620f, hole.strength * 5f / (d2 + 8
                               'val pull = min(1240f, hole.strength * 10f / (d2 + 80f)) * dt')
 game_file.write_text(game_text, encoding="utf-8")
 
+# Gameplay hotfix: weapon pickup gating, localized boss beams and black-hole slingshot.
+game_text = game_file.read_text(encoding="utf-8")
+game_text = game_text.replace(
+    "private class EnemyLaser(var x: Float, var warning: Float, var active: Float, val width: Float, val drift: Float)",
+    "private class EnemyLaser(var x: Float, var warning: Float, var active: Float, val width: Float, val drift: Float, val originY: Float = 40f)"
+)
+game_text = game_text.replace("EnemyLaser(e.x, 0.62f, 0.72f, 7f, if (sin(e.age) >= 0f) 24f else -24f)", "EnemyLaser(e.x, 0.62f, 0.72f, 7f, if (sin(e.age) >= 0f) 24f else -24f, e.y)")
+game_text = game_text.replace("EnemyLaser(e.x - 26f, 0.55f, 0.7f, 6f, 18f)", "EnemyLaser(e.x - 26f, 0.55f, 0.7f, 6f, 18f, e.y)")
+game_text = game_text.replace("EnemyLaser(e.x + 26f, 0.55f, 0.7f, 6f, -18f)", "EnemyLaser(e.x + 26f, 0.55f, 0.7f, 6f, -18f, e.y)")
+game_text = game_text.replace("EnemyLaser(e.x, 0.48f, 0.58f, 8f, if (px > e.x) 20f else -20f)", "EnemyLaser(e.x, 0.48f, 0.58f, 8f, if (px > e.x) 20f else -20f, e.y)")
+game_text = game_text.replace("c.drawLine(laser.x * s, 0f, laser.x * s, sh.toFloat(), paint)", "c.drawLine(laser.x * s, laser.originY * s, laser.x * s, sh.toFloat(), paint)")
+game_text = game_text.replace("if (st != St.PLAY || laserCooldown > 0f) return", "if (st != St.PLAY || laserLevel <= 0 || laserCooldown > 0f) return")
+game_text = game_text.replace("        if (laserCooldown <= 0f) fireLaser()", "        if (laserLevel > 0 && laserCooldown <= 0f) fireLaser()")
+game_text = game_text.replace("playerBeams.add(PlayerBeam(px, py, width, 0.24f))", "playerBeams.add(PlayerBeam(px, py, width, 0.52f))")
+game_text = game_text.replace("roll < 0.83f -> 7\\n                roll < 0.90f -> 8", "roll < 0.78f -> 7\\n                roll < 0.88f -> 6\\n                roll < 0.94f -> 8")
+game_text = game_text.replace("            drawWeaponControls(c)\\n", "").replace("        drawWeaponControls(c)\\n", "")
+game_text = game_text.replace("                        } else if (y >= wh - 34f && x >= W - 96f) {\\n                            if (x >= W - 52f) fireLaser() else launchMissiles()\\n                            controlTouch = true\\n                        }", "")
+game_text = game_text.replace("                    val pull = min(1240f, hole.strength * 10f / (d2 + 80f)) * dt\\n                    b.vx = (b.vx + dx / distance * pull).coerceIn(-220f, 220f)\\n                    b.vy = (b.vy + dy / distance * pull).coerceIn(-220f, 220f)", "                    val pull = min(1800f, hole.strength * 13f / (d2 + 65f)) * dt\\n                    b.vx = (b.vx + dx / distance * pull).coerceIn(-420f, 420f)\\n                    b.vy = (b.vy + dy / distance * pull).coerceIn(-420f, 420f)\\n                    if (distance < hole.radius * 0.30f) {\\n                        val tangentX = -dy / distance\\n                        val tangentY = dx / distance\\n                        val kick = min(260f, (hole.radius * 0.30f - distance) * 8f) * dt\\n                        val side = if (b.vx * tangentX + b.vy * tangentY >= 0f) 1f else -1f\\n                        b.vx = (b.vx - dx / distance * kick * 1.8f + tangentX * kick * side).coerceIn(-460f, 460f)\\n                        b.vy = (b.vy - dy / distance * kick * 1.8f + tangentY * kick * side).coerceIn(-460f, 460f)\\n                    }")
+game_file.write_text(game_text, encoding="utf-8")
 # Google Play Games: report missing Play Console configuration and API failures.
 play_source = """package com.claude.neonshooter
 
