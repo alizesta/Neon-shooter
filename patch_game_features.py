@@ -37,6 +37,7 @@ rep("    private var kills = 0\n    private val unlocked = HashSet<Int>()",
     private var dailyDone = prefs.getBoolean("daily_done", false)
     private var upgradeChoices = emptyList<String>()
     private var upgradesTaken = 0
+    private var intermissionHandledWave = -1
     private var bonusDamage = 0
     private var fireRateBonus = 0f
     private var magnetLevel = 0
@@ -204,7 +205,7 @@ rep('        score = 0; lives = 3; wave = 0; kills = 0; invul = 2.2f; fireT = 0f
         dashCharges = 0; chainLevel = 0; comboCount = 0; comboTimer = 0f
         eventKind = 0; eventTimer = 0f; meteorTimer = 0f; goldenCrateSpawned = false
         shieldReflectCooldown = 0f; dashCooldown = 0f; chainCooldown = 0f
-        upgradesTaken = 0""", "run upgrade reset")
+        upgradesTaken = 0; intermissionHandledWave = -1; upgradeChoices = emptyList()""", "run upgrade reset")
 
 # Best-wave unlock progression is persistent.
 rep('    private fun spawnWave() {\n        wave++',
@@ -274,7 +275,7 @@ rep('        when (e.type) { 0 -> score += 10; 1 -> score += 30; else -> score +
             prefs.edit().putInt("daily_kills", dailyKills).apply()
         }""", "combo credits daily mission")
 rep('        if (e.type == 2) { ach(R.string.achievement_boss_slayer); bullets.removeAll { !it.mine } }',
-    '        if (e.type == 2) { ach(R.string.achievement_boss_slayer); bullets.removeAll { !it.mine }; credits += 90; prefs.edit().putInt("credits", credits).apply() }', "boss reward")
+    '        if (e.type == 2) { ach(R.string.achievement_boss_slayer); bullets.removeAll { !it.mine } }', "boss reward")
 # Event chain reaction: nearby ships detonate, guarded against recursive chaining.
 rep('        }\n    }\n\n    private fun hurt() {',
 """        }
@@ -343,8 +344,8 @@ rep('            else { waveT -= dt; if (waveT <= 0f) { spawnWave(); waiting = f
 """            else {
                 waveT -= dt
                 if (waveT <= 0f) {
-                    if (wave > 0 && wave % 5 == 0) { st = St.SHOP; waiting = true; waveT = 0.8f; return }
-                    if (wave > 0 && wave % 2 == 0) { prepareUpgradeChoices(); st = St.UPGRADE; waiting = true; waveT = 0.8f; return }
+                    if (wave > 0 && wave % 5 == 0 && intermissionHandledWave != wave) { intermissionHandledWave = wave; st = St.SHOP; waiting = true; waveT = 0.8f; return }
+                    if (wave > 0 && wave % 2 == 0 && intermissionHandledWave != wave) { intermissionHandledWave = wave; prepareUpgradeChoices(); st = St.UPGRADE; waiting = true; waveT = 0.8f; return }
                     spawnWave(); waiting = false
                 }
             }""", "wave upgrade and shop intermission")
@@ -381,10 +382,10 @@ rep('                } else if (e.type == 4) {\n                    e.x = (e.bx 
 """                } else if (e.type == 4) {
                     e.x = (e.bx + sin(e.age * 0.9f + e.t0) * 18f).coerceIn(12f, W - 12f)
                 } else if (e.type == 5) {
-                    e.y += spd * 0.62f * enemyDt
+                    e.y -= spd * 0.38f * enemyDt
                     e.x = (e.bx + sin(e.age * 0.8f + e.t0) * 12f).coerceIn(12f, W - 12f)
                 } else if (e.type == 6) {
-                    e.y += spd * 1.35f * enemyDt
+                    e.y += spd * 0.35f * enemyDt
                     val targetX = (px + sin(e.age * 2.3f + e.t0) * 9f).coerceIn(10f, W - 10f)
                     val shift = 54f * enemyDt
                     e.x += (targetX - e.x).coerceIn(-shift, shift)
