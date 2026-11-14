@@ -173,16 +173,6 @@ g = g.replace("e.x = W / 2 + sin(e.age * 0.82f) * (W / 2 - e.hw - 8f)",
                 }""")
 game_file.write_text(g)
 
-# No glow layers or bitmap shadows: sprites are crisp, flat, and have no square bloom.
-import re
-sp = re.sub(r"for \\(i in 3 downTo 1\\) \\{.*?canvas\\.drawPath\\(path, p\\)\\n\\s*\\}", "", sp, flags=re.S)
-sp = re.sub(r"for \\(i in 3 downTo 1\\) \\{.*?canvas\\.drawOval\\(rect, p\\)\\n\\s*\\}", "", sp, flags=re.S)
-sp = re.sub(r"^.*setShadowLayer\\(.*\\)\\s*$", "", sp, flags=re.M)
-sp = re.sub(r"^.*maskFilter = BlurMaskFilter.*$\\n?", "", sp, flags=re.M)
-sp = re.sub(r"^.*shader = (?:LinearGradient|RadialGradient).*\\n?", "", sp, flags=re.M)
-sp = sp.replace("val glow = Paint(Paint.ANTI_ALIAS_FLAG)", "val glow = Paint(Paint.ANTI_ALIAS_FLAG)")
-sprites_file.write_text(sp)
-
 # Flat 2D ship and enemy art; replace blur-mask glows with smooth concentric strokes.
 sp = sprites_file.read_text()
 sp = rep(sp, "val width = if (player) 4 else 7\n        val height = if (player) 9 else 7",
