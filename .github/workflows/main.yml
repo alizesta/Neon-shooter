@@ -19,6 +19,10 @@ jobs:
         run: python3 patch_game_next.py
       - name: Apply Pixelfx-inspired native Android visual effects
         run: python3 patch_game_pixelfx.py
+      - name: Apply Neon Shooter 1.7 progression, extra health and ship legendaries
+        run: |
+          cat patch_progression_17.part01 patch_progression_17.part02 patch_progression_17.part03 patch_progression_17.part04 > patch_game_progression.py
+          python3 patch_game_progression.py
       - name: Upload patched Android project ZIP
         uses: actions/upload-artifact@v4
         with:
