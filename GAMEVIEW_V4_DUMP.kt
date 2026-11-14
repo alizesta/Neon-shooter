@@ -323,7 +323,11 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
                     0 -> when (e.t0.toInt() % 3) {
                     0 -> when (e.t0.toInt() % 3) {
                     0 -> when (e.t0.toInt() % 3) {
+                    0 -> when (e.t0.toInt() % 3) {
                     0 -> e.x = W / 2 + sin(e.age * 0.82f) * (W / 2 - e.hw - 8f)
+                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
+                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
+                }
                     1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
                     else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
                 }
