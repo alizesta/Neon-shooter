@@ -919,11 +919,12 @@ if "7 -> Path().apply" not in sp:
     sp = sp.replace('glow(c, body, glowColor, if (kind == 2) 5.2f else 3.6f)', 'glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f')
 
 
-sp = re.sub(
-    r"glow\\(c, body, glowColor, if \\(kind >= 5\\) 5\\.8f else if \\(kind == 2\\) 5\\.2f else 3\\.6f\\)+",
-    "glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f)",
-    sp
-)
+sprite_lines = []
+for line in sp.splitlines():
+    if line.strip().startswith("glow(c, body, glowColor, if (kind >= 5)"):
+        line = "            glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f)"
+    sprite_lines.append(line)
+sp = "\n".join(sprite_lines) + "\n"
 
 sprites_file.write_text(sp)
 # Temporary CI source snapshot to pinpoint the remaining Kotlin syntax error.
