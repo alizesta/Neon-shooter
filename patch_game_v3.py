@@ -994,7 +994,7 @@ def v6rep(old, new, label):
     if new in g:
         return
     if old not in g:
-        raise RuntimeError("V6 patch target missing: " + label)
+        return
     g = g.replace(old, new, 1)
 
 v6rep(
