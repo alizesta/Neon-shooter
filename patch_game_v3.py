@@ -364,6 +364,7 @@ sp = sp.replace("""            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     null, Shader.TileMode.CLAMP)
             }""", """            val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }""")
 sprites_file.write_text(sp)
+(root.parent / "SPRITES_V4_DUMP.kt").write_text(sp, encoding="utf-8")
 
 # Google Play Games sign-in: initialize status on launch and expose failures instead of swallowing them.
 play = play_file.read_text()
@@ -422,7 +423,7 @@ with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
 tmp.replace(archive)
 subprocess.run(["git","config","user.name","github-actions[bot]"],check=True)
 subprocess.run(["git","config","user.email","41898282+github-actions[bot]@users.noreply.github.com"],check=True)
-subprocess.run(["git","add",archive.name, "GAMEVIEW_V4_DUMP.kt"],check=True)
+subprocess.run(["git","add",archive.name, "GAMEVIEW_V4_DUMP.kt", "SPRITES_V4_DUMP.kt"],check=True)
 if subprocess.run(["git","diff","--cached","--quiet"]).returncode:
     subprocess.run(["git","commit","-m","feat(game): refine 2D art, powerups and sign-in feedback"],check=True)
     subprocess.run(["git","push","origin","HEAD:main"],check=True)
