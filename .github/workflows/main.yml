@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Extract Android project
-        run: unzip -q NeonShooter_*.zip
+        run: rm -rf NeonShooter && unzip -oq NeonShooter_*.zip
       - name: Apply 2D art and gameplay refinement
         run: python3 patch_game_v3.py
       - uses: actions/setup-java@v4
