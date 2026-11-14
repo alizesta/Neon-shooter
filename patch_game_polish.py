@@ -21,8 +21,7 @@ rep('if (wave > 0 && wave % 2 == 0 && intermissionHandledWave != wave) { intermi
 # Five ranks per ability, with maxed abilities removed from the choice deck.
 rep("    private var droneLevel = 0\n", "    private var droneLevel = 0\n    private var rapidLevel = 0\n    private var dashRank = 0\n    private var shieldRank = 0\n", "upgrade rank fields")
 rep('''        val pool = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "rapid")
-        upgradeChoices = pool.shuffled().take(3)
-        if (upgradeChoices.isEmpty()) { st = St.PLAY; waiting = true; waveT = 0.75f }''',
+        upgradeChoices = pool.shuffled().take(3)''',
 '''        val pool = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "rapid").filter { id ->
             when (id) {
                 "firepower" -> weaponLevel < 5
@@ -38,7 +37,8 @@ rep('''        val pool = listOf("firepower", "missile", "laser", "drone", "magn
                 else -> false
             }
         }
-        upgradeChoices = pool.shuffled().take(3)''', "filter maxed abilities")
+        upgradeChoices = pool.shuffled().take(3)
+        if (upgradeChoices.isEmpty()) { st = St.PLAY; waiting = true; waveT = 0.75f }''', "filter maxed abilities")
 rep('''            "missile" -> missileLevel = min(3, missileLevel + 1)
             "laser" -> laserLevel = min(3, laserLevel + 1)
             "drone" -> droneLevel = min(2, droneLevel + 1)
