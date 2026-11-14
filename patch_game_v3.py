@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import subprocess, zipfile, re
+import zipfile, re
 
 root = Path("NeonShooter")
 archive = next(Path(".").glob("NeonShooter_*.zip"))
@@ -1470,16 +1470,10 @@ if 'create("release")' not in gradle_text:
 gradle_file.write_text(gradle_text, encoding="utf-8")
 
 
-# Update archive, commit the source archive, then let CI build the APK.
+# Refresh the workspace archive for this build only. CI must not push from a runner.
 tmp = archive.with_suffix(".tmp.zip")
 with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for f in sorted(root.rglob("*")):
         if f.is_file(): z.write(f, Path(root.name) / f.relative_to(root))
 tmp.replace(archive)
-subprocess.run(["git","config","user.name","github-actions[bot]"],check=True)
-subprocess.run(["git","config","user.email","41898282+github-actions[bot]@users.noreply.github.com"],check=True)
-subprocess.run(["git","add","-A"],check=True)
-if subprocess.run(["git","diff","--cached","--quiet"]).returncode:
-    subprocess.run(["git","commit","-m","feat(game): refine 2D art, powerups and sign-in feedback"],check=True)
-    subprocess.run(["git","push","origin","HEAD:main"],check=True)
-print("Gameplay v3 source updated.")
+print("Gameplay sources prepared for APK build.")
