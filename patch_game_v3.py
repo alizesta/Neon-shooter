@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import subprocess, zipfile, re
+import base64, subprocess, zipfile, re
 
 root = Path("NeonShooter")
 archive = next(Path(".").glob("NeonShooter_*.zip"))
@@ -1335,6 +1335,99 @@ v7rep("            drawWeaponControls(c)\n", "", "remove weapon buttons")
 v7rep("                            else -> bullets.add(B(e.x, e.y + 7f, cos(base) * speed, sin(base) * speed, false))",
       "                            else -> for (i in -1..1) { val a = base + i * 0.12f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed, sin(a) * speed, false)) }", "enemy spread")
 v7rep("            else -> 0xFFB68CFF.toInt()\n", "            10 -> 0xFF72F0C0.toInt()\n            else -> 0xFFB68CFF.toInt()\n", "piercing pickup color")
+# Small, low-opacity comets add depth without making the starfield scroll.
+v7rep(
+    """    private class BlackHole(var x: Float, var y: Float, val radius: Float, val strength: Float, val drift: Float) {
+        var age = 0f
+        var spin = Random.nextFloat() * 6.283f
+    }""",
+    """    private class BlackHole(var x: Float, var y: Float, val radius: Float, val strength: Float, val drift: Float) {
+        var age = 0f
+        var spin = Random.nextFloat() * 6.283f
+    }
+    private class Comet(var x: Float, var y: Float, val vx: Float, val vy: Float, val length: Float, var life: Float, val maxLife: Float)""",
+    "comet class"
+)
+v7rep("    private val blackHoles = ArrayList<BlackHole>()",
+      "    private val blackHoles = ArrayList<BlackHole>()\n    private val comets = ArrayList<Comet>()",
+      "comet collection")
+v7rep("    private var squadTimer = 0f; private var squadSpawnTimer = 0f\n",
+      "    private var squadTimer = 0f; private var squadSpawnTimer = 0f\n    private var cometSpawnTimer = 2.5f\n",
+      "comet spawn timer")
+v7rep("for (star in stars) star.phase += dt * (2.4f + star.sp * 0.16f)",
+      """for (star in stars) star.phase += dt * (2.4f + star.sp * 0.16f)
+        cometSpawnTimer -= dt
+        if (cometSpawnTimer <= 0f) {
+            val speed = 34f + Random.nextFloat() * 18f
+            comets.add(Comet(Random.nextFloat() * W, -3f, (Random.nextFloat() - 0.5f) * 8f, speed, 4f + Random.nextFloat() * 4f, 5.5f, 5.5f))
+            cometSpawnTimer = 5f + Random.nextFloat() * 7f
+        }
+        for (comet in comets) {
+            comet.x += comet.vx * dt
+            comet.y += comet.vy * dt
+            comet.life -= dt
+        }
+        comets.removeAll { it.life <= 0f || it.y > wh + 12f }""",
+      "comet movement")
+v7rep("        paint.alpha = 255\n        when (st) {",
+      """        paint.style = Paint.Style.STROKE
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeWidth = 0.55f * s
+        paint.color = 0xFF9FC7E5.toInt()
+        for (comet in comets) {
+            paint.alpha = (34f * (comet.life / comet.maxLife)).toInt().coerceIn(7, 34)
+            c.drawLine(comet.x * s, comet.y * s, (comet.x - comet.vx * 0.13f) * s, (comet.y - comet.length) * s, paint)
+        }
+        paint.alpha = 255
+        paint.style = Paint.Style.FILL
+        when (st) {""",
+      "comet rendering")
+v7rep("            shieldTimer > 0f -> \"SHIELD \" + (shieldTimer.toInt() + 1)",
+      "            piercingTimer > 0f -> \"PIERCING \" + (piercingTimer.toInt() + 1)\n            shieldTimer > 0f -> \"SHIELD \" + (shieldTimer.toInt() + 1)",
+      "piercing status")
+
+# Install the generated Neon Shooter launcher artwork.
+icon_source = Path("neon_launcher_icon.jpg.b64")
+if not icon_source.is_file():
+    raise RuntimeError("Launcher icon source is missing")
+icon_bytes = base64.b64decode(icon_source.read_text(encoding="ascii").strip(), validate=True)
+if not icon_bytes.startswith(b"\xff\xd8\xff"):
+    raise RuntimeError("Launcher icon source is not a valid JPEG")
+res = root / "app/src/main/res"
+mipmap = res / "mipmap-nodpi"
+mipmap.mkdir(parents=True, exist_ok=True)
+(mipmap / "ic_launcher.jpg").write_bytes(icon_bytes)
+(mipmap / "ic_launcher_art.jpg").write_bytes(icon_bytes)
+adaptive = res / "mipmap-anydpi-v26"
+adaptive.mkdir(parents=True, exist_ok=True)
+adaptive_xml = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@android:color/black" />
+    <foreground>
+        <inset android:drawable="@mipmap/ic_launcher_art" android:inset="8%" />
+    </foreground>
+</adaptive-icon>
+"""
+(adaptive / "ic_launcher.xml").write_text(adaptive_xml, encoding="utf-8")
+(adaptive / "ic_launcher_round.xml").write_text(adaptive_xml, encoding="utf-8")
+
+manifest_path = root / "app/src/main/AndroidManifest.xml"
+manifest_text = manifest_path.read_text(encoding="utf-8")
+manifest_text = re.sub(r'android:icon="[^"]+"', 'android:icon="@mipmap/ic_launcher"', manifest_text)
+manifest_text = re.sub(r'android:roundIcon="[^"]+"', 'android:roundIcon="@mipmap/ic_launcher"', manifest_text)
+if 'android:icon="@mipmap/ic_launcher"' not in manifest_text:
+    manifest_text = manifest_text.replace("<application", '<application android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"', 1)
+elif 'android:roundIcon="@mipmap/ic_launcher"' not in manifest_text:
+    manifest_text = manifest_text.replace('android:icon="@mipmap/ic_launcher"', 'android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"', 1)
+manifest_path.write_text(manifest_text, encoding="utf-8")
+
+strings_path = res / "values/strings.xml"
+strings_text = strings_path.read_text(encoding="utf-8")
+strings_text, label_count = re.subn(r'(<string\s+name="app_name"[^>]*>).*?(</string>)', r'\1Neon Shooter\2', strings_text, count=1, flags=re.DOTALL)
+if label_count == 0:
+    raise RuntimeError("app_name string not found")
+strings_path.write_text(strings_text, encoding="utf-8")
+
 game_file.write_text(g, encoding="utf-8")
 
 # Increment app version so Android accepts the new package as a newer release.
