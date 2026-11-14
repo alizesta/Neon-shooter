@@ -1330,7 +1330,7 @@ v7rep("val pull = min(95f, hole.strength / (d2 + 100f)) * dt",
       "val pull = min(620f, hole.strength * 5f / (d2 + 80f)) * dt", "gravity strength")
 v7rep("for (star in stars) { star.y += star.sp * dt; star.phase += dt * (2.4f + star.sp * 0.16f); if (star.y > wh) { star.y = 0f; star.x = Random.nextFloat() * W } }",
       "for (star in stars) star.phase += dt * (2.4f + star.sp * 0.16f)", "fixed stars")
-v7rep("                        } else if (y >= wh - 34f && x >= W - 96f) {\n                            if (x >= W - 52f) fireLaser() else launchMissiles()\n                            controlTouch = true\n                        }", "                        }", "remove weapon touch")
+# Keep the outer touch-state branches balanced; weapon controls are hidden in the render pass.
 v7rep("            drawWeaponControls(c)\n", "", "remove weapon buttons")
 v7rep("                            else -> bullets.add(B(e.x, e.y + 7f, cos(base) * speed, sin(base) * speed, false))",
       "                            else -> for (i in -1..1) { val a = base + i * 0.12f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed, sin(a) * speed, false)) }", "enemy spread")
@@ -1503,8 +1503,20 @@ game_text = game_text.replace("        if (laserCooldown <= 0f) fireLaser()", " 
 game_text = game_text.replace("playerBeams.add(PlayerBeam(px, py, width, 0.24f))", "playerBeams.add(PlayerBeam(px, py, width, 0.52f))")
 game_text = game_text.replace("roll < 0.83f -> 7\n                roll < 0.90f -> 8", "roll < 0.78f -> 7\n                roll < 0.88f -> 6\n                roll < 0.94f -> 8")
 game_text = game_text.replace("            drawWeaponControls(c)\n", "").replace("        drawWeaponControls(c)\n", "")
-game_text = game_text.replace("                        } else if (y >= wh - 34f && x >= W - 96f) {\n                            if (x >= W - 52f) fireLaser() else launchMissiles()\n                            controlTouch = true\n                        }", "")
+# Weapon touch hitboxes are not drawn; preserve the balanced pause/menu touch handler.
 game_text = game_text.replace("                    val pull = min(1240f, hole.strength * 10f / (d2 + 80f)) * dt\n                    b.vx = (b.vx + dx / distance * pull).coerceIn(-220f, 220f)\n                    b.vy = (b.vy + dy / distance * pull).coerceIn(-220f, 220f)", "                    val pull = min(1800f, hole.strength * 13f / (d2 + 65f)) * dt\n                    b.vx = (b.vx + dx / distance * pull).coerceIn(-420f, 420f)\n                    b.vy = (b.vy + dy / distance * pull).coerceIn(-420f, 420f)\n                    if (distance < hole.radius * 0.30f) {\n                        val tangentX = -dy / distance\n                        val tangentY = dx / distance\n                        val kick = min(260f, (hole.radius * 0.30f - distance) * 8f) * dt\n                        val side = if (b.vx * tangentX + b.vy * tangentY >= 0f) 1f else -1f\n                        b.vx = (b.vx - dx / distance * kick * 1.8f + tangentX * kick * side).coerceIn(-460f, 460f)\n                        b.vy = (b.vy - dy / distance * kick * 1.8f + tangentY * kick * side).coerceIn(-460f, 460f)\n                    }")
+game_file.write_text(game_text, encoding="utf-8")
+
+# Gameplay readability pass: cap enemy density, prevent overlapping spawns, shrink projectiles.
+game_text = game_file.read_text(encoding="utf-8")
+game_text = game_text.replace(
+    "enemies.add(E(x, y, type, hp, x, amp, t0))",
+    "if (enemies.size < 7 && enemies.none { abs(it.x - x) < 24f && abs(it.y - y) < 30f }) enemies.add(E(x, y, type, hp, x, amp, t0))"
+)
+game_text = game_text.replace(
+    "for (b in bullets) spr(c, if (b.mine) bPB else bEB, b.x, b.y)",
+    "for (b in bullets) { c.save(); c.scale(0.72f, 0.72f, b.x * s, b.y * s); spr(c, if (b.mine) bPB else bEB, b.x, b.y); c.restore() }"
+)
 game_file.write_text(game_text, encoding="utf-8")
 # Google Play Games: report missing Play Console configuration and API failures.
 play_source = """package com.claude.neonshooter
