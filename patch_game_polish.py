@@ -91,8 +91,8 @@ rep('''                12 -> { credits += 300; score += 500; lives = min(5, live
     '''                12 -> { credits += 300; score += 500; prefs.edit().putInt("credits", credits).apply() }''', "gold chest no hull")
 
 # Double wave length while retaining the seven-enemy on-screen cap.
-rep("    private val enemies = ArrayList<E>()",
-    "    private val enemies = ArrayList<E>()\n    private val pendingWaveEnemies = ArrayList<E>()\n    private var waveTarget = 1\n    private var waveKills = 0", "wave queue fields")
+rep("private val enemies = ArrayList<E>()",
+    "private val enemies = ArrayList<E>()\n    private val pendingWaveEnemies = ArrayList<E>()\n    private var waveTarget = 1\n    private var waveKills = 0", "wave queue fields")
 rep("        eventKind = 0; eventTimer = 0f; meteorTimer = 0f; goldenCrateSpawned = false\n",
     "        eventKind = 0; eventTimer = 0f; meteorTimer = 0f; goldenCrateSpawned = false\n        pendingWaveEnemies.clear(); waveKills = 0; waveTarget = 1\n", "reset wave queue")
 rep("        bullets.clear(); enemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear(); blackHoles.clear(); chainArcs.clear(); comets.clear()",
