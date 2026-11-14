@@ -8,6 +8,7 @@ on:
       - 'patch_game_v22.py.xz'
       - 'patch_progression_17.part*'
       - 'SPRITES_V5_DUMP.kt'
+      - 'build-assets/v23/patch_game_v23.part*'
   workflow_dispatch:
 permissions:
   contents: write
