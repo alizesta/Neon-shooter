@@ -13,6 +13,8 @@ main_file = base / "MainActivity.kt"
 g = game_file.read_text()
 def rep(src, old, new, label):
     if old not in src:
+        if new in src:
+            return src
         raise SystemExit("Missing patch anchor: " + label)
     return src.replace(old, new, 1)
 
@@ -231,6 +233,35 @@ sp = sp.replace("""        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         fill.color = 0xFFFFFFB8.toInt()
         c.drawPath(body, fill)
         fill.style = Paint.Style.FILL""")
+sprites_file.write_text(sp)
+
+# V4 final pass: strip all bitmap bloom, shadows, and gradient setup.
+sp_lines = []
+for line in sp.splitlines():
+    if "setShadowLayer(" in line or "maskFilter = BlurMaskFilter" in line:
+        continue
+    if "LinearGradient(" in line or "RadialGradient(" in line or "SweepGradient(" in line:
+        continue
+    sp_lines.append(line)
+sp = "\n".join(sp_lines) + "\n"
+sp = sp.replace("""        for (i in 3 downTo 1) {
+            val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = color
+                alpha = 22 + i * 13
+                style = Paint.Style.STROKE
+                strokeWidth = radius * i * 0.55f
+                strokeJoin = Paint.Join.ROUND
+                strokeCap = Paint.Cap.ROUND
+            }
+            canvas.drawPath(path, p)
+        }""", "")
+sp = sp.replace("""        for (i in 3 downTo 1) {
+            val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                this.color = color; alpha = 24 + i * 12
+                style = Paint.Style.STROKE; strokeWidth = radius * i * 0.5f
+            }
+            canvas.drawOval(rect, p)
+        }""", "")
 sprites_file.write_text(sp)
 
 # Google Play Games sign-in: initialize status on launch and expose failures instead of swallowing them.
