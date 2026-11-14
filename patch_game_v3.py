@@ -272,7 +272,7 @@ if "# GAMEPLAY V5 - canonical weapons, permanent upgrades, boss attacks and touc
     g = g.replace('((wave / 5) % 3).toFloat()', '((wave / 5 - 1).coerceIn(0, 9)).toFloat()')
 
     movement_pattern = r'(e\.age \+= dt\n            )if \(e\.type == 2\) \{\s*if \(e\.y < 42f\)[\s\S]*?\n            \} else \{\n                e\.y \+= spd \* dt'
-    movement_replacement = r'''if (e.type == 2) {
+    movement_replacement = r'''\g<1>if (e.type == 2) {
                 val bossId = e.t0.toInt().coerceIn(0, 9)
                 val span = W / 2f - e.hw - 8f
                 if (e.y < 42f) e.y += 32f * dt
@@ -672,7 +672,7 @@ if "# GAMEPLAY V5 - canonical weapons, permanent upgrades, boss attacks and touc
                   '2 -> bossSprites[e.t0.toInt().coerceIn(0, 9)]')
     g = g.replace('        enemies.firstOrNull { it.type == 2 }?.let { bs ->',
                   '        enemies.firstOrNull { it.type == 2 }?.let { bs ->\n            text(c, "BOSS " + (bs.t0.toInt() + 1) + "/10", W / 2f, 17f, 7f, WHT)')
-    g += "\n# V5 complete\n"
+    g += "\n# GAMEPLAY V5 - canonical weapons, permanent upgrades, boss attacks and touch controls\n"
     game_file.write_text(g, encoding="utf-8")
 
 
