@@ -1718,8 +1718,8 @@ def slow_game_replace(old, new, label):
     game_text = game_text.replace(old, new, 1)
 
 slow_game_replace(
-    "    private var piercingTimer = 0f\\n",
-    "    private var piercingTimer = 0f\\n    private var enemySlowTimer = 0f\\n",
+    "    private var piercingTimer = 0f\n",
+    "    private var piercingTimer = 0f\n    private var enemySlowTimer = 0f\n",
     "enemy slow timer field"
 )
 slow_game_replace(
@@ -1728,8 +1728,8 @@ slow_game_replace(
     "enemy slow reset"
 )
 slow_game_replace(
-    "        piercingTimer = max(0f, piercingTimer - dt)\\n",
-    "        piercingTimer = max(0f, piercingTimer - dt)\\n        enemySlowTimer = max(0f, enemySlowTimer - dt)\\n        val enemyDt = dt * if (enemySlowTimer > 0f) 0.1f else 1f\\n",
+    "        piercingTimer = max(0f, piercingTimer - dt)\n",
+    "        piercingTimer = max(0f, piercingTimer - dt)\n        enemySlowTimer = max(0f, enemySlowTimer - dt)\n        val enemyDt = dt * if (enemySlowTimer > 0f) 0.1f else 1f\n",
     "enemy slow countdown"
 )
 
@@ -1750,8 +1750,8 @@ for old, new, label in [
 
 # Slow existing and newly fired enemy bullets; the player's bullets remain on normal dt.
 slow_game_replace(
-    "        for (b in bullets) {\\n            for (hole in blackHoles) {",
-    "        for (b in bullets) {\\n            val bulletDt = if (b.mine) dt else enemyDt\\n            for (hole in blackHoles) {",
+    "        for (b in bullets) {\n            for (hole in blackHoles) {",
+    "        for (b in bullets) {\n            val bulletDt = if (b.mine) dt else enemyDt\n            for (hole in blackHoles) {",
     "separate player and enemy projectile clocks"
 )
 slow_game_replace(
@@ -1764,18 +1764,18 @@ slow_game_replace("b.y += b.vy * dt", "b.y += b.vy * bulletDt", "projectile vert
 
 # A rare final drop; type 10 remains the piercing upgrade, type 11 is the new slow field.
 slow_game_replace(
-    "                roll < 0.985f -> 9\\n                else -> 10",
-    "                roll < 0.985f -> 9\\n                roll < 0.997f -> 10\\n                else -> 11",
+    "                roll < 0.985f -> 9\n                else -> 10",
+    "                roll < 0.985f -> 9\n                roll < 0.997f -> 10\n                else -> 11",
     "slow pickup drop chance"
 )
 slow_game_replace(
-    "                10 -> piercingTimer = max(piercingTimer, 8f)\\n                else -> activateSquadron()",
-    "                10 -> piercingTimer = max(piercingTimer, 8f)\\n                11 -> enemySlowTimer = max(enemySlowTimer, 10f)\\n                else -> activateSquadron()",
+    "                10 -> piercingTimer = max(piercingTimer, 8f)\n                else -> activateSquadron()",
+    "                10 -> piercingTimer = max(piercingTimer, 8f)\n                11 -> enemySlowTimer = max(enemySlowTimer, 10f)\n                else -> activateSquadron()",
     "slow pickup effect"
 )
 slow_game_replace(
-    "            10 -> 0xFF72F0C0.toInt()\\n            else -> 0xFFB68CFF.toInt()",
-    "            10 -> 0xFF72F0C0.toInt()\\n            11 -> 0xFFFFD45C.toInt()\\n            else -> 0xFFB68CFF.toInt()",
+    "            10 -> 0xFF72F0C0.toInt()\n            else -> 0xFFB68CFF.toInt()",
+    "            10 -> 0xFF72F0C0.toInt()\n            11 -> 0xFFFFD45C.toInt()\n            else -> 0xFFB68CFF.toInt()",
     "slow pickup color"
 )
 
@@ -1810,7 +1810,7 @@ if "11 -> { // enemy slow" not in game_text:
 
 slow_game_replace(
     "            piercingTimer > 0f -> \"گلوله نفوذی \" + (piercingTimer.toInt() + 1)",
-    "            enemySlowTimer > 0f -> \"کند شدن دشمن \" + (enemySlowTimer.toInt() + 1)\\n            piercingTimer > 0f -> \"گلوله نفوذی \" + (piercingTimer.toInt() + 1)",
+    "            enemySlowTimer > 0f -> \"کند شدن دشمن \" + (enemySlowTimer.toInt() + 1)\n            piercingTimer > 0f -> \"گلوله نفوذی \" + (piercingTimer.toInt() + 1)",
     "slow effect status label"
 )
 
