@@ -165,7 +165,7 @@ object Sprites {
                     close()
                 }
             }
-            glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f)
+            glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f))
             val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
             c.drawPath(body, fill)
             fill.shader = null
