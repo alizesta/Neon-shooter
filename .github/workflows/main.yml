@@ -42,6 +42,6 @@ jobs:
       - name: Publish refined APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gameplay-v7
-          name: Neon Shooter V7 - Gameplay Balance (Signed)
+          tag_name: gameplay-v7-hotfix
+          name: Neon Shooter V7 Hotfix (Signed)
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
