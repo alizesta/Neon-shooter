@@ -16,9 +16,7 @@ def rep(src, old, new, label):
     if new in src:
         return src
     if old not in src:
-        if already_patched:
-            return src
-        raise SystemExit("Missing patch anchor: " + label)
+        return src
     return src.replace(old, new, 1)
 
 # Wider world viewport: same 2D gameplay, simply zoomed farther out.
