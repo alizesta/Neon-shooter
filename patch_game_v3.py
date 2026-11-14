@@ -96,14 +96,7 @@ g = rep(g, """                2 -> rapidTimer = 10f
                     boom(W / 2f, wh * 0.42f, 110, 150f)
                 }
                 else -> rocketTimer = 12f""", "pickup effects")
-# Make tiny enemy projectiles visibly smaller at the source bitmap.
-g = rep(g, "val width = if (player) 4 else 7\n        val height = if (player) 9 else 7",
-"""val width = if (player) 3 else 4
-        val height = if (player) 8 else 4""", "small bullets")
-g = rep(g, "else RectF(0.5f, 0.5f, 6.5f, 6.5f)",
-"""else RectF(0.8f, 0.8f, 3.2f, 3.2f)""", "small enemy projectile")
-g = rep(g, "if (player) 2.8f else 3.2f",
-"""if (player) 1.8f else 1.2f""", "bullet glow")
+# Make enemy projectile sprites smaller (source bitmap is in Sprites.kt).
 # More enemy silhouettes in rendering.
 g = rep(g, "for (e in enemies) spr(c, if (e.type == 2) bBoss else if (e.type == 1) bE1 else bE0, e.x, e.y)",
 """for (e in enemies) {
@@ -160,6 +153,13 @@ game_file.write_text(g)
 
 # Flat 2D ship and enemy art; replace blur-mask glows with smooth concentric strokes.
 sp = sprites_file.read_text()
+sp = rep(sp, "val width = if (player) 4 else 7\\n        val height = if (player) 9 else 7",
+"""val width = if (player) 3 else 4
+        val height = if (player) 8 else 4""", "small bullets")
+sp = rep(sp, "else RectF(0.5f, 0.5f, 6.5f, 6.5f)",
+"""else RectF(0.8f, 0.8f, 3.2f, 3.2f)""", "small enemy projectile")
+sp = rep(sp, "if (player) 2.8f else 3.2f",
+"""if (player) 1.8f else 1.2f""", "bullet glow")
 sp = sp.replace("""        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
             maskFilter = BlurMaskFilter(radius, BlurMaskFilter.Blur.NORMAL)
