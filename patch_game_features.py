@@ -492,14 +492,14 @@ rep('            if (e.type != 2) {',
                 paint.style = Paint.Style.FILL
             }
             if (e.type != 2) {""", "boss aim telegraph")
-rep('        for (b in bullets) spr(c, if (b.mine) bPB else bEB, b.x, b.y)',
+rep('        for (beam in playerBeams) {',
 """        for (arc in chainArcs) {
             paint.style = Paint.Style.STROKE; paint.strokeWidth = (1f + arc.life * 4f) * s
             paint.color = 0xFF73F5FF.toInt(); paint.alpha = (255f * (arc.life / 0.24f)).toInt().coerceIn(0, 255)
             c.drawLine(arc.x1 * s, arc.y1 * s, arc.x2 * s, arc.y2 * s, paint)
             paint.alpha = 255; paint.style = Paint.Style.FILL
         }
-        for (b in bullets) spr(c, if (b.mine) bPB else bEB, b.x, b.y)""", "lightning arcs")
+        for (beam in playerBeams) {""", "lightning arcs")
 rep('        paint.style = Paint.Style.FILL\n        if (shieldTimer > 0f) {',
     '        paint.style = Paint.Style.FILL\n        if (shieldTimer > 0f || shieldLevel > 0) {', "reflective shield visual")
 rep('                val dx = if (i == 0) -17f else 17f\n                val wing = Path().apply { moveTo((px + dx) * s, (py - 5f) * s); lineTo((px + dx + 4f) * s, (py + 3f) * s); lineTo((px + dx) * s, (py + 1f) * s); lineTo((px + dx - 4f) * s, (py + 3f) * s); close() }',
