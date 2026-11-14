@@ -178,7 +178,7 @@ rep('            "signin" -> Play.signIn(act)\n            "sound" -> sfx.enable
     '            "signin" -> Play.signIn(act)\n            "ship" -> cycleShip()\n            "upgrade_0" -> chooseUpgrade(0)\n            "upgrade_1" -> chooseUpgrade(1)\n            "upgrade_2" -> chooseUpgrade(2)\n            "shop_repair", "shop_weapon", "shop_shield", "shop_dash", "shop_continue" -> buyShop(id)\n            "sound" -> sfx.enabled = !sfx.enabled', "menu and progression actions")
 rep('                add("sound", if (sfx.enabled) "SOUND: ON" else "SOUND: OFF", y + 120f)',
     '                add("sound", if (sfx.enabled) "SOUND: ON" else "SOUND: OFF", y + 120f)\n                add("ship", "SHIP: " + shipName(), y + 150f)', "ship selector button")
-rep('            St.OVER -> { val y = wh * 0.58f; add("play", "RETRY", y); add("menu", "MENU", y + 30f) }\n            else -> {}',
+rep('            St.OVER -> { val y = wh * 0.58f; add("play", "شروع دوباره", y); add("menu", "منو", y + 30f) }\n            else -> {}',
 """            St.OVER -> { val y = wh * 0.58f; add("play", "RETRY", y); add("menu", "MENU", y + 30f) }
             St.UPGRADE -> {
                 val top = wh * 0.62f
@@ -522,7 +522,7 @@ rep('                        } else if (y >= wh - 34f && x >= W - 96f) {',
     '                        } else if (y >= wh - 34f && x <= 42f) {\n                            performDash()\n                            controlTouch = true\n                        } else if (y >= wh - 34f && x >= W - 96f) {', "dash touch control")
 rep('px = (px + (e.x - lx) / s).coerceIn(10f, W - 10f)',
     'px = (px + (e.x - lx) / s * shipMoveMultiplier()).coerceIn(10f, W - 10f)', "ship movement stat")
-rep('        control("MISSILE", W - 94f, W - 53f, missileCooldown <= 0f)\n        control("LASER", W - 49f, W - 8f, laserCooldown <= 0f)',
+rep('        control("موشک", W - 94f, W - 53f, missileCooldown <= 0f)\n        control("لیزر", W - 49f, W - 8f, laserCooldown <= 0f)',
     '        if (dashCharges > 0) control("DASH " + dashCharges, 8f, 43f, dashCooldown <= 0f)\n        control("MISSILE", W - 94f, W - 53f, missileCooldown <= 0f)\n        control("LASER", W - 49f, W - 8f, laserCooldown <= 0f)', "dash UI")
 
 # Main menu: ship selection, unlock progression, daily mission and credit balance.
