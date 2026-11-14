@@ -91,6 +91,20 @@ def strip_google_play_games():
     APP_CLASS.unlink(missing_ok=True)
     PLAY_CLASS.unlink(missing_ok=True)
 
+    # Final line-level cleanup for source-archive variants. Preserve the
+    # boss projectile-clear effect when it shares a line with an achievement.
+    game_lines = GAME.read_text(encoding="utf-8").splitlines()
+    cleaned_lines = []
+    for line in game_lines:
+        if "ach(" in line:
+            if "bullets.removeAll" in line:
+                cleaned_lines.append("        if (e.type == 2) { bullets.removeAll { !it.mine } }")
+            continue
+        if "Play." in line:
+            continue
+        cleaned_lines.append(line)
+    GAME.write_text("\n".join(cleaned_lines) + "\n", encoding="utf-8")
+
     game_text = GAME.read_text(encoding="utf-8")
     for forbidden in ("Play.", "ach(", "R.string.achievement_", "LEADERBOARD", "ACHIEVEMENTS", "GOOGLE SIGN-IN"):
         if forbidden in game_text:
