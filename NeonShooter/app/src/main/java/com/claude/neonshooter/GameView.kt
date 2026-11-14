@@ -23,8 +23,16 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     }
     private class Pt(var x: Float, var y: Float, val vx: Float, val vy: Float, var life: Float, val max: Float)
     private class Item(var x: Float, var y: Float, val type: Int) { var age = 0f }
+    private class PlayerBeam(val x: Float, val bottom: Float, val width: Float, var life: Float)
+    private class Missile(var x: Float, var y: Float, var vx: Float, var vy: Float, val damage: Int, var age: Float = 0f)
+    private class EnemyLaser(var x: Float, var warning: Float, var active: Float, val width: Float, val drift: Float)
+    private class SweepShip(var x: Float, var y: Float)
     private class Btn(val id: String, val label: String, val r: RectF)
-    private class Star(var x: Float, val y0: Float, val sp: Float, val sz: Float) { var y = y0 }
+    private class Star(var x: Float, val y0: Float, val sp: Float, val sz: Float) {
+        var y = y0
+        var phase = Random.nextFloat() * 6.283f
+        val twinkle = Random.nextFloat() < 0.42f
+    }
 
     // palette: gray / yellow / red / white (+ orange warning)
     private val BG = 0xFF111318.toInt(); private val STAR = 0xFF454D59.toInt()
@@ -47,12 +55,23 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private val bullets = ArrayList<B>(); private val enemies = ArrayList<E>()
     private val parts = ArrayList<Pt>(); private val stars = ArrayList<Star>()
     private val items = ArrayList<Item>()
+    private val playerBeams = ArrayList<PlayerBeam>()
+    private val missiles = ArrayList<Missile>()
+    private val enemyLasers = ArrayList<EnemyLaser>()
+    private val squadShips = ArrayList<SweepShip>()
+    private lateinit var bossSprites: Array<Bitmap>
     private var px = 90f; private var py = 270f
     private var lives = 3; private var score = 0; private var wave = 0
     private var invul = 0f; private var fireT = 0f; private var time = 0f
-    private var weaponLevel = 1; private var weaponTimer = 0f
-    private var rapidTimer = 0f; private var shieldTimer = 0f
+    private var weaponLevel = prefs.getInt("upgrade_weapon", 1).coerceIn(1, 5)
+    private var missileLevel = prefs.getInt("upgrade_missile", 0).coerceIn(0, 3)
+    private var laserLevel = prefs.getInt("upgrade_laser", 0).coerceIn(0, 3)
+    private var droneLevel = prefs.getInt("upgrade_drone", 0).coerceIn(0, 2)
+    private var weaponTimer = 0f
+    private var rapidTimer = 0f; private var shieldTimer = 0f; private var magnetTimer = 0f
     private var rocketTimer = 0f
+    private var laserCooldown = 0f; private var missileCooldown = 0f
+    private var controlTouch = false
     private var waiting = false; private var waveT = 0f; private var bannerT = 0f; private var overT = 0f
     private var kills = 0
     private val unlocked = HashSet<Int>()
@@ -93,10 +112,14 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         bE3 = Sprites.enemy(0xFFB68CFF.toInt(), 0xFFD7BCFF.toInt(), ps, 4)
         bBoss2 = Sprites.enemy(0xFF35D9D2.toInt(), 0xFF35D9D2.toInt(), ps, 5)
         bBoss3 = Sprites.enemy(0xFFB46BFF.toInt(), 0xFFB46BFF.toInt(), ps, 6)
+        val bossPalette = intArrayOf(0xFFFF4D91.toInt(), 0xFF32D8F2.toInt(), 0xFFFF9B42.toInt(), 0xFF9C7BFF.toInt(), 0xFFFF5964.toInt(), 0xFF52E0A0.toInt(), 0xFFFFD14A.toInt(), 0xFF4E9EFF.toInt(), 0xFFFF70D4.toInt(), 0xFFE8F1FF.toInt())
+        bossSprites = Array(10) { i -> Sprites.enemy(bossPalette[i], bossPalette[i], ps, 5 + i) }
         bE2 = Sprites.enemy(0xFF62DFFF.toInt(), 0xFF9CEBFF.toInt(), ps, 3)
         bE3 = Sprites.enemy(0xFFB68CFF.toInt(), 0xFFD7BCFF.toInt(), ps, 4)
         bBoss2 = Sprites.enemy(0xFF35D9D2.toInt(), 0xFF35D9D2.toInt(), ps, 5)
         bBoss3 = Sprites.enemy(0xFFB46BFF.toInt(), 0xFFB46BFF.toInt(), ps, 6)
+        val bossPalette = intArrayOf(0xFFFF4D91.toInt(), 0xFF32D8F2.toInt(), 0xFFFF9B42.toInt(), 0xFF9C7BFF.toInt(), 0xFFFF5964.toInt(), 0xFF52E0A0.toInt(), 0xFFFFD14A.toInt(), 0xFF4E9EFF.toInt(), 0xFFFF70D4.toInt(), 0xFFE8F1FF.toInt())
+        bossSprites = Array(10) { i -> Sprites.enemy(bossPalette[i], bossPalette[i], ps, 5 + i) }
         bPB = Sprites.bullet(WHT, WGL, ps, true)
         bEB = Sprites.bullet(ORG, 0xFFFFD28C.toInt(), ps, false)
         if (stars.isEmpty()) repeat(60) {
@@ -134,16 +157,23 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         synchronized(lock) {
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    lx = e.x; ly = e.y
-                    if (st != St.PLAY && !(st == St.OVER && overT < 0.7f)) {
+                    lx = e.x; ly = e.y; controlTouch = false
+                    if (st == St.PLAY) {
+                        val x = e.x / s; val y = e.y / s
+                        if (y >= wh - 34f && x >= W - 96f) {
+                            if (x >= W - 52f) fireLaser() else launchMissiles()
+                            controlTouch = true
+                        }
+                    } else if (!(st == St.OVER && overT < 0.7f)) {
                         buttons().firstOrNull { it.r.contains(e.x / s, e.y / s) }?.let { onBtn(it.id) }
                     }
                 }
-                MotionEvent.ACTION_MOVE -> if (st == St.PLAY) {
+                MotionEvent.ACTION_MOVE -> if (st == St.PLAY && !controlTouch) {
                     px = (px + (e.x - lx) / s).coerceIn(10f, W - 10f)
-                    py = (py + (e.y - ly) / s).coerceIn(30f, wh - 14f)
+                    py = (py + (e.y - ly) / s).coerceIn(30f, wh - 48f)
                     lx = e.x; ly = e.y
                 }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> controlTouch = false
             }
         }
         return true
@@ -180,9 +210,10 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
 
     // ---------- game logic ----------
     private fun startGame() {
-        bullets.clear(); enemies.clear(); parts.clear(); items.clear()
+        bullets.clear(); enemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear()
         score = 0; lives = 3; wave = 0; kills = 0; invul = 2.2f; fireT = 0f; time = 0f
-        weaponLevel = 1; weaponTimer = 0f; rapidTimer = 0f; shieldTimer = 0f; rocketTimer = 0f; rocketTimer = 0f
+        weaponTimer = 0f; rapidTimer = 0f; shieldTimer = 0f; magnetTimer = 0f
+        laserCooldown = 0f; missileCooldown = 0f; rocketTimer = 0f
         px = W / 2; py = wh - 45f; waiting = true; waveT = 1.4f
         st = St.PLAY
         sfx.play("start")
@@ -195,7 +226,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         bannerT = 2.0f
         if (wave >= 10) ach(R.string.achievement_wave_10)
         if (wave % 5 == 0) {
-            enemies.add(E(W / 2, -20f, 2, 42 + wave * 7, W / 2, 0f, ((wave / 5) % 3).toFloat()).also { it.fire = 1.7f })
+            enemies.add(E(W / 2, -20f, 2, 42 + wave * 7, W / 2, 0f, ((wave / 5 - 1).coerceIn(0, 9)).toFloat()).also { it.fire = 1.7f })
             return
         }
         val n = min(8 + wave / 2, 15)
@@ -232,17 +263,20 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         if (kills == 1) ach(R.string.achievement_first_kill)
         if (score >= 1000) ach(R.string.achievement_score_1000)
         if (e.type == 2) { ach(R.string.achievement_boss_slayer); bullets.removeAll { !it.mine } }
-        val dropChance = if (e.type == 2) 0.90f else 0.12f
+        val dropChance = if (e.type == 2) 0.95f else 0.15f
         if (Random.nextFloat() < dropChance) {
             val roll = Random.nextFloat()
             val kind = when {
-                lives <= 1 && roll < 0.30f -> 0
-                roll < 0.18f -> 0
-                roll < 0.38f -> 1
-                roll < 0.55f -> 2
-                roll < 0.72f -> 3
-                roll < 0.86f -> 4
-                else -> 5
+                lives <= 1 && roll < 0.10f -> 0
+                roll < 0.25f -> 1
+                roll < 0.39f -> 2
+                roll < 0.51f -> 3
+                roll < 0.61f -> 4
+                roll < 0.74f -> 5
+                roll < 0.83f -> 6
+                roll < 0.90f -> 7
+                roll < 0.96f -> 8
+                else -> 9
             }
             items.add(Item(e.x, e.y, kind))
         }
@@ -268,28 +302,59 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     }
 
     private fun shoot() {
-        val lvl = max(min(1 + wave / 4, 3), if (weaponTimer > 0f) weaponLevel else 1)
-        when (lvl) {
-            1 -> bullets.add(B(px, py - 9f, 0f, -170f, true))
-            2 -> { bullets.add(B(px - 4f, py - 9f, 0f, -170f, true)); bullets.add(B(px + 4f, py - 9f, 0f, -170f, true)) }
-            else -> {
-                bullets.add(B(px, py - 9f, 0f, -170f, true))
-                bullets.add(B(px - 5f, py - 6f, -22f, -165f, true)); bullets.add(B(px + 5f, py - 6f, 22f, -165f, true))
-            }
+        val count = min(1 + (weaponLevel - 1) * 2, 9)
+        for (i in 0 until count) {
+            val offset = i - (count - 1) / 2
+            bullets.add(B(px + offset * 3.6f, py - 9f, offset * 13f, -178f, true))
         }
-        if (rocketTimer > 0f && time % 0.55f < 0.18f) {
-            bullets.add(B(px - 7f, py - 5f, -12f, -145f, true))
-            bullets.add(B(px + 7f, py - 5f, 12f, -145f, true))
+        if (droneLevel >= 1) {
+            bullets.add(B(px - 17f, py - 5f, -8f, -165f, true))
+            bullets.add(B(px + 17f, py - 5f, 8f, -165f, true))
         }
-        if (rocketTimer > 0f && time % 0.55f < 0.18f) {
-            bullets.add(B(px - 7f, py - 5f, -12f, -145f, true))
-            bullets.add(B(px + 7f, py - 5f, 12f, -145f, true))
+        if (droneLevel >= 2) {
+            bullets.add(B(px - 27f, py - 1f, -17f, -155f, true))
+            bullets.add(B(px + 27f, py - 1f, 17f, -155f, true))
         }
         sfx.play("shoot")
     }
 
+    private fun fireLaser() {
+        if (st != St.PLAY || laserCooldown > 0f) return
+        val width = 5f + laserLevel * 2.2f
+        playerBeams.add(PlayerBeam(px, py, width, 0.24f))
+        val damage = 2 + laserLevel * 3
+        for (enemy in enemies) {
+            if (!enemy.dead && enemy.y < py && abs(enemy.x - px) < width + enemy.hw * 0.35f) {
+                enemy.hp -= damage
+                boom(enemy.x, enemy.y, 5, 38f)
+                if (enemy.hp <= 0) kill(enemy)
+            }
+        }
+        laserCooldown = max(2.3f, 5.5f - laserLevel * 0.75f)
+        sfx.play("laser")
+    }
+
+    private fun launchMissiles() {
+        if (st != St.PLAY || missileCooldown > 0f) return
+        val count = 2 + missileLevel
+        for (i in 0 until count) {
+            val offset = (i - (count - 1) / 2) * 7f
+            missiles.add(Missile((px + offset).coerceIn(5f, W - 5f), py - 8f, offset * 0.8f, -115f, 2 + missileLevel * 2))
+        }
+        missileCooldown = max(1.8f, 5.2f - missileLevel * 0.65f)
+        sfx.play("missile")
+    }
+
+    private fun activateSquadron() {
+        for (offset in floatArrayOf(-42f, -14f, 14f, 42f)) {
+            squadShips.add(SweepShip((px + offset).coerceIn(8f, W - 8f), wh + 14f))
+        }
+        bullets.removeAll { !it.mine }
+        sfx.play("power")
+    }
+
     private fun update(dt: Float) {
-        for (star in stars) { star.y += star.sp * dt; if (star.y > wh) { star.y = 0f; star.x = Random.nextFloat() * W } }
+        for (star in stars) { star.y += star.sp * dt; star.phase += dt * (1.2f + star.sp * 0.07f); if (star.y > wh) { star.y = 0f; star.x = Random.nextFloat() * W } }
         for (p in parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt }
         parts.removeAll { it.life <= 0f }
         if (st == St.OVER) overT += dt
@@ -299,9 +364,13 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         weaponTimer = max(0f, weaponTimer - dt)
         rapidTimer = max(0f, rapidTimer - dt)
         shieldTimer = max(0f, shieldTimer - dt)
+        magnetTimer = max(0f, magnetTimer - dt)
+        laserCooldown = max(0f, laserCooldown - dt)
+        missileCooldown = max(0f, missileCooldown - dt)
+        for (beam in playerBeams) beam.life -= dt
+        playerBeams.removeAll { it.life <= 0f }
         rocketTimer = max(0f, rocketTimer - dt)
-        rocketTimer = max(0f, rocketTimer - dt)
-        if (fireT <= 0f) { fireT = if (rapidTimer > 0f) 0.095f else 0.17f; shoot() }
+        if (fireT <= 0f) { fireT = if (rapidTimer > 0f) 0.075f else max(0.085f, 0.17f - (weaponLevel - 1) * 0.012f); shoot() }
 
         // waves
         if (enemies.isEmpty()) {
@@ -311,46 +380,23 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
 
         // enemies
         val spd = min(18f + wave * 1.15f, 38f)
+        val summonedEnemies = ArrayList<E>()
         for (e in enemies) {
-            e.age += dt
-            if (e.type == 2) {
-                if (e.y < 42f) e.y += 26f * dt
-                when (e.t0.toInt() % 3) {
-                    0 -> when (e.t0.toInt() % 3) {
-                    0 -> when (e.t0.toInt() % 3) {
-                    0 -> when (e.t0.toInt() % 3) {
-                    0 -> when (e.t0.toInt() % 3) {
-                    0 -> when (e.t0.toInt() % 3) {
-                    0 -> when (e.t0.toInt() % 3) {
-                    0 -> when (e.t0.toInt() % 3) {
-                    0 -> when (e.t0.toInt() % 3) {
-                    0 -> e.x = W / 2 + sin(e.age * 0.82f) * (W / 2 - e.hw - 8f)
-                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
-                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
-                }
-                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
-                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
-                }
-                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
-                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
-                }
-                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
-                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
-                }
-                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
-                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
-                }
-                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
-                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
-                }
-                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
-                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
-                }
-                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
-                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
-                }
-                    1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
-                    else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
+            if (e.type == 2) {
+                val bossId = e.t0.toInt().coerceIn(0, 9)
+                val span = W / 2f - e.hw - 8f
+                if (e.y < 42f) e.y += 32f * dt
+                when (bossId) {
+                    0 -> e.x = W / 2f + sin(e.age * 0.62f) * span
+                    1 -> { e.x = W / 2f + sin(e.age * 1.55f) * span; e.y = 40f + sin(e.age * 1.2f) * 8f }
+                    2 -> { e.x += (px - e.x).coerceIn(-55f * dt, 55f * dt); e.y = 38f + sin(e.age * 0.8f) * 12f }
+                    3 -> e.x = W / 2f + sin(e.age * 0.42f) * span
+                    4 -> { e.x = W / 2f + sin(e.age * 2.15f) * span; e.y = 38f + abs(sin(e.age * 0.72f)) * 16f }
+                    5 -> { e.x = W / 2f + sin(e.age * 0.86f) * span; e.y = 36f + sin(e.age * 1.7f) * 9f }
+                    6 -> e.x = W / 2f + sin(e.age * 0.31f) * span
+                    7 -> { e.x = W / 2f + sin(e.age * 1.08f) * span; e.y = 40f + abs(sin(e.age * 0.52f)) * 18f }
+                    8 -> e.x = W / 2f + sin(e.age * 1.82f) * span
+                    else -> { e.x = W / 2f + sin(e.age * 0.94f) * span; e.y = 37f + sin(e.age * 1.35f) * 12f }
                 }
             } else {
                 e.y += spd * dt
@@ -371,27 +417,104 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
             e.fire -= dt
             if (e.fire <= 0f) {
                 if (e.type == 2) {
-                    e.fire = max(0.7f, 1.3f - wave * 0.02f)
-                    for (i in -2..2) {
-                        val a = (PI / 2 + i * 0.3).toFloat()
-                        bullets.add(B(e.x, e.y + 8f, cos(a) * 60f, sin(a) * 60f, false))
+                    val bossId = e.t0.toInt().coerceIn(0, 9)
+                    val enraged = e.hp * 2 <= e.maxHp
+                    e.fire = max(0.48f, (if (enraged) 0.72f else 1.12f) - wave * 0.006f)
+                    val base = atan2((py - e.y).toDouble(), (px - e.x).toDouble()).toFloat()
+                    val speed = 74f + min(wave.toFloat(), 50f) * 1.1f
+                    when (bossId) {
+                        0 -> for (i in -2..2) { val a = base + i * 0.16f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed, sin(a) * speed, false)) }
+                        1 -> enemyLasers.add(EnemyLaser(e.x, 0.62f, 0.72f, 7f, if (sin(e.age) >= 0f) 24f else -24f))
+                        2 -> {
+                            for (side in -1..1 step 2) summonedEnemies.add(E((e.x + side * 16f).coerceIn(12f, W - 12f), e.y + 8f, 3, 2 + wave / 16, e.x + side * 16f, 18f, e.age + side))
+                            for (i in -1..1) { val a = base + i * 0.22f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed, sin(a) * speed, false)) }
+                        }
+                        3 -> for (i in 0 until 18) { val a = i * (2f * PI.toFloat() / 18f) + e.age * 0.18f; bullets.add(B(e.x, e.y, cos(a) * speed * 0.82f, sin(a) * speed * 0.82f, false)) }
+                        4 -> for (i in 0..2) { val a = e.age * 1.7f + i * (2f * PI.toFloat() / 3f); bullets.add(B(e.x, e.y, cos(a) * speed, sin(a) * speed, false)); bullets.add(B(e.x, e.y, cos(a + PI.toFloat()) * speed, sin(a + PI.toFloat()) * speed, false)) }
+                        5 -> repeat(7) { val x = Random.nextFloat() * W; bullets.add(B(x, e.y + 8f, (px - x) * 0.08f, speed * 0.9f, false)) }
+                        6 -> for (i in -3..3) { val a = base + i * 0.12f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed, sin(a) * speed, false)) }
+                        7 -> {
+                            enemyLasers.add(EnemyLaser(e.x - 26f, 0.55f, 0.7f, 6f, 18f))
+                            enemyLasers.add(EnemyLaser(e.x + 26f, 0.55f, 0.7f, 6f, -18f))
+                        }
+                        8 -> {
+                            for (i in 0 until 12) { val a = i * (2f * PI.toFloat() / 12f) + e.age * 0.24f; bullets.add(B(e.x, e.y, cos(a) * speed, sin(a) * speed, false)) }
+                            for (i in -1..1) { val a = base + i * 0.2f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed * 1.12f, sin(a) * speed * 1.12f, false)) }
+                        }
+                        else -> {
+                            enemyLasers.add(EnemyLaser(e.x, 0.48f, 0.58f, 8f, if (px > e.x) 20f else -20f))
+                            for (i in -2..2) { val a = base + i * 0.18f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed, sin(a) * speed, false)) }
+                        }
                     }
                 } else {
-                    e.fire = Random.nextFloat() * 2.5f + 2.5f - min(wave * 0.05f, 1.5f)
-                    if (e.y > 4f && e.y < wh * 0.55f) {
-                        if (e.type == 1) {
-                            val leadX = px + sin(time * 1.3f) * 8f
-                            val dx = leadX - e.x; val dy = py - e.y; val d = max(1f, hypot(dx, dy))
-                            bullets.add(B(e.x, e.y + 8f, dx / d * 82f, dy / d * 112f, false))
-                        } else {
-                            val drift = ((px - e.x) * 0.12f).coerceIn(-16f, 16f)
-                            bullets.add(B(e.x, e.y + 8f, drift, 66f, false))
+                    e.fire = when (e.type) {
+                        1 -> max(0.48f, 1.12f - wave * 0.012f)
+                        3 -> max(0.58f, 1.36f - wave * 0.013f)
+                        4 -> max(0.72f, 1.62f - wave * 0.011f)
+                        else -> max(0.82f, 1.82f - wave * 0.010f)
+                    }
+                    if (e.y > 4f && e.y < wh * 0.72f) {
+                        val dx = px + sin(time * 1.6f + e.t0) * 9f - e.x
+                        val dy = py - e.y
+                        val base = atan2(dy.toDouble(), dx.toDouble()).toFloat()
+                        val speed = 72f + min(wave.toFloat(), 45f) * 1.4f
+                        when (e.type) {
+                            1 -> for (i in -1..1) { val a = base + i * 0.15f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed, sin(a) * speed, false)) }
+                            3 -> for (i in -1..1) { val a = base + i * 0.23f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed * 1.1f, sin(a) * speed * 1.1f, false)) }
+                            4 -> for (i in -2..2) { val a = base + i * 0.12f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed * 0.88f, sin(a) * speed * 0.88f, false)) }
+                            else -> bullets.add(B(e.x, e.y + 7f, cos(base) * speed, sin(base) * speed, false))
                         }
                     }
                 }
             }
         }
+        enemies.addAll(summonedEnemies)
+        for (laser in enemyLasers) {
+            laser.x += laser.drift * dt
+            if (laser.warning > 0f) laser.warning = max(0f, laser.warning - dt)
+            else if (laser.active > 0f) {
+                laser.active = max(0f, laser.active - dt)
+                if (invul <= 0f && py < wh && py > 8f && abs(px - laser.x) < laser.width * 0.5f + 6f) {
+                    hurt()
+                    laser.active = 0f
+                }
+            }
+        }
+        enemyLasers.removeAll { it.warning <= 0f && it.active <= 0f }
         enemies.removeAll { it.y > wh + 12f }
+
+        // Homing player missiles and four-lane support squadron sweep.
+        for (missile in missiles) {
+            missile.age += dt
+            val target = enemies.filter { !it.dead }.minByOrNull { hypot(it.x - missile.x, it.y - missile.y) }
+            if (target != null) {
+                val dx = target.x - missile.x; val dy = target.y - missile.y
+                val d = max(1f, hypot(dx, dy))
+                val desiredX = dx / d * 175f; val desiredY = dy / d * 175f
+                missile.vx += (desiredX - missile.vx).coerceIn(-260f * dt, 260f * dt)
+                missile.vy += (desiredY - missile.vy).coerceIn(-260f * dt, 260f * dt)
+            } else { missile.vy = -175f; missile.vx *= 0.96f }
+            missile.x += missile.vx * dt; missile.y += missile.vy * dt
+            val hitTarget = target?.takeIf { !it.dead && hypot(it.x - missile.x, it.y - missile.y) < it.hw + 7f }
+            if (hitTarget != null) {
+                hitTarget.hp -= missile.damage
+                boom(missile.x, missile.y, 12, 65f)
+                for (nearby in enemies) if (!nearby.dead && nearby !== hitTarget && hypot(nearby.x - missile.x, nearby.y - missile.y) < 17f) {
+                    nearby.hp -= max(1, missile.damage / 2)
+                    if (nearby.hp <= 0) kill(nearby)
+                }
+                if (hitTarget.hp <= 0) kill(hitTarget)
+                missile.age = 99f
+            }
+        }
+        missiles.removeAll { it.age > 4f || it.y < -20f || it.x < -20f || it.x > W + 20f }
+        for (ship in squadShips) {
+            ship.y -= 260f * dt
+            bullets.removeAll { !it.mine && abs(it.x - ship.x) < 8f && abs(it.y - ship.y) < 10f }
+            for (enemy in enemies) if (!enemy.dead && abs(enemy.x - ship.x) < enemy.hw + 7f && abs(enemy.y - ship.y) < enemy.hh + 9f) kill(enemy)
+        }
+        squadShips.removeAll { it.y < -20f }
+        enemies.removeAll { it.dead }
 
         // bullets
         for (b in bullets) { b.x += b.vx * dt; b.y += b.vy * dt }
@@ -400,23 +523,31 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         // floating pickups
         for (item in items) {
             item.age += dt
-            item.y += (24f + min(wave.toFloat(), 10f)) * dt
-            item.x = (item.x + sin(item.age * 2.4f) * 8f * dt).coerceIn(8f, W - 8f)
+            if (magnetTimer > 0f) {
+                item.x += (px - item.x) * min(1f, 3.0f * dt)
+                item.y += (py - item.y) * min(1f, 3.0f * dt)
+            } else {
+                item.y += (24f + min(wave.toFloat(), 10f)) * dt
+                item.x = (item.x + sin(item.age * 2.4f) * 8f * dt).coerceIn(8f, W - 8f)
+            }
         }
         val collected = ArrayList<Item>()
         for (item in items) if (hypot(item.x - px, item.y - py) < 15f) {
             when (item.type) {
                 0 -> { if (lives < 5) lives++ else score += 100 }
-                1 -> { weaponLevel = min(3, weaponLevel + 1); weaponTimer = 15f }
-                2 -> rapidTimer = 9f
-                3 -> shieldTimer = 10f
+                1 -> { weaponLevel = min(5, weaponLevel + 1); prefs.edit().putInt("upgrade_weapon", weaponLevel).apply(); score += 60 }
+                2 -> rapidTimer = max(rapidTimer, 10f)
+                3 -> shieldTimer = max(shieldTimer, 10f)
                 4 -> {
-                    val targets = enemies.toList()
-                    targets.forEach { kill(it) }
-                    bullets.removeAll { !it.mine }
+                    enemies.toList().forEach { if (!it.dead) kill(it) }
+                    bullets.removeAll { !it.mine }; enemyLasers.clear()
                     boom(W / 2f, wh * 0.42f, 110, 150f)
                 }
-                else -> rocketTimer = 12f
+                5 -> { missileLevel = min(3, missileLevel + 1); prefs.edit().putInt("upgrade_missile", missileLevel).apply(); score += 60 }
+                6 -> { laserLevel = min(3, laserLevel + 1); prefs.edit().putInt("upgrade_laser", laserLevel).apply(); score += 60 }
+                7 -> { droneLevel = min(2, droneLevel + 1); prefs.edit().putInt("upgrade_drone", droneLevel).apply(); score += 80 }
+                8 -> magnetTimer = max(magnetTimer, 9f)
+                else -> activateSquadron()
             }
             collected.add(item); boom(item.x, item.y, 10, 42f); sfx.play("power")
         }
@@ -467,7 +598,11 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
             2 -> 0xFFFFD84D.toInt()
             3 -> 0xFFFF79D8.toInt()
             4 -> 0xFFFF8A35.toInt()
-            else -> 0xFFB68CFF.toInt()
+            5 -> 0xFFB68CFF.toInt()
+            6 -> 0xFFFF5C65.toInt()
+            7 -> 0xFF64E5B0.toInt()
+            8 -> 0xFF4F9EFF.toInt()
+            else -> 0xFFFFD45C.toInt()
         }
         c.save()
         c.translate(cx, cy)
@@ -502,11 +637,11 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
                 val burst = Path().apply { moveTo(0f, -6f); lineTo(1.5f, -2f); lineTo(5f, -4f); lineTo(3f, 0f); lineTo(6f, 2f); lineTo(2f, 3f); lineTo(1f, 6f); lineTo(-1.5f, 3f); lineTo(-5f, 4f); lineTo(-3f, 0f); lineTo(-6f, -2f); lineTo(-2f, -3f); close() }
                 c.drawPath(burst, p); c.drawCircle(0f, 0f, 1.8f, p)
             }
-            else -> { // guided rocket
-                val rocket = Path().apply { moveTo(0f, -6f); quadTo(4f, -2f, 2.5f, 3f); lineTo(0f, 5f); lineTo(-2.5f, 3f); quadTo(-4f, -2f, 0f, -6f); close() }
-                c.drawPath(rocket, p); c.drawLine(-2.5f, 1f, -5f, 4f, p); c.drawLine(2.5f, 1f, 5f, 4f, p)
-                c.drawCircle(0f, -1.5f, 1.2f, p); c.drawLine(0f, 5f, 0f, 7f, p)
-            }
+            5 -> { c.drawLine(-5f, 4f, -5f, -3f, p); c.drawLine(0f, 4f, 0f, -6f, p); c.drawLine(5f, 4f, 5f, -3f, p); c.drawCircle(-5f, -3f, 1.5f, p); c.drawCircle(0f, -6f, 1.5f, p); c.drawCircle(5f, -3f, 1.5f, p) }
+            6 -> { c.drawLine(0f, -6f, 0f, 6f, p); c.drawLine(-4f, -3f, 4f, -3f, p); c.drawLine(-4f, 3f, 4f, 3f, p); c.drawCircle(0f, 0f, 2.2f, p) }
+            7 -> { c.drawCircle(-4f, 0f, 2.3f, p); c.drawCircle(4f, 0f, 2.3f, p); c.drawLine(-2f, 0f, 2f, 0f, p) }
+            8 -> { c.drawArc(RectF(-5f, -5f, 5f, 5f), 35f, 290f, false, p); c.drawLine(-5f, -5f, -5f, -1f, p); c.drawLine(-5f, -5f, -1f, -5f, p) }
+            else -> { for (x in floatArrayOf(-5f, -1.7f, 1.7f, 5f)) { c.drawLine(x, 4f, x, -3f, p); c.drawLine(x, -3f, x - 1.3f, -1f, p); c.drawLine(x, -3f, x + 1.3f, -1f, p) } }
         }
         c.restore()
     }
@@ -522,8 +657,10 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         paint.style = Paint.Style.FILL
         for (star in stars) {
             paint.color = STAR
+            paint.alpha = if (star.twinkle) (75f + (sin(star.phase) + 1f) * 90f).toInt().coerceIn(45, 240) else 190
             c.drawRect(star.x * s, star.y * s, (star.x + star.sz) * s, (star.y + star.sz) * s, paint)
         }
+        paint.alpha = 255
         when (st) {
             St.MENU -> drawMenu(c)
             St.PLAY -> drawGame(c)
@@ -533,11 +670,32 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
 
     private fun drawGame(c: Canvas) {
         for (e in enemies) {
-            val sprite = when (e.type) { 2 -> when (e.t0.toInt() % 3) { 0 -> bBoss; 1 -> bBoss2; else -> bBoss3 }; 1 -> bE1; 3 -> bE2; 4 -> bE3; else -> bE0 }
+            val sprite = when (e.type) { 2 -> bossSprites[e.t0.toInt().coerceIn(0, 9)]; 1 -> bE1; 3 -> bE2; 4 -> bE3; else -> bE0 }
             spr(c, sprite, e.x, e.y)
         }
         for (item in items) drawItem(c, item)
         for (b in bullets) spr(c, if (b.mine) bPB else bEB, b.x, b.y)
+        for (beam in playerBeams) {
+            paint.style = Paint.Style.STROKE; paint.strokeWidth = beam.width * s; paint.color = 0xFF54E8FF.toInt()
+            c.drawLine(beam.x * s, beam.bottom * s, beam.x * s, 0f, paint)
+        }
+        paint.style = Paint.Style.FILL
+        for (missile in missiles) {
+            c.save()
+            c.rotate(Math.toDegrees(atan2(missile.vy, missile.vx).toDouble()).toFloat() + 90f, missile.x * s, missile.y * s)
+            val rocketPath = Path().apply { moveTo(0f, -7f * s); lineTo(3f * s, 4f * s); lineTo(0f, 2f * s); lineTo(-3f * s, 4f * s); close() }
+            paint.color = 0xFFFFA64D.toInt(); c.drawPath(rocketPath, paint); c.restore()
+        }
+        for (ship in squadShips) {
+            val path = Path().apply { moveTo(ship.x * s, (ship.y - 7f) * s); lineTo((ship.x + 5f) * s, (ship.y + 5f) * s); lineTo(ship.x * s, (ship.y + 2f) * s); lineTo((ship.x - 5f) * s, (ship.y + 5f) * s); close() }
+            paint.color = 0xFF66E8FF.toInt(); c.drawPath(path, paint)
+        }
+        for (laser in enemyLasers) {
+            paint.style = Paint.Style.STROKE; paint.strokeWidth = (if (laser.warning > 0f) 1.2f else laser.width) * s
+            paint.color = if (laser.warning > 0f) 0xFFFFD45C.toInt() else 0xFFFF5868.toInt()
+            c.drawLine(laser.x * s, 0f, laser.x * s, sh.toFloat(), paint)
+        }
+        paint.style = Paint.Style.FILL
         if (shieldTimer > 0f) {
             paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.4f * s; paint.color = 0xFFFF79D8.toInt()
             c.drawCircle(px * s, py * s, 16f * s, paint)
@@ -556,11 +714,21 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         val powerLabel = when {
             shieldTimer > 0f -> "SHIELD " + (shieldTimer.toInt() + 1)
             rapidTimer > 0f -> "RAPID " + (rapidTimer.toInt() + 1)
-            weaponTimer > 0f -> "POWER " + (weaponTimer.toInt() + 1)
+            magnetTimer > 0f -> "MAGNET " + (magnetTimer.toInt() + 1)
+            weaponLevel > 1 -> "WEAPON LV " + weaponLevel
             else -> ""
         }
         if (powerLabel.isNotEmpty()) text(c, powerLabel, W / 2, wh - 10f, 7f, 0xFF92E9FF.toInt())
+        if (st == St.PLAY) {
+            for (i in 0 until droneLevel) {
+                val dx = if (i == 0) -17f else 17f
+                val wing = Path().apply { moveTo((px + dx) * s, (py - 5f) * s); lineTo((px + dx + 4f) * s, (py + 3f) * s); lineTo((px + dx) * s, (py + 1f) * s); lineTo((px + dx - 4f) * s, (py + 3f) * s); close() }
+                paint.color = 0xFF63DDBB.toInt(); c.drawPath(wing, paint)
+            }
+            drawWeaponControls(c)
+        }
         enemies.firstOrNull { it.type == 2 }?.let { bs ->
+            text(c, "BOSS " + (bs.t0.toInt() + 1) + "/10", W / 2f, 17f, 7f, WHT)
             val frac = bs.hp.toFloat() / bs.maxHp
             paint.color = DRED; c.drawRect(20f * s, 20f * s, (20f + 140f * frac) * s, 23f * s, paint)
             paint.style = Paint.Style.STROKE; paint.strokeWidth = s * 0.6f; paint.color = RED
@@ -570,6 +738,19 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
             val boss = wave % 5 == 0
             text(c, if (boss) "!! BOSS !!" else "WAVE $wave", W / 2, wh * 0.4f, 16f, if (boss) RED else WHT)
         }
+    }
+
+    private fun drawWeaponControls(c: Canvas) {
+        fun control(label: String, left: Float, right: Float, ready: Boolean) {
+            val top = wh - 32f
+            paint.style = Paint.Style.STROKE; paint.strokeWidth = 0.9f * s
+            paint.color = if (ready) 0xFF55DFFF.toInt() else 0xFF66717E.toInt()
+            c.drawRoundRect(left * s, top * s, right * s, (wh - 7f) * s, 4f * s, 4f * s, paint)
+            paint.style = Paint.Style.FILL
+            text(c, label, (left + right) / 2f, wh - 16f, 6.5f, if (ready) 0xFF8BEFFF.toInt() else 0xFF86919D.toInt())
+        }
+        control("MISSILE", W - 94f, W - 53f, missileCooldown <= 0f)
+        control("LASER", W - 49f, W - 8f, laserCooldown <= 0f)
     }
 
     private fun drawButtons(c: Canvas) {
@@ -598,3 +779,5 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         if (overT >= 0.7f) drawButtons(c)
     }
 }
+
+# V5 complete

@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Neon Shooter</string>
+    <!-- Replace with values from Google Play Console (Play Games Services) -->
+    <string name="app_id" translatable="false">000000000000</string>
+    <string name="leaderboard_high_score" translatable="false">REPLACE_ME</string>
+    <string name="achievement_first_kill" translatable="false">REPLACE_ME</string>
+    <string name="achievement_score_1000" translatable="false">REPLACE_ME</string>
+    <string name="achievement_boss_slayer" translatable="false">REPLACE_ME</string>
+    <string name="achievement_wave_10" translatable="false">REPLACE_ME</string>
+</resources>

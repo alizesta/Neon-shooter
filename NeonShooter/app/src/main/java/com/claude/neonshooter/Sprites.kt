@@ -76,8 +76,8 @@ object Sprites {
     }
 
     fun enemy(color: Int, glowColor: Int, ps: Int, kind: Int): Bitmap {
-        val width = when (kind) { 2 -> 21; 5 -> 25; 6 -> 23; 1 -> 14; else -> 12 }
-        val height = when (kind) { 2 -> 13; 5 -> 17; 6 -> 15; 1 -> 11; else -> 10 }
+        val width = when (kind) { 2 -> 21; 5 -> 25; 6 -> 23; 7 -> 25; 8 -> 23; 9 -> 26; 10 -> 24; 11 -> 25; 12 -> 27; 13 -> 22; 14 -> 26; 1 -> 14; else -> 12 }
+        val height = when (kind) { 2 -> 13; 5 -> 17; 6 -> 15; 7 -> 17; 8 -> 16; 9 -> 17; 10 -> 18; 11 -> 16; 12 -> 17; 13 -> 16; 14 -> 18; 1 -> 11; else -> 10 }
         return bitmap(width, height, ps) { c ->
             val body = when (kind) {
                 1 -> Path().apply {
@@ -119,6 +119,38 @@ object Sprites {
                     lineTo(11.5f, 14.5f); lineTo(9f, 11f); lineTo(3f, 13f)
                     lineTo(5f, 8f); lineTo(1f, 7f); lineTo(6f, 2.5f); close()
                 }
+                7 -> Path().apply {
+                    moveTo(12.5f, 0.5f); lineTo(16f, 5f); lineTo(24f, 2f); lineTo(20f, 8f); lineTo(23f, 15f); lineTo(14f, 12f)
+                    lineTo(12.5f, 17f); lineTo(11f, 12f); lineTo(2f, 15f); lineTo(5f, 8f); lineTo(1f, 2f); lineTo(9f, 5f); close()
+                }
+                8 -> Path().apply {
+                    moveTo(11.5f, 0.5f); lineTo(22f, 8f); lineTo(11.5f, 15.5f); lineTo(1f, 8f); close()
+                    moveTo(11.5f, 3.5f); lineTo(16f, 8f); lineTo(11.5f, 12.5f); lineTo(7f, 8f); close()
+                }
+                9 -> Path().apply {
+                    moveTo(5f, 1f); lineTo(21f, 1f); lineTo(25f, 5f); lineTo(21f, 9f); lineTo(18f, 8f)
+                    lineTo(18f, 16f); lineTo(8f, 16f); lineTo(8f, 8f); lineTo(5f, 9f); lineTo(1f, 5f); close()
+                }
+                10 -> Path().apply {
+                    moveTo(12f, 0.5f); lineTo(15f, 6f); lineTo(23f, 3f); lineTo(19f, 9f); lineTo(24f, 16f)
+                    lineTo(15f, 13f); lineTo(12f, 18f); lineTo(9f, 13f); lineTo(0f, 16f); lineTo(5f, 9f); lineTo(1f, 3f); lineTo(9f, 6f); close()
+                }
+                11 -> Path().apply {
+                    moveTo(12.5f, 1f); lineTo(18f, 5f); lineTo(24f, 3f); lineTo(21f, 10f); lineTo(24f, 15f); lineTo(16f, 13f)
+                    lineTo(12.5f, 16f); lineTo(9f, 13f); lineTo(1f, 15f); lineTo(4f, 10f); lineTo(1f, 3f); lineTo(7f, 5f); close()
+                }
+                12 -> Path().apply {
+                    moveTo(12.5f, 0.5f); lineTo(16f, 5f); lineTo(24f, 5f); lineTo(19f, 9f); lineTo(21f, 16f)
+                    lineTo(13f, 13f); lineTo(6f, 17f); lineTo(7f, 10f); lineTo(1f, 6f); lineTo(9f, 5f); close()
+                }
+                13 -> Path().apply {
+                    moveTo(7f, 0.5f); lineTo(18f, 0.5f); lineTo(22f, 5f); lineTo(22f, 12f); lineTo(16f, 16f)
+                    lineTo(8f, 16f); lineTo(2f, 12f); lineTo(2f, 5f); close()
+                }
+                14 -> Path().apply {
+                    moveTo(13f, 0.5f); lineTo(18f, 4f); lineTo(25f, 3f); lineTo(22f, 9f); lineTo(25f, 15f)
+                    lineTo(17f, 14f); lineTo(13f, 18f); lineTo(9f, 14f); lineTo(1f, 15f); lineTo(4f, 9f); lineTo(1f, 3f); lineTo(8f, 4f); close()
+                }
                 else -> Path().apply {
                     moveTo(6f, 0.7f)
                     cubicTo(9.0f, 0.4f, 10.8f, 2.4f, 10.9f, 4.8f)
@@ -133,7 +165,7 @@ object Sprites {
                     close()
                 }
             }
-            glow(c, body, glowColor, if (kind == 2) 5.2f else 3.6f)
+            glow(c, body, glowColor, if (kind >= 5) 5.8f else if (kind == 2) 5.2f else 3.6f
             val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
             c.drawPath(body, fill)
             fill.shader = null
@@ -144,12 +176,12 @@ object Sprites {
             fill.style = Paint.Style.FILL
 
             val eyePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = 0xFFFFF5D8.toInt() }
-            val eyeY = if (kind == 2) 6.6f else 5.2f
-            val eyeOffset = if (kind == 2) 5.0f else 2.6f
+            val eyeY = if (kind >= 5) 7.2f else if (kind == 2) 6.6f else 5.2f
+            val eyeOffset = if (kind >= 5) 7.0f else if (kind == 2) 5.0f else 2.6f
             c.drawCircle(width / 2f - eyeOffset, eyeY, 0.9f, eyePaint)
             c.drawCircle(width / 2f + eyeOffset, eyeY, 0.9f, eyePaint)
             val core = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = 0xFFFFF1C4.toInt() }
-            c.drawCircle(width / 2f, if (kind == 2) 8.2f else 7.1f, if (kind == 2) 1.0f else 0.7f, core)
+            c.drawCircle(width / 2f, if (kind >= 5) 9.0f else if (kind == 2) 8.2f else 7.1f, if (kind >= 5) 1.5f else if (kind == 2) 1.0f else 0.7f, core)
         }
     }
 
