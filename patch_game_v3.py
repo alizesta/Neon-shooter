@@ -1443,8 +1443,8 @@ game_file.write_text(g, encoding="utf-8")
 # Increment app version so Android accepts the new package as a newer release.
 gradle_file = root / "app/build.gradle.kts"
 gradle_text = gradle_file.read_text(encoding="utf-8")
-gradle_text = re.sub(r"versionCode\s*=\s*\d+", "versionCode = 5", gradle_text)
-gradle_text = re.sub(r'versionName\s*=\s*"[^"]+"', 'versionName = "1.2"', gradle_text)
+gradle_text = re.sub(r"versionCode\s*=\s*\d+", "versionCode = 6", gradle_text)
+gradle_text = re.sub(r'versionName\s*=\s*"[^"]+"', 'versionName = "1.3"', gradle_text)
 if 'create("release")' not in gradle_text:
     gradle_text = gradle_text.replace(
         "    compileOptions {",
@@ -1512,7 +1512,7 @@ game_text = game_file.read_text(encoding="utf-8")
 if "private fun update(frameDt: Float)" not in game_text:
     game_text = game_text.replace(
         "private fun update(dt: Float) {",
-        "private fun update(frameDt: Float) {\\n        val dt = frameDt * 0.85f"
+        "private fun update(frameDt: Float) {\n        val dt = frameDt * 0.85f"
     )
 game_file.write_text(game_text, encoding="utf-8")
 
@@ -1703,6 +1703,117 @@ val_map = {
 }
 for old, new in val_map.items():
     game_text = game_text.replace(old, new)
+game_file.write_text(game_text, encoding="utf-8")
+
+
+# Temporary pickup: enemy units and enemy projectiles move at 10% speed for 10 seconds.
+game_text = game_file.read_text(encoding="utf-8")
+
+def slow_game_replace(old, new, label):
+    global game_text
+    if new in game_text:
+        return
+    if old not in game_text:
+        raise RuntimeError("Enemy slow patch target missing: " + label)
+    game_text = game_text.replace(old, new, 1)
+
+slow_game_replace(
+    "    private var piercingTimer = 0f\\n",
+    "    private var piercingTimer = 0f\\n    private var enemySlowTimer = 0f\\n",
+    "enemy slow timer field"
+)
+slow_game_replace(
+    "        piercingTimer = 0f; squadTimer = 0f; squadSpawnTimer = 0f",
+    "        piercingTimer = 0f; enemySlowTimer = 0f; squadTimer = 0f; squadSpawnTimer = 0f",
+    "enemy slow reset"
+)
+slow_game_replace(
+    "        piercingTimer = max(0f, piercingTimer - dt)\\n",
+    "        piercingTimer = max(0f, piercingTimer - dt)\\n        enemySlowTimer = max(0f, enemySlowTimer - dt)\\n        val enemyDt = dt * if (enemySlowTimer > 0f) 0.1f else 1f\\n",
+    "enemy slow countdown"
+)
+
+# Enemy movement, age, firing cadence, and boss patterns use enemyDt only.
+for old, new, label in [
+    ("            e.age += dt", "            e.age += enemyDt", "enemy animation clock"),
+    ("if (e.y < 42f) e.y += 32f * dt", "if (e.y < 42f) e.y += 32f * enemyDt", "boss entry speed"),
+    ("coerceIn(-55f * dt, 55f * dt)", "coerceIn(-55f * enemyDt, 55f * enemyDt)", "boss tracking speed"),
+    ("e.y += spd * dt", "e.y += spd * enemyDt", "enemy descent"),
+    ("val shift = 28f * dt", "val shift = 28f * enemyDt", "enemy lateral speed"),
+    ("e.y += spd * 1.18f * dt", "e.y += spd * 1.18f * enemyDt", "fast enemy descent"),
+    ("            e.fire -= dt", "            e.fire -= enemyDt", "enemy firing cadence"),
+    ("laser.x += laser.drift * dt", "laser.x += laser.drift * enemyDt", "enemy laser drift"),
+    ("laser.warning - dt", "laser.warning - enemyDt", "enemy laser warning"),
+    ("laser.active - dt", "laser.active - enemyDt", "enemy laser active time"),
+]:
+    slow_game_replace(old, new, label)
+
+# Slow existing and newly fired enemy bullets; the player's bullets remain on normal dt.
+slow_game_replace(
+    "        for (b in bullets) {\\n            for (hole in blackHoles) {",
+    "        for (b in bullets) {\\n            val bulletDt = if (b.mine) dt else enemyDt\\n            for (hole in blackHoles) {",
+    "separate player and enemy projectile clocks"
+)
+slow_game_replace(
+    "hole.strength * 13f / (d2 + 65f)) * dt",
+    "hole.strength * 13f / (d2 + 65f)) * bulletDt",
+    "projectile gravity clock"
+)
+slow_game_replace("b.x += b.vx * dt", "b.x += b.vx * bulletDt", "projectile horizontal speed")
+slow_game_replace("b.y += b.vy * dt", "b.y += b.vy * bulletDt", "projectile vertical speed")
+
+# A rare final drop; type 10 remains the piercing upgrade, type 11 is the new slow field.
+slow_game_replace(
+    "                roll < 0.985f -> 9\\n                else -> 10",
+    "                roll < 0.985f -> 9\\n                roll < 0.997f -> 10\\n                else -> 11",
+    "slow pickup drop chance"
+)
+slow_game_replace(
+    "                10 -> piercingTimer = max(piercingTimer, 8f)\\n                else -> activateSquadron()",
+    "                10 -> piercingTimer = max(piercingTimer, 8f)\\n                11 -> enemySlowTimer = max(enemySlowTimer, 10f)\\n                else -> activateSquadron()",
+    "slow pickup effect"
+)
+slow_game_replace(
+    "            10 -> 0xFF72F0C0.toInt()\\n            else -> 0xFFB68CFF.toInt()",
+    "            10 -> 0xFF72F0C0.toInt()\\n            11 -> 0xFFFFD45C.toInt()\\n            else -> 0xFFB68CFF.toInt()",
+    "slow pickup color"
+)
+
+# Give the slowdown pickup a clock icon; preserve distinct icons for squadron and piercing.
+icon_anchor = "            else -> { // squadron"
+if "11 -> { // enemy slow" not in game_text:
+    if icon_anchor not in game_text:
+        raise RuntimeError("Enemy slow pickup icon anchor missing")
+    game_text = game_text.replace(
+        icon_anchor,
+        """            9 -> { // support squadron
+                for (x in floatArrayOf(-5f, 0f, 5f)) {
+                    val ship = Path().apply { moveTo(x, -5f); lineTo(x + 3f, 4f); lineTo(x, 2f); lineTo(x - 3f, 4f); close() }
+                    c.drawPath(ship, p)
+                }
+            }
+            10 -> { // piercing rounds
+                c.drawLine(-5f, -4f, 5f, 4f, p)
+                c.drawLine(-5f, 0f, 5f, 0f, p)
+                c.drawLine(-5f, 4f, 5f, -4f, p)
+            }
+            11 -> { // enemy slowdown
+                c.drawCircle(0f, 0f, 5.5f, p)
+                c.drawLine(0f, 0f, 0f, -4f, p)
+                c.drawLine(0f, 0f, 3.5f, 2.5f, p)
+                c.drawLine(-7f, 6f, -3f, 6f, p)
+                c.drawLine(-5f, 4f, -5f, 6f, p)
+            }
+            else -> { // squadron""",
+        1
+    )
+
+slow_game_replace(
+    "            piercingTimer > 0f -> \"گلوله نفوذی \" + (piercingTimer.toInt() + 1)",
+    "            enemySlowTimer > 0f -> \"کند شدن دشمن \" + (enemySlowTimer.toInt() + 1)\\n            piercingTimer > 0f -> \"گلوله نفوذی \" + (piercingTimer.toInt() + 1)",
+    "slow effect status label"
+)
+
 game_file.write_text(game_text, encoding="utf-8")
 
 # Refresh the workspace archive for this build only. CI must not push from a runner.
