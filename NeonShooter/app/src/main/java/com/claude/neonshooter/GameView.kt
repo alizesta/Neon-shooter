@@ -68,7 +68,8 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var laserLevel = prefs.getInt("upgrade_laser", 0).coerceIn(0, 3)
     private var droneLevel = prefs.getInt("upgrade_drone", 0).coerceIn(0, 2)
     private var weaponTimer = 0f
-    private var rapidTimer = 0f; private var shieldTimer = 0f; private var magnetTimer = 0f
+    private var rapidTimer = 0f; private var shieldTimer = 0f
+    private var rocketTimer = 0f; private var magnetTimer = 0f
     private var rocketTimer = 0f
     private var laserCooldown = 0f; private var missileCooldown = 0f
     private var controlTouch = false
@@ -108,12 +109,6 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         bE0 = Sprites.enemy(RED, RGL, ps, 0)
         bE1 = Sprites.enemy(DRED, 0xFFFFD18A.toInt(), ps, 1)
         bBoss = Sprites.enemy(BOSS_COLOR, BOSS_GLOW, ps, 2)
-        bE2 = Sprites.enemy(0xFF62DFFF.toInt(), 0xFF9CEBFF.toInt(), ps, 3)
-        bE3 = Sprites.enemy(0xFFB68CFF.toInt(), 0xFFD7BCFF.toInt(), ps, 4)
-        bBoss2 = Sprites.enemy(0xFF35D9D2.toInt(), 0xFF35D9D2.toInt(), ps, 5)
-        bBoss3 = Sprites.enemy(0xFFB46BFF.toInt(), 0xFFB46BFF.toInt(), ps, 6)
-        val bossPalette = intArrayOf(0xFFFF4D91.toInt(), 0xFF32D8F2.toInt(), 0xFFFF9B42.toInt(), 0xFF9C7BFF.toInt(), 0xFFFF5964.toInt(), 0xFF52E0A0.toInt(), 0xFFFFD14A.toInt(), 0xFF4E9EFF.toInt(), 0xFFFF70D4.toInt(), 0xFFE8F1FF.toInt())
-        bossSprites = Array(10) { i -> Sprites.enemy(bossPalette[i], bossPalette[i], ps, 5 + i) }
         bE2 = Sprites.enemy(0xFF62DFFF.toInt(), 0xFF9CEBFF.toInt(), ps, 3)
         bE3 = Sprites.enemy(0xFFB68CFF.toInt(), 0xFFD7BCFF.toInt(), ps, 4)
         bBoss2 = Sprites.enemy(0xFF35D9D2.toInt(), 0xFF35D9D2.toInt(), ps, 5)
@@ -364,6 +359,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         weaponTimer = max(0f, weaponTimer - dt)
         rapidTimer = max(0f, rapidTimer - dt)
         shieldTimer = max(0f, shieldTimer - dt)
+        rocketTimer = max(0f, rocketTimer - dt)
         magnetTimer = max(0f, magnetTimer - dt)
         laserCooldown = max(0f, laserCooldown - dt)
         missileCooldown = max(0f, missileCooldown - dt)
@@ -382,7 +378,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         val spd = min(18f + wave * 1.15f, 38f)
         val summonedEnemies = ArrayList<E>()
         for (e in enemies) {
-            if (e.type == 2) {
+            if (e.type == 2) {
                 val bossId = e.t0.toInt().coerceIn(0, 9)
                 val span = W / 2f - e.hw - 8f
                 if (e.y < 42f) e.y += 32f * dt
@@ -598,11 +594,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
             2 -> 0xFFFFD84D.toInt()
             3 -> 0xFFFF79D8.toInt()
             4 -> 0xFFFF8A35.toInt()
-            5 -> 0xFFB68CFF.toInt()
-            6 -> 0xFFFF5C65.toInt()
-            7 -> 0xFF64E5B0.toInt()
-            8 -> 0xFF4F9EFF.toInt()
-            else -> 0xFFFFD45C.toInt()
+            else -> 0xFFB68CFF.toInt()
         }
         c.save()
         c.translate(cx, cy)
@@ -637,11 +629,11 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
                 val burst = Path().apply { moveTo(0f, -6f); lineTo(1.5f, -2f); lineTo(5f, -4f); lineTo(3f, 0f); lineTo(6f, 2f); lineTo(2f, 3f); lineTo(1f, 6f); lineTo(-1.5f, 3f); lineTo(-5f, 4f); lineTo(-3f, 0f); lineTo(-6f, -2f); lineTo(-2f, -3f); close() }
                 c.drawPath(burst, p); c.drawCircle(0f, 0f, 1.8f, p)
             }
-            5 -> { c.drawLine(-5f, 4f, -5f, -3f, p); c.drawLine(0f, 4f, 0f, -6f, p); c.drawLine(5f, 4f, 5f, -3f, p); c.drawCircle(-5f, -3f, 1.5f, p); c.drawCircle(0f, -6f, 1.5f, p); c.drawCircle(5f, -3f, 1.5f, p) }
-            6 -> { c.drawLine(0f, -6f, 0f, 6f, p); c.drawLine(-4f, -3f, 4f, -3f, p); c.drawLine(-4f, 3f, 4f, 3f, p); c.drawCircle(0f, 0f, 2.2f, p) }
-            7 -> { c.drawCircle(-4f, 0f, 2.3f, p); c.drawCircle(4f, 0f, 2.3f, p); c.drawLine(-2f, 0f, 2f, 0f, p) }
-            8 -> { c.drawArc(RectF(-5f, -5f, 5f, 5f), 35f, 290f, false, p); c.drawLine(-5f, -5f, -5f, -1f, p); c.drawLine(-5f, -5f, -1f, -5f, p) }
-            else -> { for (x in floatArrayOf(-5f, -1.7f, 1.7f, 5f)) { c.drawLine(x, 4f, x, -3f, p); c.drawLine(x, -3f, x - 1.3f, -1f, p); c.drawLine(x, -3f, x + 1.3f, -1f, p) } }
+            else -> { // guided rocket
+                val rocket = Path().apply { moveTo(0f, -6f); quadTo(4f, -2f, 2.5f, 3f); lineTo(0f, 5f); lineTo(-2.5f, 3f); quadTo(-4f, -2f, 0f, -6f); close() }
+                c.drawPath(rocket, p); c.drawLine(-2.5f, 1f, -5f, 4f, p); c.drawLine(2.5f, 1f, 5f, 4f, p)
+                c.drawCircle(0f, -1.5f, 1.2f, p); c.drawLine(0f, 5f, 0f, 7f, p)
+            }
         }
         c.restore()
     }
@@ -780,4 +772,3 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     }
 }
 
-# V5 complete
