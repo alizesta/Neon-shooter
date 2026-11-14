@@ -12,7 +12,7 @@ import kotlin.random.Random
 class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Callback, Runnable {
 
     private enum class St { MENU, PLAY, PAUSE, OVER }
-    private class B(var x: Float, var y: Float, var vx: Float, var vy: Float, val mine: Boolean)
+    private class B(var x: Float, var y: Float, var vx: Float, var vy: Float, val mine: Boolean) { val hitEnemies = HashSet<E>() }
     private class E(var x: Float, var y: Float, val type: Int, var hp: Int, val bx: Float, val amp: Float, val t0: Float) {
         val maxHp = hp
         var age = 0f
@@ -73,6 +73,8 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var laserLevel = prefs.getInt("upgrade_laser", 0).coerceIn(0, 3)
     private var droneLevel = prefs.getInt("upgrade_drone", 0).coerceIn(0, 2)
     private var weaponTimer = 0f
+    private var piercingTimer = 0f
+    private var squadTimer = 0f; private var squadSpawnTimer = 0f
     private var rapidTimer = 0f; private var shieldTimer = 0f
 private var rocketTimer = 0f; private var magnetTimer = 0f
     private var laserCooldown = 0f; private var missileCooldown = 0f
@@ -223,7 +225,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         bullets.clear(); enemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear(); blackHoles.clear()
         score = 0; lives = 3; wave = 0; kills = 0; invul = 2.2f; fireT = 0f; time = 0f
         weaponTimer = 0f; rapidTimer = 0f; shieldTimer = 0f; magnetTimer = 0f
-        laserCooldown = 0f; missileCooldown = 0f
+        laserCooldown = 3.5f; missileCooldown = 6f
+        piercingTimer = 0f; squadTimer = 0f; squadSpawnTimer = 0f
         px = W / 2; py = wh - 45f; waiting = true; waveT = 1.4f
         st = St.PLAY
         sfx.play("start")
@@ -240,7 +243,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         bannerT = 2.0f
         if (wave >= 10) ach(R.string.achievement_wave_10)
         if (wave % 5 == 0) {
-            enemies.add(E(W / 2, -20f, 2, 42 + wave * 7, W / 2, 0f, ((wave / 5 - 1).coerceIn(0, 9)).toFloat()).also { it.fire = 1.7f })
+            enemies.add(E(W / 2, -20f, 2, 110 + wave * 18, W / 2, 0f, ((wave / 5 - 1).coerceIn(0, 9)).toFloat()).also { it.fire = 1.7f })
             return
         }
         val n = min(8 + wave / 2, 15)
@@ -248,7 +251,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val strong = wave >= 3 && Random.nextFloat() < 0.38f
             val roll = Random.nextFloat()
             val type = when { wave >= 4 && roll < 0.16f -> 3; wave >= 6 && roll < 0.28f -> 4; strong -> 1; else -> 0 }
-            val hp = when (type) { 1 -> 3 + wave / 10; 3 -> 2 + wave / 12; 4 -> 2; else -> if (wave >= 7) 2 else 1 }
+            val hp = when (type) { 1 -> 5 + wave / 8; 3 -> 4 + wave / 10; 4 -> 3 + wave / 12; else -> 2 + wave / 12 }
             enemies.add(E(x, y, type, hp, x, amp, t0))
         }
         when (wave % 3) {
@@ -277,7 +280,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (kills == 1) ach(R.string.achievement_first_kill)
         if (score >= 1000) ach(R.string.achievement_score_1000)
         if (e.type == 2) { ach(R.string.achievement_boss_slayer); bullets.removeAll { !it.mine } }
-        val dropChance = if (e.type == 2) 0.95f else 0.24f
+        val dropChance = if (e.type == 2) 0.88f else 0.15f
         if (Random.nextFloat() < dropChance) {
             val roll = Random.nextFloat()
             val kind = when {
@@ -285,12 +288,13 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 roll < 0.25f -> 1
                 roll < 0.39f -> 2
                 roll < 0.51f -> 3
-                roll < 0.61f -> 4
+                roll < 0.54f -> 4
                 roll < 0.74f -> 5
                 roll < 0.83f -> 6
                 roll < 0.90f -> 7
                 roll < 0.96f -> 8
-                else -> 9
+                roll < 0.985f -> 9
+                else -> 10
             }
             items.add(Item(e.x, e.y, kind))
         }
@@ -316,7 +320,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun shoot() {
-        val count = min(1 + (weaponLevel - 1) * 2, 9)
+        val count = min(1 + (weaponLevel - 1), 5)
         for (i in 0 until count) {
             val offset = i - (count - 1) / 2
             bullets.add(B(px + offset * 3.6f, py - 9f, offset * 13f, -178f, true))
@@ -359,16 +363,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         sfx.play("missile")
     }
 
-    private fun activateSquadron() {
-        for (offset in floatArrayOf(-42f, -14f, 14f, 42f)) {
-            squadShips.add(SweepShip((px + offset).coerceIn(8f, W - 8f), wh + 14f))
-        }
-        bullets.removeAll { !it.mine }
-        sfx.play("power")
-    }
+    private fun spawnSupportShips() { for (offset in floatArrayOf(-42f, -14f, 14f, 42f)) squadShips.add(SweepShip((px + offset).coerceIn(8f, W - 8f), wh + 14f)) }
+    private fun activateSquadron() { squadTimer = 12f; squadSpawnTimer = 0f; bullets.removeAll { !it.mine }; sfx.play("power") }
 
     private fun update(dt: Float) {
-        for (star in stars) { star.y += star.sp * dt; star.phase += dt * (2.4f + star.sp * 0.16f); if (star.y > wh) { star.y = 0f; star.x = Random.nextFloat() * W } }
+        for (star in stars) star.phase += dt * (2.4f + star.sp * 0.16f)
         for (p in parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt }
         parts.removeAll { it.life <= 0f }
         if (st == St.OVER) overT += dt
@@ -381,9 +380,15 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         magnetTimer = max(0f, magnetTimer - dt)
         laserCooldown = max(0f, laserCooldown - dt)
         missileCooldown = max(0f, missileCooldown - dt)
+        piercingTimer = max(0f, piercingTimer - dt)
+        squadTimer = max(0f, squadTimer - dt)
+        squadSpawnTimer = max(0f, squadSpawnTimer - dt)
+        if (squadTimer > 0f && squadSpawnTimer <= 0f) { spawnSupportShips(); squadSpawnTimer = 2.4f }
+        if (laserCooldown <= 0f) fireLaser()
+        if (missileCooldown <= 0f) launchMissiles()
         for (beam in playerBeams) beam.life -= dt
         playerBeams.removeAll { it.life <= 0f }
-        if (fireT <= 0f) { fireT = if (rapidTimer > 0f) 0.075f else max(0.085f, 0.17f - (weaponLevel - 1) * 0.012f); shoot() }
+        if (fireT <= 0f) { fireT = if (rapidTimer > 0f) 0.075f else 0.19f; shoot() }
 
         // waves
         if (enemies.isEmpty()) {
@@ -475,7 +480,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                             1 -> for (i in -1..1) { val a = base + i * 0.15f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed, sin(a) * speed, false)) }
                             3 -> for (i in -1..1) { val a = base + i * 0.23f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed * 1.1f, sin(a) * speed * 1.1f, false)) }
                             4 -> for (i in -2..2) { val a = base + i * 0.12f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed * 0.88f, sin(a) * speed * 0.88f, false)) }
-                            else -> bullets.add(B(e.x, e.y + 7f, cos(base) * speed, sin(base) * speed, false))
+                            else -> for (i in -1..1) { val a = base + i * 0.12f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed, sin(a) * speed, false)) }
                         }
                     }
                 }
@@ -546,7 +551,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 val d2 = dx * dx + dy * dy
                 if (d2 < hole.radius * hole.radius && d2 > 9f) {
                     val distance = sqrt(d2)
-                    val pull = min(95f, hole.strength / (d2 + 100f)) * dt
+                    val pull = min(620f, hole.strength * 5f / (d2 + 80f)) * dt
                     b.vx = (b.vx + dx / distance * pull).coerceIn(-220f, 220f)
                     b.vy = (b.vy + dy / distance * pull).coerceIn(-220f, 220f)
                 }
@@ -583,6 +588,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 6 -> { laserLevel = min(3, laserLevel + 1); prefs.edit().putInt("upgrade_laser", laserLevel).apply(); score += 60 }
                 7 -> { droneLevel = min(2, droneLevel + 1); prefs.edit().putInt("upgrade_drone", droneLevel).apply(); score += 80 }
                 8 -> magnetTimer = max(magnetTimer, 9f)
+                10 -> piercingTimer = max(piercingTimer, 8f)
                 else -> activateSquadron()
             }
             collected.add(item); boom(item.x, item.y, 10, 42f); sfx.play("power")
@@ -595,9 +601,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         for (b in bullets) {
             if (!b.mine) continue
             for (e in enemies) {
-                if (e.dead || e.y < -4f) continue
+                if (e.dead || e.y < -4f || b.hitEnemies.contains(e)) continue
                 if (abs(b.x - e.x) < e.hw + 1.5f && abs(b.y - e.y) < e.hh + 3f) {
-                    deadB.add(b); e.hp--; boom(b.x, b.y, 2, 25f)
+                    b.hitEnemies.add(e)
+                    if (piercingTimer <= 0f) deadB.add(b)
+                    e.hp--; boom(b.x, b.y, 2, 25f)
                     if (e.hp <= 0) kill(e)
                     break
                 }
@@ -634,6 +642,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             2 -> 0xFFFFD84D.toInt()
             3 -> 0xFFFF79D8.toInt()
             4 -> 0xFFFF8A35.toInt()
+            10 -> 0xFF72F0C0.toInt()
             else -> 0xFFB68CFF.toInt()
         }
         c.save()
