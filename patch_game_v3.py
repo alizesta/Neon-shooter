@@ -1443,7 +1443,7 @@ game_file.write_text(g, encoding="utf-8")
 # Increment app version so Android accepts the new package as a newer release.
 gradle_file = root / "app/build.gradle.kts"
 gradle_text = gradle_file.read_text(encoding="utf-8")
-gradle_text = re.sub(r"versionCode\s*=\s*\d+", "versionCode = 2", gradle_text)
+gradle_text = re.sub(r"versionCode\s*=\s*\d+", "versionCode = 3", gradle_text)
 gradle_text = re.sub(r'versionName\s*=\s*"[^"]+"', 'versionName = "1.1"', gradle_text)
 if 'create("release")' not in gradle_text:
     gradle_text = gradle_text.replace(
@@ -1469,6 +1469,133 @@ if 'create("release")' not in gradle_text:
     )
 gradle_file.write_text(gradle_text, encoding="utf-8")
 
+
+
+# Hotfix: reset run-only upgrades at every new run and strengthen black-hole pull.
+game_text = game_file.read_text(encoding="utf-8")
+game_text = game_text.replace('private var weaponLevel = prefs.getInt("upgrade_weapon", 1).coerceIn(1, 5)', 'private var weaponLevel = 1')
+game_text = game_text.replace('private var missileLevel = prefs.getInt("upgrade_missile", 0).coerceIn(0, 3)', 'private var missileLevel = 0')
+game_text = game_text.replace('private var laserLevel = prefs.getInt("upgrade_laser", 0).coerceIn(0, 3)', 'private var laserLevel = 0')
+game_text = game_text.replace('private var droneLevel = prefs.getInt("upgrade_drone", 0).coerceIn(0, 2)', 'private var droneLevel = 0')
+game_text = game_text.replace(
+    '        weaponTimer = 0f; rapidTimer = 0f; shieldTimer = 0f; magnetTimer = 0f',
+    '''        weaponLevel = 1; missileLevel = 0; laserLevel = 0; droneLevel = 0
+        prefs.edit().remove("upgrade_weapon").remove("upgrade_missile").remove("upgrade_laser").remove("upgrade_drone").apply()
+        weaponTimer = 0f; rapidTimer = 0f; shieldTimer = 0f; magnetTimer = 0f'''
+)
+game_text = game_text.replace('val pull = min(620f, hole.strength * 5f / (d2 + 80f)) * dt',
+                              'val pull = min(1240f, hole.strength * 10f / (d2 + 80f)) * dt')
+game_file.write_text(game_text, encoding="utf-8")
+
+# Google Play Games: report missing Play Console configuration and API failures.
+play_source = """package com.claude.neonshooter
+
+import android.app.Activity
+import android.util.Log
+import android.widget.Toast
+import com.google.android.gms.games.PlayGames
+
+object Play {
+    @Volatile var signedIn = false
+        private set
+    private const val TAG = "NeonShooter.PlayGames"
+
+    private fun configured(a: Activity, id: Int, label: String): Boolean {
+        val value = a.getString(id).trim()
+        if (value.isEmpty() || value == "REPLACE_ME" || value == "000000000000") {
+            Toast.makeText(a, "Google Play Games setup incomplete: configure $label in Play Console and strings.xml", Toast.LENGTH_LONG).show()
+            return false
+        }
+        return true
+    }
+
+    fun check(a: Activity) {
+        if (!configured(a, R.string.app_id, "Game App ID")) { signedIn = false; return }
+        try {
+            PlayGames.getGamesSignInClient(a).isAuthenticated.addOnCompleteListener { task ->
+                signedIn = task.isSuccessful && task.result.isAuthenticated
+                if (!task.isSuccessful) Log.e(TAG, "Authentication status check failed", task.exception)
+            }
+        } catch (e: Exception) {
+            signedIn = false
+            Log.e(TAG, "Authentication status check crashed", e)
+        }
+    }
+
+    fun signIn(a: Activity) {
+        if (!configured(a, R.string.app_id, "Game App ID")) return
+        try {
+            PlayGames.getGamesSignInClient(a).signIn().addOnCompleteListener { task ->
+                signedIn = task.isSuccessful && task.result.isAuthenticated
+                val message = if (signedIn) "Google Play Games connected" else "Google sign-in failed. Check OAuth, SHA-1 and Play Console setup."
+                Toast.makeText(a, message, Toast.LENGTH_LONG).show()
+                if (!task.isSuccessful) Log.e(TAG, "Sign-in task failed", task.exception)
+            }
+        } catch (e: Exception) {
+            signedIn = false
+            Log.e(TAG, "Sign-in crashed", e)
+            Toast.makeText(a, "Google sign-in error: " + (e.message ?: "unknown"), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun submit(a: Activity, score: Int) {
+        if (!signedIn || !configured(a, R.string.leaderboard_high_score, "Leaderboard ID")) return
+        try {
+            PlayGames.getLeaderboardsClient(a).submitScore(a.getString(R.string.leaderboard_high_score), score.toLong())
+        } catch (e: Exception) { Log.e(TAG, "Score submission failed", e) }
+    }
+
+    fun unlock(a: Activity, resId: Int) {
+        if (!signedIn || !configured(a, resId, "Achievement ID")) return
+        try {
+            PlayGames.getAchievementsClient(a).unlock(a.getString(resId))
+                .addOnFailureListener { Log.e(TAG, "Achievement unlock failed", it) }
+        } catch (e: Exception) { Log.e(TAG, "Achievement unlock crashed", e) }
+    }
+
+    fun showLeaderboard(a: Activity) {
+        if (!configured(a, R.string.app_id, "Game App ID") ||
+            !configured(a, R.string.leaderboard_high_score, "Leaderboard ID")) return
+        if (!signedIn) { signIn(a); return }
+        try {
+            PlayGames.getLeaderboardsClient(a).getLeaderboardIntent(a.getString(R.string.leaderboard_high_score))
+                .addOnSuccessListener { a.startActivityForResult(it, 9001) }
+                .addOnFailureListener {
+                    Log.e(TAG, "Could not open leaderboard", it)
+                    Toast.makeText(a, "Leaderboard error. Check its ID and Play Console publication.", Toast.LENGTH_LONG).show()
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Opening leaderboard crashed", e)
+            Toast.makeText(a, "Leaderboard error: " + (e.message ?: "unknown"), Toast.LENGTH_LONG).show()
+        }
+    }
+
+    fun showAchievements(a: Activity) {
+        if (!configured(a, R.string.app_id, "Game App ID")) return
+        if (!signedIn) { signIn(a); return }
+        try {
+            PlayGames.getAchievementsClient(a).achievementsIntent
+                .addOnSuccessListener { a.startActivityForResult(it, 9002) }
+                .addOnFailureListener {
+                    Log.e(TAG, "Could not open achievements", it)
+                    Toast.makeText(a, "Achievements error. Check Play Console setup.", Toast.LENGTH_LONG).show()
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Opening achievements crashed", e)
+            Toast.makeText(a, "Achievements error: " + (e.message ?: "unknown"), Toast.LENGTH_LONG).show()
+        }
+    }
+}
+"""
+play_file.write_text(play_source, encoding="utf-8")
+main_text = main_file.read_text(encoding="utf-8").replace("        Play.check(this)\n        Play.check(this)", "        Play.check(this)")
+main_file.write_text(main_text, encoding="utf-8")
+strings_file = root / "app/src/main/res/values/strings.xml"
+strings_text = strings_file.read_text(encoding="utf-8")
+if "000000000000" not in strings_text:
+    strings_text = strings_text.replace('<string name="app_name">Neon Shooter</string>',
+        '<string name="app_name">Neon Shooter</string>\n    <string name="app_id" translatable="false">000000000000</string>\n    <string name="leaderboard_high_score" translatable="false">REPLACE_ME</string>\n    <string name="achievement_first_kill" translatable="false">REPLACE_ME</string>\n    <string name="achievement_score_1000" translatable="false">REPLACE_ME</string>\n    <string name="achievement_boss_slayer" translatable="false">REPLACE_ME</string>\n    <string name="achievement_wave_10" translatable="false">REPLACE_ME</string>')
+strings_file.write_text(strings_text, encoding="utf-8")
 
 # Refresh the workspace archive for this build only. CI must not push from a runner.
 tmp = archive.with_suffix(".tmp.zip")
