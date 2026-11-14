@@ -174,6 +174,12 @@ g = g.replace("e.x = W / 2 + sin(e.age * 0.82f) * (W / 2 - e.hw - 8f)",
                     1 -> { e.x = W / 2 + sin(e.age * 1.65f) * (W / 2 - e.hw - 8f); e.y = 38f + sin(e.age * 1.2f) * 9f }
                     else -> { e.x = W / 2 + sin(e.age * 0.55f) * (W / 2 - e.hw - 8f); e.y += 9f * dt }
                 }""")
+if "bBoss2" not in g:
+    g = g.replace("private lateinit var bE2: Bitmap; private lateinit var bE3: Bitmap",
+                  "private lateinit var bE2: Bitmap; private lateinit var bE3: Bitmap; private lateinit var bBoss2: Bitmap; private lateinit var bBoss3: Bitmap")
+    g = g.replace("bE3 = Sprites.enemy(0xFFB68CFF.toInt(), 0xFFD7BCFF.toInt(), ps, 4)",
+                  "bE3 = Sprites.enemy(0xFFB68CFF.toInt(), 0xFFD7BCFF.toInt(), ps, 4)\n        bBoss2 = Sprites.enemy(0xFF35D9D2.toInt(), 0xFF35D9D2.toInt(), ps, 5)\n        bBoss3 = Sprites.enemy(0xFFB46BFF.toInt(), 0xFFB46BFF.toInt(), ps, 6)")
+    g = g.replace("2 -> bBoss; 1 -> bE1", "2 -> when (e.t0.toInt() % 3) { 0 -> bBoss; 1 -> bBoss2; else -> bBoss3 }; 1 -> bE1")
 # Remove all bitmap shadow and shader effects from gameplay rendering, including item badges.
 g_lines = []
 for line in g.splitlines():
@@ -281,6 +287,52 @@ sp = sp.replace("""        for (i in 3 downTo 1) {
         }""", "")
 sp = sp.replace("val width = if (player) 3 else 4", "val width = if (player) 3 else 3")
 sp = sp.replace("val height = if (player) 8 else 4", "val height = if (player) 5 else 4")
+sp = sp.replace("val rect = if (player) RectF(1.2f, 0.2f, 2.8f, 8.7f)", "val rect = if (player) RectF(1.2f, 0.2f, 2.8f, 4.8f)")
+if "5 -> Path().apply" not in sp:
+    sp = sp.replace("val width = if (kind == 2) 21 else if (kind == 1) 14 else 12",
+                    "val width = when (kind) { 2 -> 21; 5 -> 25; 6 -> 23; 1 -> 14; else -> 12 }")
+    sp = sp.replace("val height = if (kind == 2) 13 else if (kind == 1) 11 else 10",
+                    "val height = when (kind) { 2 -> 13; 5 -> 17; 6 -> 15; 1 -> 11; else -> 10 }")
+    sp = sp.replace("""                else -> Path().apply {
+                    moveTo(6f, 0.7f)""", """                5 -> Path().apply {
+                    moveTo(12.5f, 0.5f); lineTo(17f, 4f); lineTo(24f, 5f)
+                    lineTo(21.5f, 9f); lineTo(18f, 9.5f); lineTo(15f, 15.5f)
+                    lineTo(12.5f, 12f); lineTo(10f, 15.5f); lineTo(7f, 9.5f)
+                    lineTo(3.5f, 9f); lineTo(1f, 5f); lineTo(8f, 4f); close()
+                }
+                6 -> Path().apply {
+                    moveTo(11.5f, 0.5f); lineTo(17f, 2.5f); lineTo(22f, 7f)
+                    lineTo(18f, 8f); lineTo(20f, 13f); lineTo(14f, 11f)
+                    lineTo(11.5f, 14.5f); lineTo(9f, 11f); lineTo(3f, 13f)
+                    lineTo(5f, 8f); lineTo(1f, 7f); lineTo(6f, 2.5f); close()
+                }
+                else -> Path().apply {
+                    moveTo(6f, 0.7f)""")
+    old_ship = """        val body = Path().apply {
+            moveTo(6.5f, 0.5f)
+            cubicTo(8.4f, 3.0f, 9.3f, 6.2f, 9.6f, 9.7f)
+            lineTo(12.6f, 13.1f)
+            quadTo(13.0f, 14.0f, 11.7f, 13.7f)
+            lineTo(8.5f, 12.0f)
+            lineTo(7.5f, 16.7f)
+            quadTo(6.5f, 18.0f, 5.5f, 16.7f)
+            lineTo(4.5f, 12.0f)
+            lineTo(1.3f, 13.7f)
+            quadTo(0.0f, 14.0f, 0.4f, 13.1f)
+            lineTo(3.4f, 9.7f)
+            cubicTo(3.7f, 6.2f, 4.6f, 3.0f, 6.5f, 0.5f)
+            close()
+        }"""
+    new_ship = """        val body = Path().apply {
+            moveTo(6.5f, 0.3f)
+            lineTo(8.2f, 5.8f); lineTo(12.8f, 10.7f)
+            lineTo(12.3f, 13.2f); lineTo(8.2f, 11.8f)
+            lineTo(7.6f, 16.4f); lineTo(6.5f, 15.6f)
+            lineTo(5.4f, 16.4f); lineTo(4.8f, 11.8f)
+            lineTo(0.7f, 13.2f); lineTo(0.2f, 10.7f)
+            lineTo(4.8f, 5.8f); close()
+        }"""
+    sp = sp.replace(old_ship, new_ship)
 sp = sp.replace("""        val fp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 intArrayOf(0xFFFFF4A8.toInt(), 0xFFFF9A32.toInt(), 0x00FF4D00),
                 null, Shader.TileMode.CLAMP)
