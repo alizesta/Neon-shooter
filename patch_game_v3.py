@@ -1296,6 +1296,47 @@ v6rep(
 # Rebuild once with the pause and gravity features applied.
 game_file.write_text(g, encoding="utf-8")
 
+# GAMEPLAY V7 balance and combat improvements.
+def v7rep(old, new, label):
+    global g
+    if new in g: return
+    if old not in g: raise RuntimeError("V7 patch target missing: " + label)
+    g = g.replace(old, new, 1)
+
+v7rep("private class B(var x: Float, var y: Float, var vx: Float, var vy: Float, val mine: Boolean)",
+      "private class B(var x: Float, var y: Float, var vx: Float, var vy: Float, val mine: Boolean) { val hitEnemies = HashSet<E>() }", "bullet hit tracking")
+v7rep("    private var weaponTimer = 0f\n",
+      "    private var weaponTimer = 0f\n    private var piercingTimer = 0f\n    private var squadTimer = 0f; private var squadSpawnTimer = 0f\n", "power timers")
+v7rep("        laserCooldown = 0f; missileCooldown = 0f\n",
+      "        laserCooldown = 3.5f; missileCooldown = 6f\n        piercingTimer = 0f; squadTimer = 0f; squadSpawnTimer = 0f\n", "weapon startup")
+v7rep("val hp = when (type) { 1 -> 3 + wave / 10; 3 -> 2 + wave / 12; 4 -> 2; else -> if (wave >= 7) 2 else 1 }",
+      "val hp = when (type) { 1 -> 5 + wave / 8; 3 -> 4 + wave / 10; 4 -> 3 + wave / 12; else -> 2 + wave / 12 }", "enemy hp")
+v7rep("42 + wave * 7", "110 + wave * 18", "boss hp")
+v7rep("val dropChance = if (e.type == 2) 0.95f else 0.24f",
+      "val dropChance = if (e.type == 2) 0.88f else 0.15f", "drop chance")
+v7rep("                roll < 0.51f -> 4", "                roll < 0.42f -> 4", "nuke chance")
+v7rep("                else -> 9\n", "                roll < 0.985f -> 9\n                else -> 10\n", "piercing drop")
+v7rep("val count = min(1 + (weaponLevel - 1) * 2, 9)", "val count = min(1 + (weaponLevel - 1), 5)", "bullet cap")
+v7rep("else max(0.085f, 0.17f - (weaponLevel - 1) * 0.012f)", "else 0.19f", "fire rate")
+v7rep("        laserCooldown = max(0f, laserCooldown - dt)\n        missileCooldown = max(0f, missileCooldown - dt)",
+      "        laserCooldown = max(0f, laserCooldown - dt)\n        missileCooldown = max(0f, missileCooldown - dt)\n        piercingTimer = max(0f, piercingTimer - dt)\n        squadTimer = max(0f, squadTimer - dt)\n        squadSpawnTimer = max(0f, squadSpawnTimer - dt)\n        if (squadTimer > 0f && squadSpawnTimer <= 0f) { spawnSupportShips(); squadSpawnTimer = 2.4f }\n        if (laserCooldown <= 0f) fireLaser()\n        if (missileCooldown <= 0f) launchMissiles()", "automatic weapons")
+v7rep("    private fun activateSquadron() {\n        for (offset in floatArrayOf(-42f, -14f, 14f, 42f)) {\n            squadShips.add(SweepShip((px + offset).coerceIn(8f, W - 8f), wh + 14f))\n        }\n        bullets.removeAll { !it.mine }\n        sfx.play(\"power\")\n    }",
+      "    private fun spawnSupportShips() { for (offset in floatArrayOf(-42f, -14f, 14f, 42f)) squadShips.add(SweepShip((px + offset).coerceIn(8f, W - 8f), wh + 14f)) }\n    private fun activateSquadron() { squadTimer = 12f; squadSpawnTimer = 0f; bullets.removeAll { !it.mine }; sfx.play(\"power\") }", "persistent support")
+v7rep("                8 -> magnetTimer = max(magnetTimer, 9f)\n                else -> activateSquadron()",
+      "                8 -> magnetTimer = max(magnetTimer, 9f)\n                10 -> piercingTimer = max(piercingTimer, 8f)\n                else -> activateSquadron()", "piercing effect")
+v7rep("if (e.dead || e.y < -4f) continue\n                if (abs(b.x - e.x) < e.hw + 1.5f && abs(b.y - e.y) < e.hh + 3f) {\n                    deadB.add(b); e.hp--; boom(b.x, b.y, 2, 25f)",
+      "if (e.dead || e.y < -4f || b.hitEnemies.contains(e)) continue\n                if (abs(b.x - e.x) < e.hw + 1.5f && abs(b.y - e.y) < e.hh + 3f) {\n                    b.hitEnemies.add(e)\n                    if (piercingTimer <= 0f) deadB.add(b)\n                    e.hp--; boom(b.x, b.y, 2, 25f)", "piercing collision")
+v7rep("val pull = min(95f, hole.strength / (d2 + 100f)) * dt",
+      "val pull = min(620f, hole.strength * 5f / (d2 + 80f)) * dt", "gravity strength")
+v7rep("for (star in stars) { star.y += star.sp * dt; star.phase += dt * (2.4f + star.sp * 0.16f); if (star.y > wh) { star.y = 0f; star.x = Random.nextFloat() * W } }",
+      "for (star in stars) star.phase += dt * (2.4f + star.sp * 0.16f)", "fixed stars")
+v7rep("                        } else if (y >= wh - 34f && x >= W - 96f) {\n                            if (x >= W - 52f) fireLaser() else launchMissiles()\n                            controlTouch = true\n                        }", "                        }", "remove weapon touch")
+v7rep("            drawWeaponControls(c)\n", "", "remove weapon buttons")
+v7rep("                            else -> bullets.add(B(e.x, e.y + 7f, cos(base) * speed, sin(base) * speed, false))",
+      "                            else -> for (i in -1..1) { val a = base + i * 0.12f; bullets.add(B(e.x, e.y + 7f, cos(a) * speed, sin(a) * speed, false)) }", "enemy spread")
+v7rep("            else -> 0xFFB68CFF.toInt()\n", "            10 -> 0xFF72F0C0.toInt()\n            else -> 0xFFB68CFF.toInt()\n", "piercing pickup color")
+game_file.write_text(g, encoding="utf-8")
+
 # Increment app version so Android accepts the new package as a newer release.
 gradle_file = root / "app/build.gradle.kts"
 gradle_text = gradle_file.read_text(encoding="utf-8")
