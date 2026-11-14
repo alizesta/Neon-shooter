@@ -22,9 +22,12 @@ jobs:
         env:
           KEYSTORE_B64: ${{ secrets.NEON_KEYSTORE_BASE64 }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/neon-shooter-release.jks"
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "NEON_KEYSTORE_BASE64 secret is missing"
+            exit 1
           fi
+          echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/neon-shooter-release.jks"
+          test -s "$RUNNER_TEMP/neon-shooter-release.jks"
       - name: Build APK
         env:
           NEON_KEYSTORE_PATH: ${{ runner.temp }}/neon-shooter-release.jks
@@ -33,16 +36,13 @@ jobs:
           NEON_KEY_PASSWORD: ${{ secrets.NEON_KEY_PASSWORD }}
         run: |
           cd NeonShooter
-          if [ -f "$NEON_KEYSTORE_PATH" ]; then
-            gradle assembleRelease --no-daemon
-            mkdir -p app/build/outputs/apk/debug
-            cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/debug/app-debug.apk
-          else
-            gradle assembleDebug --no-daemon
-          fi
+          test -f "$NEON_KEYSTORE_PATH"
+          gradle assembleRelease --no-daemon
+          mkdir -p app/build/outputs/apk/debug
+          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/debug/app-debug.apk
       - name: Publish refined APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: gameplay-v6
-          name: Neon Shooter - Pause, HP & Gravity V6
+          tag_name: gameplay-v6-signed
+          name: Neon Shooter - Pause, HP & Gravity V6 (Signed)
           files: NeonShooter/app/build/outputs/apk/debug/app-debug.apk
