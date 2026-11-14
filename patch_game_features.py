@@ -392,8 +392,10 @@ rep('                } else if (e.type == 4) {\n                    e.x = (e.bx 
                 } else {""", "healer and hunter movement")
 
 # The baseline already opens the boss branch; remove the duplicate opener introduced above.
-rep('            if (e.type == 2) {\n            if (e.type == 2) {',
-    '            if (e.type == 2) {', "duplicate boss branch opener")
+duplicate_boss_open = '            if (e.type == 2) {\n            if (e.type == 2) {'
+if duplicate_boss_open in g:
+    g = g.replace(duplicate_boss_open, '            if (e.type == 2) {', 1)
+
 
 # Boss attack warnings: a visible wind-up before each damaging pattern.
 rep('            if (e.fire <= 0f) {\n                if (e.type == 2) {',
