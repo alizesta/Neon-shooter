@@ -38,11 +38,10 @@ jobs:
           cd NeonShooter
           test -f "$NEON_KEYSTORE_PATH"
           gradle assembleRelease --no-daemon
-          mkdir -p app/build/outputs/apk/debug
-          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/debug/app-debug.apk
+          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/Neon Shooter.apk"
       - name: Publish refined APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: gameplay-v7
           name: Neon Shooter V7 - Gameplay Balance (Signed)
-          files: NeonShooter/app/build/outputs/apk/debug/app-debug.apk
+          files: NeonShooter/app/build/outputs/apk/release/Neon Shooter.apk
