@@ -1549,7 +1549,6 @@ object Play {
         if (!signedIn || !configured(a, resId, "Achievement ID")) return
         try {
             PlayGames.getAchievementsClient(a).unlock(a.getString(resId))
-                .addOnFailureListener { Log.e(TAG, "Achievement unlock failed", it) }
         } catch (e: Exception) { Log.e(TAG, "Achievement unlock crashed", e) }
     }
 
