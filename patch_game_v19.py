@@ -125,9 +125,7 @@ rep('''        val enemyDt = dt * when { enemySlowTimer > 0f -> 0.1f; stasisRank
 ''', "ability timers and combat effects")
 
 # Overload adds a visible temporary fire-rate and damage boost.
-rep('''        if (fireT <= 0f) { fireT = (if (rapidTimer > 0f) 0.075f else 0.19f) * shipFireDelay() * (1f - fireRateBonus); shoot() }
-''', '''        if (fireT <= 0f) { fireT = (if (rapidTimer > 0f) 0.075f else 0.19f) * shipFireDelay() * (1f - fireRateBonus) * (if (overloadTimer > 0f) 0.58f else 1f); shoot() }
-''', "overload fire rate")
+# Overload's temporary damage multiplier is applied in the bullet-hit path below.
 
 # Ricochet bullets seek a fresh target after a hit instead of disappearing.
 rep('''                    b.hitEnemies.add(e)
@@ -286,7 +284,7 @@ rep('''        "emp" -> "PULSE DAMAGES ALL ENEMIES"
 ''', '''        "emp" -> "PULSE DAMAGES ALL ENEMIES"
         "ricochet" -> "BULLETS BOUNCE TO NEW TARGETS"
         "gravity_well" -> "PULL AND DAMAGE NEARBY ENEMIES"
-        "overload" -> "TEMPORARY FIRE RATE AND DAMAGE BOOST"
+        "overload" -> "TEMPORARY HIGH-DAMAGE WEAPON OVERLOAD"
         "nanobots" -> "REPAIR HULL AND SHIELD OVER TIME"
         "scanner" -> "MARK TARGETS FOR BONUS DAMAGE"
         "salvage_drone" -> "DRONE COLLECTS EXTRA CREDITS"
