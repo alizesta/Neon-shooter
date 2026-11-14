@@ -185,12 +185,12 @@ rep('            St.OVER -> { val y = wh * 0.58f; add("play", "RETRY", y); add("
                 for (i in 0..2) l.add(Btn("upgrade_$i", "TAKE", RectF(5f + i * 72f, top, 67f + i * 72f, top + 25f)))
             }
             St.SHOP -> {
-                val y = wh * 0.48f
+                val y = wh * 0.46f
                 add("shop_repair", "REPAIR 180", y)
-                add("shop_weapon", "WEAPON 320", y + 29f)
-                add("shop_shield", "SHIELD 260", y + 58f)
-                add("shop_dash", "DASH 220", y + 87f)
-                add("shop_continue", "CONTINUE", y + 116f)
+                add("shop_weapon", "WEAPON 320", y + 24f)
+                add("shop_shield", "SHIELD 260", y + 48f)
+                add("shop_dash", "DASH 220", y + 72f)
+                add("shop_continue", "CONTINUE", y + 96f)
             }
             else -> {}""", "upgrade and shop buttons")
 
@@ -501,7 +501,7 @@ rep('                val dx = if (i == 0) -17f else 17f\n                val win
 rep('        text(c, "SCORE $score", 6f, 14f, 9f, YEL, Paint.Align.LEFT)',
     '        text(c, "SCORE $score", 6f, 14f, 9f, YEL, Paint.Align.LEFT)\n        if (comboCount >= 3) text(c, "COMBO x" + (1 + comboCount / 5).coerceAtMost(5), W / 2f, 14f, 8f, 0xFFFFD45C.toInt())', "combo HUD")
 rep('        val powerLabel = when {',
-    '        val powerLabel = when {\n            shieldLevel > 0 -> "REFLECT " + shieldLevel\n            magnetLevel > 0 && shieldLevel > 0 -> "MAGNETIC AEGIS"', "upgrade status HUD")
+    '        val powerLabel = when {\n            magnetLevel > 0 && shieldLevel > 0 -> "MAGNETIC AEGIS"\n            shieldLevel > 0 -> "REFLECT " + shieldLevel', "upgrade status HUD")
 rep('            text(c, "BOSS " + (bs.t0.toInt() + 1) + "/10", W / 2f, 17f, 7f, WHT)',
     '            text(c, "BOSS " + (bs.t0.toInt() + 1) + "/10  PHASE " + bs.phase, W / 2f, 17f, 7f, WHT)', "boss phase HUD")
 rep('        if (bannerT > 0f && st == St.PLAY) {\n            val boss = wave % 5 == 0\n            text(c, if (boss) "!! BOSS !!" else "WAVE $wave", W / 2, wh * 0.4f, 16f, if (boss) RED else WHT)\n        }',
@@ -521,7 +521,7 @@ rep('        control("MISSILE", W - 94f, W - 53f, missileCooldown <= 0f)\n      
 
 # Main menu: ship selection, unlock progression, daily mission and credit balance.
 rep('        text(c, "BEST $best", W / 2, wh * 0.42f, 8f, WHT)\n        drawButtons(c)',
-    '        text(c, "BEST $best  WAVE $bestWave", W / 2, wh * 0.42f, 8f, WHT)\n        text(c, "SHIP " + shipName() + "   CREDITS " + credits, W / 2f, wh * 0.435f, 7f, 0xFF80E7FF.toInt())\n        text(c, if (dailyDone) "DAILY COMPLETE  +500 CREDITS" else "DAILY: DESTROY 25  " + dailyKills + "/25", W / 2f, wh * 0.45f, 7f, 0xFFFFD45C.toInt())\n        drawButtons(c)', "menu progression display")
+    '        text(c, "SHIP " + shipName() + "   CREDITS " + credits, W / 2f, wh * 0.395f, 6.5f, 0xFF80E7FF.toInt())\n        text(c, if (dailyDone) "DAILY COMPLETE +500" else "DAILY 25 KILLS " + dailyKills + "/25", W / 2f, wh * 0.417f, 6f, 0xFFFFD45C.toInt())\n        text(c, "BEST $best  WAVE $bestWave", W / 2, wh * 0.44f, 7f, WHT)\n        drawButtons(c)', "menu progression display")
 
 # Upgrade and shop screens render explanatory cards and purchase totals.
 draw_screens = """    private fun upgradeTitle(id: String): String = when (id) {
