@@ -1,5 +1,13 @@
-name: Build APK
-on: [push, workflow_dispatch]
+name: Build Neon Shooter 2.1.1
+on:
+  push:
+    paths:
+      - 'NeonShooter_*.zip'
+      - 'patch_game*.py'
+      - 'patch_game_v211.py.xz'
+      - 'patch_progression_17.part*'
+      - 'SPRITES_V5_DUMP.kt'
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -29,13 +37,17 @@ jobs:
         run: python3 patch_game_v19.py
       - name: Apply Neon Shooter 2.0 cleanup, local settings and Google removal
         run: python3 patch_game_v20.py
+      - name: Apply Tapsell Plus monetization and Neon Shooter 2.1.1 metadata
+        run: |
+          xz -dc patch_game_v211.py.xz > patch_game_v211.py
+          python3 patch_game_v211.py
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.0.zip NeonShooter
-      - name: Upload patched Android project ZIP
+        run: zip -qr NeonShooter-Android-Project-v2.1.1.zip NeonShooter
+      - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.0
-          path: NeonShooter-Android-Project-v2.0.zip
+          name: NeonShooter-Android-Project-v2.1.1
+          path: NeonShooter-Android-Project-v2.1.1.zip
           if-no-files-found: error
           retention-days: 30
       - uses: actions/setup-java@v4
@@ -55,7 +67,7 @@ jobs:
           fi
           echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/neon-shooter-release.jks"
           test -s "$RUNNER_TEMP/neon-shooter-release.jks"
-      - name: Build APK
+      - name: Build signed release APK
         env:
           NEON_KEYSTORE_PATH: ${{ runner.temp }}/neon-shooter-release.jks
           NEON_KEYSTORE_PASSWORD: ${{ secrets.NEON_KEYSTORE_PASSWORD }}
@@ -65,10 +77,19 @@ jobs:
           cd NeonShooter
           test -f "$NEON_KEYSTORE_PATH"
           gradle assembleRelease --no-daemon
-          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/Neon-Shooter.apk"
-      - name: Publish refined APK
+          cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Neon-Shooter.apk
+          test -s app/build/outputs/apk/release/Neon-Shooter.apk
+      - name: Upload signed APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Neon-Shooter-v2.1.1-APK
+          path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish Neon Shooter 2.1.1
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.0
-          name: Neon Shooter v2.0 (No Google Play Games)
+          tag_name: v2.1.1
+          name: Neon Shooter v2.1.1 (Tapsell Plus)
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
+          fail_on_unmatched_files: true
