@@ -134,19 +134,38 @@ draw_item = """    private fun drawItem(c: Canvas, item: Item) {
         val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = 1.8f; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND; this.color = color }
         // A crisp circular badge; no bitmap blur, so the glow cannot become a square.
         paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.5f; paint.color = color
-        paint.setShadowLayer(5f, 0f, 0f, color)
         c.drawCircle(0f, 0f, 8f, paint)
-        paint.clearShadowLayer()
+        paint.strokeWidth = 0.7f
+        c.drawCircle(0f, 0f, 6.4f, paint)
+        paint.strokeWidth = 1.8f
         when (item.type) {
             0 -> { // heart
                 val path = Path().apply { moveTo(0f, 6f); cubicTo(-3f, 3f, -8f, 0f, -6f, -4f); cubicTo(-4f, -8f, -1f, -6f, 0f, -3f); cubicTo(2f, -7f, 6f, -8f, 7f, -4f); cubicTo(8f, 0f, 3f, 4f, 0f, 6f) }
                 c.drawPath(path, p)
             }
-            1 -> { c.drawLine(-5f, -3f, -5f, 3f, p); c.drawLine(0f, -3f, 0f, 3f, p); c.drawLine(5f, -3f, 5f, 3f, p) }
-            2 -> { c.drawLine(0f, -6f, 0f, 6f, p); c.drawLine(-4f, -3f, 4f, 3f, p); c.drawLine(4f, -3f, -4f, 3f, p) }
-            3 -> { c.drawArc(-5f, -6f, 5f, 6f, 35f, 290f, false, p); c.drawLine(-2f, 0f, 0f, 3f, p); c.drawLine(0f, 3f, 5f, -4f, p) }
-            4 -> { c.drawCircle(0f, 0f, 3f, p); c.drawLine(0f, -7f, 0f, -4f, p); c.drawLine(-5f, 5f, -3f, 3f, p); c.drawLine(5f, 5f, 3f, 3f, p) }
-            else -> { val path = Path().apply { moveTo(-2f, -6f); lineTo(3f, -1f); lineTo(1f, 1f); lineTo(4f, 5f); lineTo(-3f, 1f); lineTo(-1f, -1f); close() }; c.drawPath(path, p) }
+            1 -> { // triple-shot upgrade
+                c.drawLine(-4.5f, 2.5f, -4.5f, -2f, p); c.drawLine(0f, 2.5f, 0f, -4f, p); c.drawLine(4.5f, 2.5f, 4.5f, -2f, p)
+                c.drawLine(-6f, -0.5f, -4.5f, -2f, p); c.drawLine(-3f, -0.5f, -4.5f, -2f, p)
+                c.drawLine(-1.5f, -2f, 0f, -4f, p); c.drawLine(1.5f, -2f, 0f, -4f, p)
+                c.drawLine(3f, -0.5f, 4.5f, -2f, p); c.drawLine(6f, -0.5f, 4.5f, -2f, p)
+            }
+            2 -> { // rapid-fire energy bolt
+                val bolt = Path().apply { moveTo(1f, -6f); lineTo(-3.5f, 0f); lineTo(-0.5f, 0f); lineTo(-2f, 6f); lineTo(4f, -1.5f); lineTo(1f, -1.5f); close() }
+                c.drawPath(bolt, p); c.drawLine(-5f, 4.5f, -3.5f, 3f, p); c.drawLine(4.5f, -5f, 5.5f, -6f, p)
+            }
+            3 -> { // shield
+                val shield = Path().apply { moveTo(0f, -6f); lineTo(5f, -4f); lineTo(4f, 2f); lineTo(0f, 6f); lineTo(-4f, 2f); lineTo(-5f, -4f); close() }
+                c.drawPath(shield, p); c.drawLine(-2f, 0f, -0.2f, 2f, p); c.drawLine(-0.2f, 2f, 3f, -2f, p)
+            }
+            4 -> { // nuke blast
+                val burst = Path().apply { moveTo(0f, -6f); lineTo(1.5f, -2f); lineTo(5f, -4f); lineTo(3f, 0f); lineTo(6f, 2f); lineTo(2f, 3f); lineTo(1f, 6f); lineTo(-1.5f, 3f); lineTo(-5f, 4f); lineTo(-3f, 0f); lineTo(-6f, -2f); lineTo(-2f, -3f); close() }
+                c.drawPath(burst, p); c.drawCircle(0f, 0f, 1.8f, p)
+            }
+            else -> { // guided rocket
+                val rocket = Path().apply { moveTo(0f, -6f); quadTo(4f, -2f, 2.5f, 3f); lineTo(0f, 5f); lineTo(-2.5f, 3f); quadTo(-4f, -2f, 0f, -6f); close() }
+                c.drawPath(rocket, p); c.drawLine(-2.5f, 1f, -5f, 4f, p); c.drawLine(2.5f, 1f, 5f, 4f, p)
+                c.drawCircle(0f, -1.5f, 1.2f, p); c.drawLine(0f, 5f, 0f, 7f, p)
+            }
         }
         c.restore()
     }
