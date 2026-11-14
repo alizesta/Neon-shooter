@@ -295,9 +295,9 @@ rep('            st = St.OVER; overT = 0f',
 
 # Laser plus firepower combo creates a three-beam prism.
 laser_old = """    private fun fireLaser() {
-        if (st != St.PLAY || laserCooldown > 0f) return
+        if (st != St.PLAY || laserLevel <= 0 || laserCooldown > 0f) return
         val width = 5f + laserLevel * 2.2f
-        playerBeams.add(PlayerBeam(px, py, width, 0.24f))
+        playerBeams.add(PlayerBeam(px, py, width, 0.52f))
         val damage = 2 + laserLevel * 3
         for (enemy in enemies) {
             if (!enemy.dead && enemy.y < py && abs(enemy.x - px) < width + enemy.hw * 0.35f) {
@@ -310,13 +310,13 @@ laser_old = """    private fun fireLaser() {
         sfx.play("laser")
     }"""
 laser_new = """    private fun fireLaser() {
-        if (st != St.PLAY || laserCooldown > 0f) return
+        if (st != St.PLAY || laserLevel <= 0 || laserCooldown > 0f) return
         val width = 5f + laserLevel * 2.2f
         val offsets = if (laserLevel > 0 && weaponLevel >= 3) floatArrayOf(-12f, 0f, 12f) else floatArrayOf(0f)
         val damage = 2 + laserLevel * 3 + bonusDamage
         for (offset in offsets) {
             val beamX = (px + offset).coerceIn(5f, W - 5f)
-            playerBeams.add(PlayerBeam(beamX, py, width, 0.24f))
+            playerBeams.add(PlayerBeam(beamX, py, width, 0.52f))
             for (enemy in enemies) {
                 if (!enemy.dead && enemy.y < py && abs(enemy.x - beamX) < width + enemy.hw * 0.35f) {
                     enemy.hp -= damage
