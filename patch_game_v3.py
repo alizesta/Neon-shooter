@@ -216,6 +216,7 @@ for line in g.splitlines():
     g_lines.append(line)
 g = "\n".join(g_lines) + "\n"
 game_file.write_text(g)
+(root.parent / "GAMEVIEW_V4_DUMP.kt").write_text(g, encoding="utf-8")
 
 # Flat 2D ship and enemy art; replace blur-mask glows with smooth concentric strokes.
 sp = sprites_file.read_text()
@@ -421,7 +422,7 @@ with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
 tmp.replace(archive)
 subprocess.run(["git","config","user.name","github-actions[bot]"],check=True)
 subprocess.run(["git","config","user.email","41898282+github-actions[bot]@users.noreply.github.com"],check=True)
-subprocess.run(["git","add",archive.name],check=True)
+subprocess.run(["git","add",archive.name, "GAMEVIEW_V4_DUMP.kt"],check=True)
 if subprocess.run(["git","diff","--cached","--quiet"]).returncode:
     subprocess.run(["git","commit","-m","feat(game): refine 2D art, powerups and sign-in feedback"],check=True)
     subprocess.run(["git","push","origin","HEAD:main"],check=True)
