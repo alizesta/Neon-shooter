@@ -1,0 +1,96 @@
+rep('''    private fun performDash() {
+        if (dashCharges <= 0 || dashCooldown > 0f || st != St.PLAY) return''', '''    private fun legendaryTier(): Int = maxOf(wave, bestWave) / 10
+
+    private fun legendaryName(): String = when (currentShip) {
+        0 -> "OVERDRIVE"
+        1 -> "AFTERBURN"
+        2 -> "AEGIS"
+        else -> "STEALTH"
+    }
+
+    private fun activateLegendary() {
+        if (st != St.PLAY || legendaryTier() <= 0 || legendaryCooldown > 0f || legendaryTime > 0f) return
+        legendaryTime = 5f
+        legendaryCooldown = 20f
+        if (currentShip == 2) invul = max(invul, 5f)
+        bannerT = 1.2f
+        sfx.play("power")
+    }
+
+    private fun performDash() {
+        if (dashCharges <= 0 || dashCooldown > 0f || st != St.PLAY) return''', "legendary ship skill logic")
+rep('''        3 -> 1.04f
+        else -> 1f
+    }''', '''        3 -> 1.04f
+        else -> 1f
+    } * (if (legendaryTime > 0f && currentShip == 1) 1.65f else 1f)''', "Viper afterburn speed")
+rep('''        if (fireT <= 0f) { fireT = (if (rapidTimer > 0f) 0.075f else 0.19f) * shipFireDelay() * (1f - fireRateBonus); shoot() }''', '''        if (fireT <= 0f) { fireT = (if (rapidTimer > 0f) 0.075f else 0.19f) * shipFireDelay() * (1f - fireRateBonus) * (if (legendaryTime > 0f && currentShip == 0) 0.52f else 1f); shoot() }''', "Striker legendary fire burst")
+rep('''                    if (st == St.PLAY) {
+                        val x = e.x / s; val y = e.y / s
+                        if (x >= W - 32f && y <= 30f) {''', '''                    if (st == St.PLAY) {
+                        val x = e.x / s; val y = e.y / s
+                        if (y >= wh - 34f && x in 48f..108f && legendaryTier() > 0) {
+                            activateLegendary()
+                            controlTouch = true
+                        } else if (x >= W - 32f && y <= 30f) {''', "legendary touch button")
+rep('''        if ((st == St.PLAY || st == St.PAUSE) && (invul <= 0f || (time * 12).toInt() % 2 == 0)) spr(c, bPlayer, px, py)''', '''        if ((st == St.PLAY || st == St.PAUSE) && (invul <= 0f || (time * 12).toInt() % 2 == 0)) {
+            val oldAlpha = spritePaint.alpha
+            if (legendaryTime > 0f && currentShip == 3) spritePaint.alpha = 92
+            spr(c, bPlayer, px, py)
+            spritePaint.alpha = oldAlpha
+        }''', "phantom stealth transparency")
+rep('''        if (invul <= 0f) {
+            var hit = false''', '''        if (invul <= 0f && !(legendaryTime > 0f && currentShip == 3)) {
+            var hit = false''', "phantom cannot be hit while cloaked")
+rep('''            drawPauseControl(c)
+        }
+        enemies.firstOrNull''', '''            drawLegendaryControl(c)
+            drawPauseControl(c)
+        }
+        enemies.firstOrNull''', "draw legendary control")
+rep('''    private fun drawPauseControl(c: Canvas) {''', '''    private fun drawLegendaryControl(c: Canvas) {
+        if (legendaryTier() <= 0) return
+        val left = 48f; val top = wh - 32f; val right = 108f; val bottom = wh - 7f
+        val ready = legendaryCooldown <= 0f && legendaryTime <= 0f
+        val accent = if (ready) 0xFFFFD45C.toInt() else 0xFF677786.toInt()
+        paint.style = Paint.Style.FILL; paint.color = 0x4435D9F2.toInt()
+        c.drawRoundRect(left*s, top*s, right*s, bottom*s, 4f*s, 4f*s, paint)
+        paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.1f*s; paint.color = accent
+        c.drawRoundRect(left*s, top*s, right*s, bottom*s, 4f*s, 4f*s, paint)
+        paint.style = Paint.Style.FILL
+        val label = if (ready) legendaryName() + " " + legendaryTier() else if (legendaryTime > 0f) "ACTIVE" else "CD " + (legendaryCooldown.toInt() + 1)
+        text(c, label, (left+right)/2f, wh-16f, 6f, accent)
+    }
+
+    private fun drawPauseControl(c: Canvas) {''', "legendary control renderer")
+
+# Pause must not draw the live gameplay scene under its buttons.  Use a fully opaque pause backdrop.
+rep('''            St.PAUSE -> { drawGame(c); drawPause(c) }''', '''            St.PAUSE -> drawPause(c)''', "pause no longer renders ships behind buttons")
+rep('''        paint.color = 0xA507101D.toInt()
+        c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint)''', '''        paint.color = 0xFF07101D.toInt()
+        c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint)''', "opaque pause background")
+
+# Show all twenty abilities with accurate rank and descriptions.
+rep('''        "hull" -> "HULL +1"
+        else -> "RAPID FIRE"
+    }''', '''        "hull" -> "HULL +1"
+        "health_regen" -> "HEALTH REGEN"
+        "armor" -> "NANO ARMOR"
+        "critical" -> "CRITICAL HIT"
+        "overdrive" -> "OVERDRIVE"
+        "explosive" -> "EXPLOSIVE SHOTS"
+        "piercing" -> "PIERCING ROUNDS"
+        "stasis" -> "STASIS FIELD"
+        "scavenger" -> "SCAVENGER"
+        "multishot" -> "MULTI SHOT"
+        "phoenix" -> "PHOENIX CORE"
+        else -> "RAPID FIRE"
+    }''', "new ability names")
+rep('''        "hull" -> "RESTORE ONE LIFE"
+        else -> "TEMPORARY FAST SHOTS"
+    }''', '''        "hull" -> "RESTORE ONE LIFE"
+        "health_regen" -> "REPAIR HULL OVER TIME"
+        "armor" -> "CHANCE TO IGNORE A HIT"
+        "critical" -> "CHANCE FOR BONUS DAMAGE"
+        "overdrive" -> "PERMANENT FIRE RATE BOOST"
+        "explosive" -> "DAMAGE NEARBY ENEMIES"
