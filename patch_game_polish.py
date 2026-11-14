@@ -113,8 +113,7 @@ rep('''        if (wave % 5 == 0) {
         val n = min(16 + wave, 30)
         waveTarget = n + enemies.count { !it.dead }''', "double wave enemy count")
 rep('''            if (enemies.size < 7 && enemies.none { abs(it.x - x) < 24f && abs(it.y - y) < 30f }) enemies.add(E(x, y, type, hp, x, amp, t0))''',
-'''            if (enemies.size + pendingWaveEnemies.size < waveTarget &&
-                (enemies + pendingWaveEnemies).none { abs(it.x - x) < 24f && abs(it.y - y) < 30f }) {
+'''            if (enemies.size + pendingWaveEnemies.size < waveTarget) {
                 pendingWaveEnemies.add(E(x, y, type, hp, x, amp, t0))
             }''', "queue enemies rather than discard overflow")
 rep('''        }
@@ -133,6 +132,12 @@ rep('''        if (enemies.isEmpty()) {
             if (!waiting)''', "wave waits for pending enemies")
 rep("        e.dead = true\n        val basePoints",
     "        e.dead = true\n        waveKills = min(waveTarget, waveKills + 1)\n        val basePoints", "wave progress kill count")
+
+# Use separated multi-row formations so every queued enemy is actually spawned.
+rep('''            0 -> for (i in 0 until n) mk((i + 0.5f) * W / n, -10f - (i % 2) * 14f, 0f, 0f)
+            1 -> for (i in 0 until n) mk(W / 2, -10f - i * 24f, 55f, i * 0.6f)''',
+'''            0 -> for (i in 0 until n) { val col = i % 8; val row = i / 8; mk((col + 0.5f) * W / 8f, -10f - row * 26f, 0f, 0f) }
+            1 -> for (i in 0 until n) mk(W / 2, -10f - i * 24f, 55f, i * 0.6f)''', "spaced wave formations")
 
 # Hit feel: flash rings, micro shake, full damage shake and red impact flash.
 rep("        var warning = 0f\n        val hw =",
