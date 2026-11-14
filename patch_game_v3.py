@@ -1293,15 +1293,14 @@ v6rep(
 )
 
 # Keep stars conspicuous on all displays and center the menu title/button group.
-g = g.replace("text(c, \\"BEST $best\\", W / 2, wh * 0.42f, 8f, WHT)", "text(c, \\"BEST $best\\", W / 2, wh * 0.42f, 8f, WHT)")
 # Rebuild once with the pause and gravity features applied.
 game_file.write_text(g, encoding="utf-8")
 
 # Increment app version so Android accepts the new package as a newer release.
 gradle_file = root / "app/build.gradle.kts"
 gradle_text = gradle_file.read_text(encoding="utf-8")
-gradle_text = re.sub(r"versionCode\\s*=\\s*\\d+", "versionCode = 2", gradle_text)
-gradle_text = re.sub(r'versionName\\s*=\\s*"[^"]+"', 'versionName = "1.1"', gradle_text)
+gradle_text = re.sub(r"versionCode\s*=\s*\d+", "versionCode = 2", gradle_text)
+gradle_text = re.sub(r'versionName\s*=\s*"[^"]+"', 'versionName = "1.1"', gradle_text)
 if 'create("release")' not in gradle_text:
     gradle_text = gradle_text.replace(
         "    compileOptions {",
