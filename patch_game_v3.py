@@ -278,14 +278,6 @@ sp = sp.replace("""        val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
 sprites_file.write_text(sp)
 
 # V4 final pass: strip all bitmap bloom, shadows, and gradient setup.
-sp_lines = []
-for line in sp.splitlines():
-    if "setShadowLayer(" in line or "maskFilter = BlurMaskFilter" in line:
-        continue
-    if "LinearGradient(" in line or "RadialGradient(" in line or "SweepGradient(" in line:
-        continue
-    sp_lines.append(line)
-sp = "\n".join(sp_lines) + "\n"
 sp = sp.replace("""        for (i in 3 downTo 1) {
             val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 this.color = color
