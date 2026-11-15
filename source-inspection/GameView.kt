@@ -534,7 +534,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         else -> "کاوشگر هابل"
     }
 
-    private fun shipPrice(id: Int): Int = intArrayOf(0, 450, 900, 1550, 2400)[id.coerceIn(0, 4)]
+    private fun shipPrice(id: Int): Int = intArrayOf(0, 1200, 2800, 5600, 9800)[id.coerceIn(0, 4)]
+    private fun shipDescription(id: Int): String = when (id) {
+        1 -> "آینه شش‌ضلعی و سپر خورشیدی"
+        2 -> "ماموریت اعماق فضا"
+        3 -> "کاوشگر سیاره‌ای با شلیک سریع"
+        4 -> "مریخ‌نشین سه‌پایه با بدنه مقاوم"
+        else -> "تلسکوپ مداری با پنل خورشیدی"
+    }
     private fun shipOwned(id: Int): Boolean = id == 0 || prefs.getBoolean("ship_unlocked_" + id, false)
     private fun shipUpgradeRank(stat: String, ship: Int = currentShip): Int = prefs.getInt("ship_upgrade_" + ship + "_" + stat, 0).coerceIn(0, 5)
 
@@ -994,18 +1001,24 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             }
             St.SHOP -> {
                 val y = wh * 0.46f
-                add("shop_weapon", "سلاح | ۳۲۰ سکه", y)
-                add("shop_shield", "سپر | ۲۶۰ سکه", y + 28f)
-                add("shop_dash", "جهش | ۲۲۰ سکه", y + 56f)
-                add("shop_continue", "ادامه", y + 84f)
+                val rows = listOf(
+                    "shop_weapon" to "سلاح | ۳۲۰ سکه",
+                    "shop_shield" to "سپر | ۲۶۰ سکه",
+                    "shop_dash" to "جهش | ۲۲۰ سکه",
+                    "shop_continue" to "ادامه"
+                )
+                rows.forEachIndexed { index, pair ->
+                    val top = y + index * 28f
+                    l.add(Btn(pair.first, pair.second, RectF(50f, top, 170f, top + 22f)))
+                }
             }
             St.SHIPS -> {
-                val y = wh * 0.38f
+                val y = wh * 0.37f
                 for (i in 0..4) {
-                    val label = if (shipOwned(i)) { if (currentShip == i) "فعال: " + shipName(i) else "انتخاب " + shipName(i) } else "خرید " + shipPrice(i) + " سکه • " + shipName(i)
-                    l.add(Btn(if (shipOwned(i)) "ship_select_$i" else "ship_buy_$i", label, RectF(12f, y + i * 23f, 208f, y + i * 23f + 20f)))
+                    val id = if (shipOwned(i)) "ship_select_$i" else "ship_buy_$i"
+                    l.add(Btn(id, shipName(i), RectF(10f, y + i * 27f, 210f, y + i * 27f + 22f)))
                 }
-                add("shipBack", "بازگشت", wh * 0.77f)
+                add("shipBack", "بازگشت", wh * 0.79f)
             }
             St.SHIP_UPGRADE -> {
                 val y = wh * 0.405f
@@ -3134,6 +3147,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawAdSlot(c, wh * 0.78f, 138f, 20f)
     }
 
+    private fun shopButtonDescription(id: String): String = when (id) {
+        "shop_weapon" -> "افزایش قدرت سلاح و آسیب شلیک"
+        "shop_shield" -> "ارتقای سپر و بازیابی مقاومت آن"
+        "shop_dash" -> "دریافت یک شارژ جهش اضافه"
+        "shop_continue" -> "ادامه نبرد و ورود به موج بعد"
+        else -> ""
+    }
+
     private fun drawPause(c: Canvas) {
         paint.style = Paint.Style.FILL
         paint.color = 0xFF07101D.toInt()
@@ -3248,9 +3269,22 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "pauseRestart" -> { c.drawArc(x-9f*s,y-9f*s,x+9f*s,y+9f*s,35f,285f,false,paint); c.drawLine(x+7f*s,y-8f*s,x+10f*s,y-1f*s,paint); c.drawLine(x+7f*s,y-8f*s,x,y-8f*s,paint) }
             "telegram" -> { val p=Path().apply { moveTo(x-11f*s,y-2f*s); lineTo(x+11f*s,y-8f*s); lineTo(x+4f*s,y+10f*s); lineTo(x,y+3f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawLine(x,y+3f*s,x+7f*s,y-4f*s,paint) }
             "extraLife", "shop_repair" -> { val p=Path().apply { moveTo(x,y+9f*s); cubicTo(x-17f*s,y-2f*s,x-8f*s,y-13f*s,x,y-6f*s); cubicTo(x+8f*s,y-13f*s,x+17f*s,y-2f*s,x,y+9f*s) }; c.drawPath(p,paint) }
-            "shop_weapon" -> { c.drawLine(x-8f*s,y+8f*s,x+8f*s,y-8f*s,paint); c.drawLine(x+4f*s,y-8f*s,x+8f*s,y-8f*s,paint); c.drawLine(x+8f*s,y-8f*s,x+8f*s,y-4f*s,paint) }
+            "shop_weapon" -> {
+                c.drawCircle(x,y,5.5f*s,paint)
+                c.drawCircle(x,y,1.8f*s,paint)
+                c.drawLine(x-11f*s,y,x-7f*s,y,paint); c.drawLine(x+7f*s,y,x+11f*s,y,paint)
+                c.drawLine(x,y-11f*s,x,y-7f*s,paint); c.drawLine(x,y+7f*s,x,y+11f*s,paint)
+            }
             "shop_shield" -> { val p=Path().apply { moveTo(x,y-10f*s); lineTo(x+9f*s,y-6f*s); lineTo(x+7f*s,y+4f*s); lineTo(x,y+11f*s); lineTo(x-7f*s,y+4f*s); lineTo(x-9f*s,y-6f*s); close() }; c.drawPath(p,paint) }
-            "shop_dash" -> { c.drawLine(x-9f*s,y+8f*s,x+8f*s,y-8f*s,paint); c.drawLine(x+8f*s,y-8f*s,x+2f*s,y-8f*s,paint); c.drawLine(x+8f*s,y-8f*s,x+8f*s,y-2f*s,paint) }
+            "shop_dash" -> {
+                val bolt = Path().apply {
+                    moveTo(x+1f*s,y-11f*s); lineTo(x-7f*s,y+1f*s); lineTo(x-1f*s,y+1f*s)
+                    lineTo(x-4f*s,y+11f*s); lineTo(x+8f*s,y-3f*s); lineTo(x+2f*s,y-3f*s); close()
+                }
+                paint.style = Paint.Style.FILL
+                c.drawPath(bolt,paint)
+                paint.style = Paint.Style.STROKE
+            }
             else -> { drawAbilityIcon(c, "firepower", cx, cy); return }
         }
         paint.style = Paint.Style.FILL
@@ -3278,6 +3312,31 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 val cy = (r.top + r.bottom) / 2f
                 drawButtonIcon(c, b.id, r.left + 18f, cy)
                 drawFittedText(c, b.label, (r.left + r.right) / 2f + 10f, cy + 2.1f, 6.1f, 0xFFEAFBFF.toInt(), 82f)
+            } else if (st == St.SHOP) {
+                val cy = (r.top + r.bottom) / 2f
+                val centerX = (r.left + r.right) / 2f + 17f
+                c.save()
+                c.scale(0.78f, 0.78f, (r.left + 17f) * s, cy * s)
+                drawButtonIcon(c, b.id, r.left + 17f, cy)
+                c.restore()
+                drawFittedText(c, b.label, centerX, cy - 1.7f, 4.4f, 0xFFFFF0C4.toInt(), 82f)
+                drawFittedText(c, shopButtonDescription(b.id), centerX, cy + 6.6f, 3.25f, 0xFFE7D5A8.toInt(), 82f)
+            } else if (st == St.SHIPS && b.id.startsWith("ship_")) {
+                val cy = (r.top + r.bottom) / 2f
+                val shipId = b.id.substringAfterLast("_").toIntOrNull() ?: 0
+                c.save()
+                c.scale(0.72f, 0.72f, (r.left + 18f) * s, cy * s)
+                drawButtonIcon(c, b.id, r.left + 18f, cy)
+                c.restore()
+                val centerX = (r.left + r.right) / 2f + 11f
+                val titleColor = if (currentShip == shipId) 0xFFFFD45C.toInt() else 0xFFEAFBFF.toInt()
+                drawFittedText(c, shipName(shipId), centerX, cy - 1.7f, 4.8f, titleColor, 142f)
+                val state = when {
+                    !shipOwned(shipId) -> "قیمت: " + shipPrice(shipId) + " سکه"
+                    currentShip == shipId -> "فعال • " + shipDescription(shipId)
+                    else -> "آزادشده • " + shipDescription(shipId)
+                }
+                drawFittedText(c, state, centerX, cy + 6.7f, 3.25f, 0xFF9CEBFF.toInt(), 142f)
             } else if ((st == St.SHIPS || st == St.SHIP_UPGRADE) && (b.id.startsWith("ship_") || b.id.startsWith("shipup_") || b.id == "shipBack" || b.id == "shipUpgradeBack")) {
                 val cy = (r.top + r.bottom) / 2f
                 c.save()
@@ -3487,15 +3546,6 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawGlassPanel(c,5f,wh*0.27f,W-5f,wh*0.86f,0xFFFFD45C.toInt(),244)
         text(c,"آشیانه ناوگان",W/2f,wh*0.32f,12f,0xFFFFD45C.toInt())
         text(c,"سکه: $credits",W/2f,wh*0.35f,7f,WHT)
-        for (i in 0..4) {
-            val y = wh*0.38f + i*23f
-            val owned = shipOwned(i)
-            drawPlayerShip(c,25f,y+9f,i)
-            text(c,shipName(i),48f,y+12f,5.4f,if(currentShip==i) 0xFFFFD45C.toInt() else WHT,Paint.Align.LEFT)
-            text(c,when(i){0->"تلسکوپ مداری • پنل خورشیدی";1->"آینه شش‌ضلعی • سپر خورشیدی";2->"کاوشگر بین‌ستاره‌ای";3->"کاوشگر بین‌ستاره‌ای";else->"مریخ‌نشین سه‌پایه"},48f,y+18f,3.8f,0xFF9CEBFF.toInt(),Paint.Align.LEFT)
-            if (!owned) text(c,shipPrice(i).toString()+" سکه",190f,y+12f,4.5f,0xFFFFD45C.toInt(),Paint.Align.RIGHT)
-            else if (currentShip==i) text(c,"فعال",190f,y+12f,4.5f,0xFF55DDAA.toInt(),Paint.Align.RIGHT)
-        }
         drawButtons(c)
     }
 
