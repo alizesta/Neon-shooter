@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.6.4 • ship progression
+name: Build Neon Shooter 2.6.5 • ship progression
 
 on:
   push:
@@ -77,11 +77,11 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.6.4")
-          s = s.replace("versionCode = 25", "versionCode = 31", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.4"', 1)
+              raise SystemExit("Unexpected base version before v2.6.5")
+          s = s.replace("versionCode = 25", "versionCode = 32", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.5"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.6.4")
+          print("PATCH full gameplay source and version 2.6.5")
           PY
 
       - name: Generate original cinematic background music
@@ -97,7 +97,7 @@ jobs:
           game = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt").read_text(encoding="utf-8")
           gradle = Path("NeonShooter/app/build.gradle.kts").read_text(encoding="utf-8")
           checks = {
-              "maxed level-6 abilities are filtered, not deleted": "abilityRank(id) < 6" in game and "selectedAbilities.toList()" in game,
+              "maxed level-5 abilities remain in pause inventory and are filtered from offers": "abilityRank(id) < 5" in game and "selectedAbilities.toList()" in game,
               "pause shows the acquired ability list": "قابلیت‌های فعال" in game and "selectedAbilities.toList()" in game,
               "enemies and bosses drop real coins": "val coinPieces = 3" in game and "repeat(10)" in game and "13 -> { credits += item.amount" in game,
               "magnet pulls pickups and coins": "val magnetRange = when" in game and "itemDistance < magnetRange" in game and "magnetTimer > 0f" in game,
@@ -125,19 +125,24 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.6.4": "versionCode = 31" in gradle and 'versionName = "2.6.4"' in gradle,
+              "release version is 2.6.5": "versionCode = 32" in gradle and 'versionName = "2.6.5"' in gradle,
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, e.t0.toInt()" in game,
               "pause panel renders acquired ability glyphs with visible backgrounds": "drawAbilityIcon(c, id, cellX + 8f, centerY)" in game and "c.drawCircle((cellX+8f)*s, centerY*s, 6.2f*s, paint)" in game,
-              "new ability pool unlocks after wave 25": "wave >= 25 && selectedAbilities.size >= 5" in game and "wave > 50 && selectedAbilities.size >= 5" not in game,
+              "new ability pool unlocks after all five core abilities reach rank five at wave 25": 'coreAbilities = listOf("firepower", "missile", "laser", "drone", "magnet")' in game and "wave >= 25 && coreAbilities.all { abilityRank(it) >= 5 }" in game and "val pool = if (extraAbilitiesUnlocked) allAbilities else coreAbilities" in game,
               "regular enemy health doubles after wave 25": "val hp = ceil(baseHp * difficulty * if (wave > 25) 2f else 1f).toInt()" in game,
               "boss health doubles after wave 25": "val bossHp = if (wave > 25) earlyBossAdjustedHp * 2 else earlyBossAdjustedHp" in game,
-              "all 28 ability ranks and ability counters now cap at six": all(token in game[game.index("private fun applyUpgrade(id: String) {"):game.index("private fun activeCombo()")] for token in ["min(6, missileLevel + 1)", "min(6, weaponLevel + 1)", "min(6, phoenixRank + 1)"]) and "abilityRank(id) < 6" in game and 'rank + 1) + "/6"' in game and 'rank + "/۶"' in game,
+              "all upgradeable abilities stop at rank five": "abilityRank(id) < 5" in game and "min(5, missileLevel + 1)" in game and "min(5, weaponLevel + 1)" in game and "min(5, phoenixRank + 1)" in game and '"/5"' in game and '"/۵"' in game and "min(6," not in game,
               "guided missiles gain stronger tracking at higher levels": "val homingSpeed = 175f + missileLevel * 8f" in game and "val steering = 320f + missileLevel * 24f" in game,
+              "enemy kills charge the legendary meter and bosses charge faster": "legendaryCharge + if (e.type == 2) 5 else 1" in game and "legendaryChargeSuppressed" in game and "legendaryCharge >= legendaryChargeNeeded" in game,
+              "five ships have unique charged golden skills": "private fun legendaryName(): String = when (currentShip)" in game and "0 -> \"طوفان پلاسما\"" in game and "1 -> \"پس‌سوز کوانتومی\"" in game and "2 -> \"ایجیس مطلق\"" in game and "3 -> \"فاز شبح\"" in game and "4 -> \"انفجار ققنوس\"" in game,
+              "workshop labels are not drawn twice": "private fun drawShipUpgrades(c: Canvas)" in game and "stats.forEachIndexed" not in game[game.index("private fun drawShipUpgrades(c: Canvas)"):game.index("private fun drawCoinCounter")],
+              "five ship workshop stats use dedicated unique icons": "private fun drawShipUpgradeIcon" in game and all(f'"{key}" ->' in game[game.index("private fun drawShipUpgradeIcon"):game.index("private fun drawButtonIcon")] for key in ["attack", "armor", "mobility", "hull", "gold"]) and "drawShipUpgradeIcon(c, id.substringAfter(\"_\"), cx, cy)" in game,
 
 
-              "legendary ship abilities include descriptions after boss milestone rewards": "private fun legendaryDescription()" in game and "drawWrappedCardText(c, legendaryDescription()" in game and "wave in 10..50 && wave % 10 == 0" in game,
+
+              "legendary ship skill description is visible and kill charged": "private fun legendaryDescription()" in game and "drawWrappedCardText(c, legendaryDescription()" in game and "مهارت ویژه سفینه:" in game and "legendaryChargeNeeded = 15" in game and "legendaryTier()" not in game,
               "first 50 waves have distinct astronomical stage names": "private val stageNames = arrayOf(" in game and "private fun waveTitle(level: Int = wave)" in game and "stageNames.getOrElse(level - 1)" in game,
               "every upgrade ability has its own icon case": "private fun drawAbilityIcon" in game,
 
@@ -191,13 +196,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.6.4.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.6.5.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.6.4
-          path: NeonShooter-Android-Project-v2.6.4.zip
+          name: NeonShooter-Android-Project-v2.6.5
+          path: NeonShooter-Android-Project-v2.6.5.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -244,16 +249,16 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.6.4 APK build
+      - name: Record verified v2.6.5 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
           test -s "$APK"
-          cat > release-proof-v2.6.4.txt <<EOF
+          cat > release-proof-v2.6.5.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.6.4
+          app_version=2.6.5
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
@@ -262,24 +267,24 @@ jobs:
       - name: Upload APK verification proof
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Release-Proof-v2.6.4
-          path: release-proof-v2.6.4.txt
+          name: NeonShooter-Release-Proof-v2.6.5
+          path: release-proof-v2.6.5.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.6.4-APK
+          name: Neon-Shooter-v2.6.5-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.6.4
+      - name: Publish Neon Shooter 2.6.5
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.6.4
-          name: Neon Shooter v2.6.4
+          tag_name: v2.6.5
+          name: Neon Shooter v2.6.5
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
@@ -300,13 +305,15 @@ jobs:
             - Coin balance is visible in both the main menu and gameplay HUD; wave progress resets at every new wave.
             - Twenty-eight ability upgrades now have separate custom icons and distinct colors.
             - The first 50 waves use unique planetary, stellar, nebula and galaxy names.
-            - Golden ship abilities show their effect descriptions after milestone boss rewards.
+            - Each ship has its own golden ultimate, charged by 15 enemy kills; bosses grant five charge points.
             - Enemy and boss coins drop in smaller pieces and more frequently; magnet pickup has a shorter, bounded radius.
             - Ten bosses are named after constellations and display their own linked-star patterns.
             - Pause ability inventory shows a larger, distinct glyph for each acquired ability.
             - The expanded ability pool unlocks after wave 25; regular enemies and bosses have double HP after wave 25.
-            - All upgradeable abilities now have six ranks, with rank-six UI counters and max-rank filtering.
+            - Every ability has a five-rank maximum; only the five core abilities appear until all reach rank five and wave 25 is reached.
             - Homing missiles gain extra projectiles, damage, steering strength and tracking speed as they level up.
+            - Ship workshop rows are compact, non-overlapping, and use five distinct stat icons.
+            - The five ship-specific golden ultimates charge on kills and can be activated from the first wave.
             - Icon-only action buttons, Persian About page, and Telegram channel link.
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           fail_on_unmatched_files: true
