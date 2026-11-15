@@ -225,6 +225,9 @@ jobs:
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
+          test -s "$APK"
+          git fetch origin main
+          git checkout --detach origin/main
           cat > release-proof-v2.6.2.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
@@ -234,7 +237,7 @@ jobs:
           signature=verified-by-apksigner
           EOF
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+users.noreply.github.com"
           git add release-proof-v2.6.2.txt
           git commit -m "build: record verified v2.6.2 APK metadata"
           git push origin HEAD:main
