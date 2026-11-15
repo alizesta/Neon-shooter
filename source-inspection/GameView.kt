@@ -5,6 +5,7 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
+import android.text.TextUtils
 import android.graphics.*
 import android.content.Intent
 import android.net.Uri
@@ -2021,6 +2022,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             .setAlignment(Layout.Alignment.ALIGN_CENTER)
             .setTextDirection(TextDirectionHeuristics.RTL)
             .setIncludePad(false)
+            .setMaxLines(1)
+            .setEllipsize(TextUtils.TruncateAt.END)
             .build()
         val left = when (align) {
             Paint.Align.LEFT -> x * s
@@ -2886,7 +2889,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun drawFittedText(c: Canvas, value: String, x: Float, y: Float, size: Float, color: Int, maxWidth: Float) {
         tp.textSize = size * s
         var fitted = size
-        while (tp.measureText(value) > maxWidth * s && fitted > 2.8f) {
+        while (tp.measureText(value) * 1.22f > maxWidth * s && fitted > 2.8f) {
             fitted -= 0.2f
             tp.textSize = fitted * s
         }
@@ -3125,7 +3128,13 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 c.scale(0.82f, 0.82f, (r.left + 18f) * s, cy * s)
                 drawButtonIcon(c, b.id, r.left + 18f, cy)
                 c.restore()
-                drawFittedText(c, b.label, (r.left + r.right) / 2f + 13f, cy + 2f, 4.5f, 0xFFEAFBFF.toInt(), 136f)
+                if (st == St.SHIP_UPGRADE && b.id.startsWith("shipup_")) {
+                    val stat = b.id.substringAfter("shipup_")
+                    drawFittedText(c, b.label, (r.left + r.right) / 2f + 13f, cy - 2.2f, 4.15f, 0xFFEAFBFF.toInt(), 136f)
+                    drawFittedText(c, shipUpgradeDescription(stat), (r.left + r.right) / 2f + 13f, cy + 6.0f, 3.35f, 0xFF9CEBFF.toInt(), 136f)
+                } else {
+                    drawFittedText(c, b.label, (r.left + r.right) / 2f + 13f, cy + 2f, 4.5f, 0xFFEAFBFF.toInt(), 136f)
+                }
             } else if (st == St.PAUSE) {
                 val cy = (r.top + r.bottom) / 2f
                 c.save()
@@ -3225,6 +3234,15 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             else if (currentShip==i) text(c,"فعال",190f,y+12f,4.5f,0xFF55DDAA.toInt(),Paint.Align.RIGHT)
         }
         drawButtons(c)
+    }
+
+    private fun shipUpgradeDescription(stat: String): String = when (stat) {
+        "attack" -> "سرعت شلیک ۴٫۵٪ بیشتر در هر سطح"
+        "armor" -> "۵٫۵٪ شانس خنثی‌کردن ضربه در هر سطح"
+        "mobility" -> "سرعت حرکت ۵٫۵٪ بیشتر در هر سطح"
+        "hull" -> "یک جان اضافه در شروع هر بازی به‌ازای هر سطح"
+        "gold" -> "افزایش قدرت مهارت طلایی سفینه؛ زمان اثر بیشتر"
+        else -> ""
     }
 
     private fun drawShipUpgrades(c: Canvas) {
