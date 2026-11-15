@@ -3030,43 +3030,66 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         return all.filter { abilityRank(it) > 0 || it in selectedAbilities }.distinct()
     }
 
-    private fun drawOwnedAbilityList(c: Canvas, top: Float, bottom: Float, columns: Int, fontSize: Float) {
+    private fun drawOwnedAbilityList(
+        c: Canvas,
+        top: Float,
+        bottom: Float,
+        columns: Int,
+        fontSize: Float,
+        left: Float = 7f,
+        right: Float = W - 7f
+    ) {
         val owned = ownedAbilityIds()
         if (owned.isEmpty()) {
-            drawFittedText(c, "هنوز قابلیتی نگرفته‌ای", W / 2f, (top + bottom) / 2f + 1f, 4.0f, 0xFF9BAABC.toInt(), W - 24f)
+            drawFittedText(c, "هنوز قابلیتی نگرفته‌ای", (left + right) / 2f, (top + bottom) / 2f + 1f, 4.0f, 0xFF9BAABC.toInt(), right - left)
             return
         }
-        c.save()
-        c.clipRect(7f * s, top * s, (W - 7f) * s, bottom * s)
-        val left = 7f
-        val usableWidth = W - 14f
-        val cellWidth = usableWidth / columns
-        val rows = (owned.size + columns - 1) / columns
+        val safeColumns = columns.coerceIn(1, min(owned.size, 5))
+        val usableWidth = max(1f, right - left)
+        val cellWidth = usableWidth / safeColumns
+        val rows = (owned.size + safeColumns - 1) / safeColumns
         val cellHeight = (bottom - top) / rows
+        c.save()
+        c.clipRect(left * s, top * s, right * s, bottom * s)
         owned.forEachIndexed { index, id ->
-            val col = index % columns
-            val row = index / columns
+            val col = index % safeColumns
+            val row = index / safeColumns
             val cellX = left + col * cellWidth
             val cellTop = top + row * cellHeight
             val cellBottom = min(bottom, cellTop + cellHeight)
-            val centerY = cellTop + cellHeight / 2f
-            c.save()
-            c.clipRect(cellX * s, cellTop * s, (cellX + cellWidth - 1f) * s, cellBottom * s)
+            val centerY = (cellTop + cellBottom) / 2f
+            val iconX = cellX + min(3.7f, cellWidth * 0.10f)
+            val iconRadius = min(2.35f, cellHeight * 0.30f)
             val accent = abilityColor(id)
-            paint.style = Paint.Style.FILL
-            paint.color = Color.argb(42, Color.red(accent), Color.green(accent), Color.blue(accent))
-            c.drawRoundRect(cellX*s, (centerY-cellHeight*0.46f)*s, (cellX+cellWidth-1.5f)*s, (centerY+cellHeight*0.46f)*s, 2.5f*s, 2.5f*s, paint)
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 0.65f*s
-            paint.color = Color.argb(125, Color.red(accent), Color.green(accent), Color.blue(accent))
-            c.drawCircle((cellX+5.5f)*s, centerY*s, 4.4f*s, paint)
             c.save()
-            c.scale(0.34f, 0.34f, (cellX+5.5f)*s, centerY*s)
-            drawAbilityIcon(c, id, cellX+5.5f, centerY)
+            c.clipRect(cellX * s, cellTop * s, (cellX + cellWidth) * s, cellBottom * s)
+            paint.style = Paint.Style.FILL
+            paint.color = Color.argb(34, Color.red(accent), Color.green(accent), Color.blue(accent))
+            c.drawRoundRect(
+                (cellX + 0.7f) * s, (cellTop + 0.55f) * s,
+                (cellX + cellWidth - 0.7f) * s, (cellBottom - 0.55f) * s,
+                1.8f * s, 1.8f * s, paint
+            )
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 0.45f * s
+            paint.color = Color.argb(120, Color.red(accent), Color.green(accent), Color.blue(accent))
+            c.drawCircle(iconX * s, centerY * s, iconRadius * s, paint)
+            c.save()
+            val iconScale = min(0.20f, iconRadius / 12f)
+            c.scale(iconScale, iconScale, iconX * s, centerY * s)
+            drawAbilityIcon(c, id, iconX, centerY)
             c.restore()
             paint.style = Paint.Style.FILL
-            val label = upgradeTitle(id) + " " + abilityRank(id).coerceIn(0,5) + "/۵"
-            drawFittedText(c, label, cellX + 11f + (cellWidth - 11f)/2f, centerY + 1.25f, fontSize, if (abilityRank(id)>=5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), cellWidth-13f)
+            val label = upgradeTitle(id) + " " + persianNumber(abilityRank(id).coerceIn(0, 5)) + "/۵"
+            val labelLeft = cellX + 7.2f
+            val labelWidth = max(2f, cellWidth - 8.4f)
+            val labelX = labelLeft + labelWidth / 2f
+            val labelSize = min(fontSize, min(2.65f, cellHeight * 0.34f)).coerceAtLeast(1.65f)
+            drawFittedText(
+                c, label, labelX, centerY + 0.9f, labelSize,
+                if (abilityRank(id) >= 5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(),
+                labelWidth
+            )
             c.restore()
         }
         c.restore()
@@ -3074,7 +3097,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun drawUpgrade(c: Canvas) {
         paint.color = 0xB807101D.toInt(); c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint)
-        drawGlassPanel(c, 5f, wh * 0.30f, W - 5f, wh * 0.76f, 0xFF47DFFF.toInt(), 232)
+        drawGlassPanel(c, 5f, wh * 0.30f, W - 5f, wh * 0.975f, 0xFF47DFFF.toInt(), 232)
         text(c, "یک قابلیت را انتخاب کن", W / 2f, wh * 0.365f, 8.4f, 0xFF9CEBFF.toInt())
         text(c, if (extraAbilitiesUnlocked) "قابلیت‌های تازه باز شده‌اند" else "قابلیت‌های انتخاب‌شده", W / 2f, wh * 0.402f, 5.0f, 0xFFFFD45C.toInt())
         val optionGap = 4f
@@ -3098,7 +3121,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawFittedText(c, "قابلیت‌های گرفته‌شده  •  " + ownedAbilityIds().size, W / 2f, wh * 0.637f, 4.7f, 0xFFFFD45C.toInt(), 180f)
         drawFittedText(c, "توان ویژه: " + legendaryName(), W / 2f, wh * 0.653f, 3.7f, 0xFFFFEBC1.toInt(), 180f)
         drawWrappedCardText(c, legendaryDescription(), W / 2f, wh * 0.667f, 2.85f, 0xFFB9D9E8.toInt(), 180f)
-        drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 3, 2.85f)
+        drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 4, 2.45f, 10f, W - 10f)
         drawButtons(c)
     }
 
@@ -3120,7 +3143,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawCoinCounter(c, 176f, wh * 0.335f)
         drawButtons(c)
         drawFittedText(c, "قابلیت‌های فعال  •  " + ownedAbilityIds().size, W / 2f, wh * 0.675f, 5.9f, 0xFFFFD45C.toInt(), 180f)
-        drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3, 3.25f)
+        drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 4, 2.8f, 23f, 197f)
     }
 
     private fun drawWeaponControls(c: Canvas) {
