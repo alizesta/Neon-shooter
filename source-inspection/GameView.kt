@@ -20,7 +20,7 @@ import kotlin.random.Random
 
 class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Callback, Runnable {
 
-    private enum class St { MENU, PLAY, PAUSE, OVER, UPGRADE, SHOP, AD_BREAK, ABOUT, SHIPS, SHIP_UPGRADE }
+    private enum class St { MENU, PLAY, PAUSE, OVER, UPGRADE, SHOP, AD_BREAK, ABOUT }
     private class B(var x: Float, var y: Float, var vx: Float, var vy: Float, var mine: Boolean) { val hitEnemies = HashSet<E>() }
     private class E(var x: Float, var y: Float, val type: Int, var hp: Int, val bx: Float, val amp: Float, val t0: Float) {
         var bossSkills: List<String> = emptyList()
@@ -153,7 +153,6 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private var credits = prefs.getInt("credits", 0)
     private var bestWave = prefs.getInt("best_wave", 0)
     private var currentShip = prefs.getInt("ship", 0).coerceIn(0, 4)
-    private var upgradePoints = prefs.getInt("ship_upgrade_points", 0)
     private var dailyDay = prefs.getLong("daily_day", -1L)
     private var dailyKills = prefs.getInt("daily_kills", 0)
     private var dailyDone = prefs.getBoolean("daily_done", false)
@@ -201,7 +200,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private var musicPlayer: MediaPlayer? = null
     private var musicPrepared = false
 
-    init { for (i in 1..currentShip) prefs.edit().putBoolean("ship_unlocked_" + i, true).apply(); refreshDaily(); holder.addCallback(this); TapsellAds.preloadAll(); prepareMusic() }
+    init { refreshDaily(); holder.addCallback(this); TapsellAds.preloadAll(); prepareMusic() }
 
     private fun prepareMusic() {
         if (musicPrepared) return
@@ -350,7 +349,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
     }
 
-    private fun shipName(id: Int = currentShip): String = when (id) {
+    private fun shipName(): String = when (currentShip) {
         1 -> "افعی"
         2 -> "تایتان"
         3 -> "شبح"
@@ -358,46 +357,21 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         else -> "مهاجم"
     }
 
-    private fun shipPrice(id: Int): Int = intArrayOf(0, 450, 900, 1550, 2400)[id.coerceIn(0, 4)]
-    private fun shipOwned(id: Int): Boolean = id == 0 || prefs.getBoolean("ship_unlocked_" + id, false)
-    private fun shipUpgradeRank(stat: String, ship: Int = currentShip): Int = prefs.getInt("ship_upgrade_" + ship + "_" + stat, 0).coerceIn(0, 5)
-
-    private fun buyOrSelectShip(id: Int) {
-        if (id !in 0..4) return
-        if (!shipOwned(id)) {
-            val cost = shipPrice(id)
-            if (credits < cost) { adStatusText = "سکه کافی نیست"; adStatusTimer = 1.6f; return }
-            credits -= cost
-            prefs.edit().putInt("credits", credits).putBoolean("ship_unlocked_" + id, true).apply()
-        }
-        currentShip = id
-        prefs.edit().putInt("ship", currentShip).apply()
-        adStatusText = "سفینه " + shipName() + " انتخاب شد"; adStatusTimer = 1.4f
-    }
-
-    private fun buyShipUpgrade(stat: String) {
-        val rank = shipUpgradeRank(stat)
-        if (rank >= 5 || upgradePoints < rank + 1) return
-        upgradePoints -= rank + 1
-        prefs.edit().putInt("ship_upgrade_points", upgradePoints)
-            .putInt("ship_upgrade_" + currentShip + "_" + stat, rank + 1).apply()
-    }
-
-    private fun shipMoveMultiplier(): Float = (when (currentShip) {
+    private fun shipMoveMultiplier(): Float = when (currentShip) {
         1 -> 1.22f
         2 -> 0.86f
         3 -> 1.04f
         4 -> 1.10f
         else -> 1f
-    } * (1f + shipUpgradeRank("mobility") * 0.055f)) * (if (legendaryTime > 0f && currentShip == 1) 1.65f else 1f)
+    } * (if (legendaryTime > 0f && currentShip == 1) 1.65f else 1f)
 
-    private fun shipFireDelay(): Float = (when (currentShip) {
+    private fun shipFireDelay(): Float = when (currentShip) {
         1 -> 0.92f
         2 -> 1.12f
         3 -> 0.82f
         4 -> 0.94f
         else -> 1f
-    } * (1f - shipUpgradeRank("attack") * 0.045f)).coerceAtLeast(0.68f)
+    }
 
     private fun cycleShip() {
         val highestUnlocked = (bestWave / 10).coerceIn(0, 4)
@@ -525,8 +499,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun activateLegendary() {
         if (st != St.PLAY || legendaryTier() <= 0 || legendaryCooldown > 0f || legendaryTime > 0f) return
-        legendaryTime = 5f + shipUpgradeRank("gold") * 0.7f
-        legendaryCooldown = max(11f, 20f - shipUpgradeRank("gold") * 1.4f)
+        legendaryTime = 5f
+        legendaryCooldown = 20f
         if (currentShip == 2) invul = max(invul, 5f)
         if (currentShip == 4) {
             lives = min(10, lives + 1)
@@ -572,24 +546,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "telegram" -> try { act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/gateneon"))) } catch (e: Exception) { Log.e("NeonShooter", "Telegram link unavailable", e) }
             "resume" -> { st = St.PLAY; syncMusic() }
             "pauseRestart" -> startGame()
-            "ship" -> st = St.SHIPS
-            "shipup" -> st = St.SHIP_UPGRADE
-            "shipBack" -> st = St.MENU
-            "shipUpgradeBack" -> st = St.SHIPS
-            "ship_buy_1" -> buyOrSelectShip(1)
-            "ship_buy_2" -> buyOrSelectShip(2)
-            "ship_buy_3" -> buyOrSelectShip(3)
-            "ship_buy_4" -> buyOrSelectShip(4)
-            "ship_select_0" -> buyOrSelectShip(0)
-            "ship_select_1" -> buyOrSelectShip(1)
-            "ship_select_2" -> buyOrSelectShip(2)
-            "ship_select_3" -> buyOrSelectShip(3)
-            "ship_select_4" -> buyOrSelectShip(4)
-            "shipup_attack" -> buyShipUpgrade("attack")
-            "shipup_armor" -> buyShipUpgrade("armor")
-            "shipup_mobility" -> buyShipUpgrade("mobility")
-            "shipup_hull" -> buyShipUpgrade("hull")
-            "shipup_gold" -> buyShipUpgrade("gold")
+            "ship" -> cycleShip()
             "upgrade_0" -> chooseUpgrade(0)
             "upgrade_1" -> chooseUpgrade(1)
             "upgrade_2" -> chooseUpgrade(2)
@@ -631,12 +588,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         fun add(id: String, label: String, y: Float) { l.add(Btn(id, label, RectF(50f, y, 170f, y + 22f))) }
         when (st) {
             St.MENU -> {
-                val y = wh * 0.44f
+                val y = wh * 0.45f
                 add("play", "شروع بازی", y)
-                add("sound", if (sfx.enabled) "صدا: روشن" else "صدا: خاموش", y + 22f)
-                add("ship", "آشیانه سفینه", y + 44f)
-                add("shipup", "ارتقای سفینه", y + 66f)
-                add("about", "درباره", y + 88f)
+                add("sound", if (sfx.enabled) "صدا: روشن" else "صدا: خاموش", y + 30f)
+                add("ship", "سفینه: " + shipName(), y + 60f)
+                add("about", "درباره", y + 90f)
             }
             St.ABOUT -> {
                 val y = wh * 0.62f
@@ -674,24 +630,6 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 add("shop_dash", "جهش | ۲۲۰ سکه", y + 56f)
                 add("shop_continue", "ادامه", y + 84f)
             }
-            St.SHIPS -> {
-                val y = wh * 0.38f
-                for (i in 0..4) {
-                    val label = if (shipOwned(i)) { if (currentShip == i) "فعال: " + shipName(i) else "انتخاب " + shipName(i) } else "خرید " + shipPrice(i) + " سکه • " + shipName(i)
-                    l.add(Btn(if (shipOwned(i)) "ship_select_$i" else "ship_buy_$i", label, RectF(12f, y + i * 23f, 208f, y + i * 23f + 20f)))
-                }
-                add("shipBack", "بازگشت", wh * 0.77f)
-            }
-            St.SHIP_UPGRADE -> {
-                val y = wh * 0.38f
-                val stats = listOf("attack" to "قدرت سلاح", "armor" to "زره", "mobility" to "سرعت", "hull" to "جان اولیه", "gold" to "توان طلایی")
-                stats.forEachIndexed { i, pair ->
-                    val rank = shipUpgradeRank(pair.first)
-                    val label = if (rank >= 5) pair.second + " MAX" else pair.second + " " + rank + "/۵ • هزینه " + (rank + 1)
-                    l.add(Btn("shipup_" + pair.first, label, RectF(12f, y + i * 23f, 208f, y + i * 23f + 20f)))
-                }
-                add("shipUpgradeBack", "بازگشت به آشیانه", wh * 0.77f)
-            }
             else -> {}
         }
         return l
@@ -700,9 +638,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     // ---------- game logic ----------
     private fun startGame() {
         bullets.clear(); enemies.clear(); pendingWaveEnemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear(); blackHoles.clear(); chainArcs.clear(); comets.clear(); impactRings.clear()
-        score = 0; lives = 3 + shipUpgradeRank("hull"); wave = 0; kills = 0; invul = 2.2f; fireT = 0f; time = 0f
+        score = 0; lives = 3; wave = 0; kills = 0; invul = 2.2f; fireT = 0f; time = 0f
         weaponLevel = 1; missileLevel = 0; laserLevel = 0; droneLevel = 0; dashRank = 0; shieldRank = if (currentShip == 2) 1 else 0
-        bonusDamage = (if (currentShip == 3 || currentShip == 4) 1 else 0) + shipUpgradeRank("attack"); fireRateBonus = 0f; magnetLevel = 0
+        bonusDamage = if (currentShip == 3 || currentShip == 4) 1 else 0; fireRateBonus = 0f; magnetLevel = 0
         shieldLevel = shieldRank; shieldMaxHp = if (shieldRank > 0) 16 else 0; shieldHp = shieldMaxHp; reflectiveShield = shieldHp > 0
         dashCharges = 0; chainLevel = 0; comboCount = 0; comboTimer = 0f
         eventKind = 0; eventTimer = 0f; meteorTimer = 0f; goldenCrateSpawned = false
@@ -841,11 +779,6 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         sfx.play(if (e.type == 2) "bigboom" else "boom")
         kills++
         if (e.type == 2) {
-            val earned = if (wave > 0 && wave % 25 == 0) 4 else 2
-            upgradePoints += earned
-            prefs.edit().putInt("ship_upgrade_points", upgradePoints).apply()
-            adStatusText = "پاداش باس: $earned امتیاز ارتقا"
-            adStatusTimer = 2.0f
             repeat(5) { i -> items.add(Item(e.x + (i - 2) * 5.5f, e.y + abs(i - 2) * 2f, 13, 20 + scavengerRank * 4)) }
         } else if (Random.nextFloat() < 0.48f) {
             items.add(Item(e.x, e.y, 13, 5 + scavengerRank * 2))
@@ -879,8 +812,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun hurt() {
         if (invul > 0f || legendaryTime > 0f && currentShip == 3) return
-        val permanentArmor = shipUpgradeRank("armor")
-        if ((armorRank * 0.075f + permanentArmor * 0.055f).coerceAtMost(0.48f) > Random.nextFloat()) { invul = 0.55f; boom(px, py, 8, 34f); return }
+        if (armorRank > 0 && Random.nextFloat() < armorRank * 0.075f) { invul = 0.55f; boom(px, py, 8, 34f); return }
         if (ricochetShieldRank > 0 && Random.nextFloat() < ricochetShieldRank * 0.12f) {
             invul = 0.72f
             val nearest = enemies.filter { !it.dead }.minByOrNull { hypot(it.x - px, it.y - py) }
@@ -1507,7 +1439,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 10 -> piercingTimer = max(piercingTimer, 8f)
                 11 -> enemySlowTimer = max(enemySlowTimer, 10f)
                 12 -> { credits += 300; score += 500; prefs.edit().putInt("credits", credits).apply() }
-                13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply() }
+                13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply(); bannerT = 0.45f }
                 else -> activateSquadron()
             }
             collected.add(item); boom(item.x, item.y, 10, 42f); sfx.play("power")
@@ -1590,8 +1522,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun drawItem(c: Canvas, item: Item) {
         val cx = item.x * s
         val cy = item.y * s
-        val coinScale = if (item.type == 13) 0.66f else 1f
-        val scale = s * coinScale * (1f + sin(item.age * 5f) * 0.06f)
+        val scale = s * (1f + sin(item.age * 5f) * 0.06f)
         val color = when (item.type) {
             13 -> 0xFFFFD34F.toInt()
             0 -> 0xFFFF647C.toInt()
@@ -1782,8 +1713,6 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             St.AD_BREAK -> { drawGame(c); drawAdBreak(c) }
             St.UPGRADE -> drawUpgrade(c)
             St.SHOP -> drawShop(c)
-            St.SHIPS -> drawShipHangar(c)
-            St.SHIP_UPGRADE -> drawShipUpgrades(c)
         }
         c.restore()
         if (damageFlash > 0f) { paint.style = Paint.Style.FILL; paint.color = Color.argb((58f * damageFlash / 0.22f).toInt().coerceIn(0, 58), 255, 42, 66); c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint) }
@@ -1959,7 +1888,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if ((st == St.PLAY || st == St.PAUSE) && (invul <= 0f || (time * 12).toInt() % 2 == 0)) {
             val oldAlpha = spritePaint.alpha
             if (legendaryTime > 0f && currentShip == 3) spritePaint.alpha = 92
-            drawPlayerShip(c, px, py)
+            spr(c, bPlayer, px, py)
             spritePaint.alpha = oldAlpha
         }
         for (p in parts) {
@@ -2489,20 +2418,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.strokeWidth = 1.8f * s; paint.color = color
         val x = cx * s; val y = cy * s
         if (id.startsWith("upgrade_")) {
-            c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)
-            c.drawLine(x, y + 3f * s, x - 4.5f * s, y - 1.5f * s, paint)
-            c.drawLine(x, y + 3f * s, x + 4.5f * s, y - 1.5f * s, paint)
-            c.drawLine(x - 8f * s, y + 7f * s, x + 8f * s, y + 7f * s, paint)
-            paint.style = Paint.Style.FILL
-            return
-        }
-        if (id.startsWith("shipup_")) {
-            drawAbilityIcon(c, when(id.substringAfter("_")) { "attack" -> "firepower"; "armor" -> "shield"; "mobility" -> "dash"; "hull" -> "hull"; else -> "phoenix" }, cx, cy)
-            return
-        }
-        if (id.startsWith("ship_")) {
-            val shipId = id.substringAfterLast("_").toIntOrNull() ?: 0
-            drawPlayerShip(c, cx, cy, shipId)
+            val i = id.substringAfter('_').toIntOrNull() ?: 0
+            upgradeChoices.getOrNull(i)?.let { drawAbilityIcon(c, it, cx, cy) }
             return
         }
         when (id) {
@@ -2540,112 +2457,15 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             c.drawRoundRect(r.left*s,r.top*s,r.right*s,r.bottom*s,5f*s,5f*s,paint)
             paint.strokeWidth = (if (pressed) 1.9f else 1.2f) * s; paint.color = col
             c.drawRoundRect(r.left*s,r.top*s,r.right*s,r.bottom*s,5f*s,5f*s,paint)
-            if (st == St.MENU) {
-                val cy = (r.top + r.bottom) / 2f
-                drawButtonIcon(c, b.id, r.left + 18f, cy)
-                drawFittedText(c, b.label, (r.left + r.right) / 2f + 10f, cy + 2.1f, 6.1f, 0xFFEAFBFF.toInt(), 82f)
-            } else if ((st == St.SHIPS || st == St.SHIP_UPGRADE) && (b.id.startsWith("ship_") || b.id.startsWith("shipup_"))) {
-                val cy = (r.top + r.bottom) / 2f
-                drawButtonIcon(c, b.id, r.left + 18f, cy)
-                drawFittedText(c, b.label, (r.left + r.right) / 2f + 13f, cy + 2f, 4.8f, 0xFFEAFBFF.toInt(), 142f)
-            } else drawButtonIcon(c, b.id, (r.left+r.right)/2f, r.top + 11f)
+            drawButtonIcon(c, b.id, (r.left+r.right)/2f, r.top + 11f)
         }
-    }
-
-    private fun drawPlayerShip(c: Canvas, x: Float, y: Float, shipId: Int = currentShip) {
-        val colors = intArrayOf(0xFFFFD34F.toInt(), 0xFF45E6FF.toInt(), 0xFFFF8758.toInt(), 0xFFB78CFF.toInt(), 0xFFFF6EB5.toInt())
-        val glows = intArrayOf(0xFFFFFFA8.toInt(), 0xFFB8F7FF.toInt(), 0xFFFFD0A6.toInt(), 0xFFE3D2FF.toInt(), 0xFFFFC3E4.toInt())
-        val id = shipId.coerceIn(0, 4)
-        val color = colors[id]
-        c.save()
-        c.translate(x * s, y * s)
-        c.scale(s, s)
-        paint.style = Paint.Style.FILL
-        paint.color = Color.argb(65, Color.red(color), Color.green(color), Color.blue(color))
-        c.drawCircle(0f, 1f, 17f, paint)
-        val body = Path()
-        when (id) {
-            0 -> {
-                body.moveTo(0f,-17f); body.lineTo(7f,7f); body.lineTo(0f,3f); body.lineTo(-7f,7f); body.close()
-                val wings = Path().apply { moveTo(-5f,1f); lineTo(-17f,10f); lineTo(-8f,9f); lineTo(0f,5f); lineTo(8f,9f); lineTo(17f,10f); lineTo(5f,1f); close() }
-                paint.color = color; c.drawPath(wings, paint)
-            }
-            1 -> {
-                body.moveTo(0f,-19f); body.cubicTo(9f,-5f,5f,8f,0f,12f); body.cubicTo(-5f,8f,-9f,-5f,0f,-19f); body.close()
-                val fins = Path().apply { moveTo(-4f,0f); lineTo(-18f,13f); lineTo(-7f,10f); lineTo(0f,6f); lineTo(7f,10f); lineTo(18f,13f); lineTo(4f,0f); close() }
-                paint.color = color; c.drawPath(fins, paint)
-            }
-            2 -> {
-                body.moveTo(-6f,-15f); body.lineTo(6f,-15f); body.lineTo(11f,7f); body.lineTo(0f,12f); body.lineTo(-11f,7f); body.close()
-                val armor = Path().apply { moveTo(-7f,-1f); lineTo(-20f,8f); lineTo(-15f,14f); lineTo(-3f,8f); lineTo(3f,8f); lineTo(15f,14f); lineTo(20f,8f); lineTo(7f,-1f); close() }
-                paint.color = color; c.drawPath(armor, paint)
-            }
-            3 -> {
-                body.moveTo(0f,-19f); body.lineTo(5f,8f); body.lineTo(0f,5f); body.lineTo(-5f,8f); body.close()
-                val ghost = Path().apply { moveTo(-4f,-2f); lineTo(-17f,15f); lineTo(-12f,5f); lineTo(-4f,3f); lineTo(4f,3f); lineTo(12f,5f); lineTo(17f,15f); lineTo(4f,-2f); close() }
-                paint.color = color; c.drawPath(ghost, paint)
-            }
-            else -> {
-                body.moveTo(0f,-20f); body.cubicTo(13f,-4f,9f,10f,0f,13f); body.cubicTo(-9f,10f,-13f,-4f,0f,-20f); body.close()
-                val flames = Path().apply { moveTo(-4f,2f); lineTo(-20f,15f); lineTo(-12f,3f); lineTo(-5f,6f); lineTo(0f,2f); lineTo(5f,6f); lineTo(12f,3f); lineTo(20f,15f); lineTo(4f,2f); close() }
-                paint.color = color; c.drawPath(flames, paint)
-            }
-        }
-        paint.color = color
-        c.drawPath(body, paint)
-        paint.style = Paint.Style.STROKE
-        paint.strokeWidth = 1.2f
-        paint.color = glows[id]
-        c.drawPath(body, paint)
-        paint.style = Paint.Style.FILL
-        paint.color = glows[id]
-        c.drawRoundRect(-2.1f,-8f,2.1f,3f,2f,2f,paint)
-        paint.color = if (id == 2) 0xFFFF9B42.toInt() else 0xFFFFE08A.toInt()
-        val flame = Path().apply { moveTo(-3f,8f); lineTo(0f,18f + sin(time * 18f) * 2f); lineTo(3f,8f); close() }
-        c.drawPath(flame, paint)
-        paint.style = Paint.Style.FILL
-        c.restore()
-    }
-
-    private fun drawShipHangar(c: Canvas) {
-        paint.color = 0xE807101D.toInt()
-        c.drawRect(0f,0f,sw.toFloat(),sh.toFloat(),paint)
-        drawGlassPanel(c,5f,wh*0.27f,W-5f,wh*0.86f,0xFFFFD45C.toInt(),244)
-        text(c,"آشیانه ناوگان",W/2f,wh*0.32f,12f,0xFFFFD45C.toInt())
-        text(c,"سکه: $credits",W/2f,wh*0.35f,7f,WHT)
-        for (i in 0..4) {
-            val y = wh*0.38f + i*23f
-            val owned = shipOwned(i)
-            drawPlayerShip(c,25f,y+9f,i)
-            text(c,shipName(i),48f,y+12f,5.4f,if(currentShip==i) 0xFFFFD45C.toInt() else WHT,Paint.Align.LEFT)
-            text(c,when(i){0->"متوازن";1->"سرعت بالا";2->"زره سنگین";3->"شلیک تند";else->"آتش ققنوس"},48f,y+18f,3.8f,0xFF9CEBFF.toInt(),Paint.Align.LEFT)
-            if (!owned) text(c,shipPrice(i).toString()+" سکه",190f,y+12f,4.5f,0xFFFFD45C.toInt(),Paint.Align.RIGHT)
-            else if (currentShip==i) text(c,"فعال",190f,y+12f,4.5f,0xFF55DDAA.toInt(),Paint.Align.RIGHT)
-        }
-        drawButtons(c)
-    }
-
-    private fun drawShipUpgrades(c: Canvas) {
-        paint.color = 0xE807101D.toInt()
-        c.drawRect(0f,0f,sw.toFloat(),sh.toFloat(),paint)
-        drawGlassPanel(c,5f,wh*0.27f,W-5f,wh*0.86f,0xFF47DFFF.toInt(),244)
-        text(c,"کارگاه ارتقای سفینه",W/2f,wh*0.32f,11f,0xFF9CEBFF.toInt())
-        text(c,shipName()+"  •  امتیاز ارتقا: $upgradePoints",W/2f,wh*0.35f,6.1f,0xFFFFD45C.toInt())
-        val stats = listOf("attack" to "قدرت سلاح", "armor" to "زره و دفع ضربه", "mobility" to "سرعت مانور", "hull" to "جان شروع", "gold" to "توان طلایی")
-        stats.forEachIndexed { i,pair ->
-            val rank = shipUpgradeRank(pair.first)
-            val y = wh*0.38f + i*23f
-            text(c,pair.second,W/2f,y+8f,5.5f,WHT)
-            text(c,"سطح " + rank + "/۵  •  هزینه " + (rank+1) + " امتیاز",W/2f,y+15f,4.1f,0xFF9CEBFF.toInt())
-        }
-        drawButtons(c)
     }
 
     private fun drawMenu(c: Canvas) {
         drawGlassPanel(c, 18f, wh * 0.35f, 202f, wh * 0.80f, 0xFF47DFFF.toInt(), 224)
         text(c, "نئون", W / 2, wh * 0.16f, 34f, YEL)
         text(c, "شوتر", W / 2, wh * 0.16f + 26f, 24f, RED)
-        drawPlayerShip(c, W / 2, wh * 0.33f + sin(System.nanoTime() / 4e8f) * 3f)
+        spr(c, bPlayer, W / 2, wh * 0.33f + sin(System.nanoTime() / 4e8f) * 3f)
         text(c, "سفینه: " + shipName() + "   سکه: " + credits, W / 2f, wh * 0.395f, 6.5f, 0xFF80E7FF.toInt())
         text(c, if (dailyDone) "ماموریت روزانه کامل شد: +۵۰۰" else "ماموریت روزانه: ۲۵ نابودی " + dailyKills + "/۲۵", W / 2f, wh * 0.417f, 6f, 0xFFFFD45C.toInt())
         text(c, "بهترین امتیاز: $best   رکورد مرحله: $bestWave", W / 2, wh * 0.44f, 7f, WHT)
