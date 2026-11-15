@@ -110,7 +110,7 @@ jobs:
               "hangar cards draw the ship title, description and price inside each card": "st == St.SHIPS && b.id.startsWith(\"ship_\")" in game and "shipDescription(shipId)" in game and "drawFittedText(c, state" in game,
               "hangar prices are progressively higher": "intArrayOf(0, 1200, 2800, 5600, 9800)" in game,
               "hangar cards have five-unit gaps and a separated back button": "i * 27f" in game and "top + 22f" in game and 'add("shipBack", "بازگشت", wh * 0.79f)' in game,
-              "hangar does not draw duplicate ship labels behind the buttons": "private fun drawShipHangar(c: Canvas)" in game and "for (i in 0..4)" not in game[game.index("private fun drawShipHangar(c: Canvas)"):game.index("private fun shipUpgradeDescription")]
+              "hangar does not draw duplicate ship labels behind the buttons": "private fun drawShipHangar(c: Canvas)" in game and "for (i in 0..4)" not in game[game.index("private fun drawShipHangar(c: Canvas)"):game.index("private fun shipUpgradeDescription")],
               "about page and Telegram link exist": "درباره نئون شوتر" in game and "https://t.me/gateneon" in game,
               "background music player is wired": "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game,
               "five ships have coin-purchased ownership": "private fun shipPrice(id: Int)" in game and "private fun buyOrSelectShip" in game and "ship_buy_4" in game,
