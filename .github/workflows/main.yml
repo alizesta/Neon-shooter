@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.7.3 • ship progression
+name: Build Neon Shooter 2.7.4 • ship progression
 
 on:
   push:
@@ -77,11 +77,11 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.7.3")
-          s = s.replace("versionCode = 25", "versionCode = 40", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.3"', 1)
+              raise SystemExit("Unexpected base version before v2.7.4")
+          s = s.replace("versionCode = 25", "versionCode = 41", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.4"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.7.3")
+          print("PATCH full gameplay source and version 2.7.4")
           PY
 
       - name: Generate original cinematic background music
@@ -125,7 +125,7 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.7.3": "versionCode = 40" in gradle and 'versionName = "2.7.3"' in gradle,
+              "release version is 2.7.4": "versionCode = 41" in gradle and 'versionName = "2.7.4"' in gradle,
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
@@ -168,7 +168,7 @@ jobs:
               "game-facing fleet labels call them probes, not ships": "کاوشگرها" in game and "کاوشگر ویجر ۱" in game and "کاوشگر فونیکس" in game,
               "Persian numeric runs are direction-isolated and StaticLayout alignment is reset": "\\u200E" in game and "tp.textAlign = Paint.Align.LEFT" in game and "persianNumber(level)" in game,
               "fitted labels are ellipsized and clipped inside their fixed-width cells": "TextUtils.ellipsize(value, tp" in game and "c.clipRect(left * s" in game and "c.clipRect(cellX * s, cellTop * s" in game,
-              "upgrade and pause ability inventories fit three-column/compact card cells": "drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 3" in game and "drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3" in game,
+              "upgrade and pause ability inventories fit three-column/compact card cells": "drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 4" in game and "drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 4" in game and "23f, 197f" in game and "private fun drawOwnedAbilityList(" in game,
               "five probes have added optical, antenna, mirror, boom and lander hardware detail": all(x in game for x in ["Hubble optical baffle rings", "Six visible primary-mirror segments", "High-gain dish ribs", "Separate dish ribs", "Phoenix weather mast"]),
               "stage and constellation introduction remains visible for five seconds": "stageIntroTimer = 5.0f" in game and "stageIntroTimer = max(0f, stageIntroTimer - dt)" in game and "if (stageIntroTimer > 0f && st == St.PLAY)" in game and "drawFittedText(c, stageDescription(wave)" in game,
               "stage number is Persian and rendered as an isolated numeric run": "persianNumber(level)" in game and "Regex(\"([0-9۰-۹٠-٩]+)\")" in game and '"مرحله " + persianNumber(level)' in game,
@@ -177,6 +177,9 @@ jobs:
               "owned ability list is clipped both to its viewport and to each cell": "c.clipRect(7f * s, top * s, (W - 7f) * s, bottom * s)" in game and "c.clipRect(cellX * s, cellTop * s" in game,
               "fitted text is width-limited with ellipsis": "TextUtils.ellipsize(value, tp" in game and "c.clipRect(left * s, 0f, (left + safeWidth) * s" in game,
               "stage title is not overridden by random event title": 'else waveTitle(wave)' in game and 'else if (eventKind > 0) eventName()' not in game,
+              "ability grid uses 4 bounded columns with scaled icons": "safeColumns = columns.coerceIn(1, min(owned.size, 5))" in game and "val iconScale = min(0.20f, iconRadius / 12f)" in game and "val labelSize = min(fontSize" in game,
+              "upgrade panel contains its owned ability card and action buttons": "wh * 0.975f" in game and "drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 4" in game and "val width = (W - 10f - gap * 2f) / 3f" in game,
+              "pause inventory remains inside the pause card": "drawGlassPanel(c, 18f, wh * 0.29f, 202f, wh * 0.93f" in game and "wh * 0.915f, 4, 2.8f, 23f, 197f" in game,
               "five ship upgrades show distinct icons and real effect descriptions": "private fun shipUpgradeDescription(stat: String)" in game and all(f'"{key}" ->' in game[game.index("private fun shipUpgradeDescription"):game.index("private fun drawShipUpgrades")] for key in ["attack", "armor", "mobility", "hull", "gold"]) and "drawShipUpgradeIcon(c, id.substringAfter(\"_\"), cx, cy)" in game and "shipUpgradeDescription(stat)" in game,
           }
           ability_ids = ["drone", "missile", "laser", "firepower", "magnet", "shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield", "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix"]
@@ -238,6 +241,30 @@ jobs:
           assert all(left >= 5.0 and right <= logical_width - 5.0 for left, right in button_cells), button_cells
           assert 0.615 <= 0.682 < 0.816 <= 0.825
           print("PASS text/card/button geometry stays inside the usable screen and lower panel")
+          # Exercise layout boundaries at short, standard and tall portrait heights.
+          logical_width = 220.0
+          for logical_height in (320.0, 360.0, 390.0, 430.0, 480.0, 560.0):
+              for owned_count in (1, 5, 12, 20, 28):
+                  cols = min(4, owned_count)
+                  rows = (owned_count + cols - 1) // cols
+                  upgrade_top, upgrade_bottom = logical_height * 0.682, logical_height * 0.816
+                  pause_top, pause_bottom = logical_height * 0.70, logical_height * 0.915
+                  for left, right, top, bottom in ((10.0, 210.0, upgrade_top, upgrade_bottom),
+                                                   (23.0, 197.0, pause_top, pause_bottom)):
+                      assert 0 <= left < right <= logical_width
+                      row_height = (bottom - top) / rows
+                      assert row_height > 0
+                      for i in range(owned_count):
+                          col, row = i % cols, i // cols
+                          cell_left = left + col * ((right-left) / cols)
+                          cell_right = cell_left + ((right-left) / cols)
+                          cell_top = top + row * row_height
+                          cell_bottom = min(bottom, cell_top + row_height)
+                          assert left <= cell_left < cell_right <= right
+                          assert top <= cell_top < cell_bottom <= bottom
+              assert 0.30 * logical_height < 0.975 * logical_height <= logical_height
+              assert 0.85 * logical_height + 25.0 < 0.975 * logical_height
+          print("PASS zero-overflow geometry across six portrait sizes and five ability counts")
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
               print(("PASS " if ok else "FAIL ") + name)
@@ -251,13 +278,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.7.3.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.7.4.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.7.3
-          path: NeonShooter-Android-Project-v2.7.3.zip
+          name: NeonShooter-Android-Project-v2.7.4
+          path: NeonShooter-Android-Project-v2.7.4.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -320,16 +347,16 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.7.3 APK build
+      - name: Record verified v2.7.4 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
           test -s "$APK"
-          cat > release-proof-v2.7.3.txt <<EOF
+          cat > release-proof-v2.7.4.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.7.3
+          app_version=2.7.4
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
@@ -338,24 +365,24 @@ jobs:
       - name: Upload APK verification proof
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Release-Proof-v2.7.3
-          path: release-proof-v2.7.3.txt
+          name: NeonShooter-Release-Proof-v2.7.4
+          path: release-proof-v2.7.4.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.7.3-APK
+          name: Neon-Shooter-v2.7.4-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.7.3
+      - name: Publish Neon Shooter 2.7.4
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.7.3
-          name: Neon Shooter v2.7.3
+          tag_name: v2.7.4
+          name: Neon Shooter v2.7.4
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
@@ -394,6 +421,8 @@ jobs:
             - Stage title and constellation introduction stay visible for five seconds.
             - Persian digits are direction-isolated; upgrade cards, buttons and ability inventories are clipped to their own layout bounds.
             - Persian stage numbers are direction-isolated; every compact label is clipped and ellipsized inside its own card.
+            - Upgrade inventory uses four compact bounded columns; the Pause inventory is kept inside the inner edges of its glass panel.
+            - Automated layout checks cover six portrait heights and up to 28 owned abilities to catch card, icon and label overflow.
             - Ability inventories remain inside the lower upgrade card and Pause panel, with no text crossing neighboring cells.
             - Probe artwork has more telescope, mirror, antenna, boom, solar-array and lander hardware detail; original neon colors and bloom remain unchanged.
             - Icon-only action buttons, Persian About page, and Telegram channel link.
