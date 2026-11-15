@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.6.8 • ship progression
+name: Build Neon Shooter 2.6.9 • ship progression
 
 on:
   push:
@@ -77,11 +77,11 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.6.8")
-          s = s.replace("versionCode = 25", "versionCode = 35", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.8"', 1)
+              raise SystemExit("Unexpected base version before v2.6.9")
+          s = s.replace("versionCode = 25", "versionCode = 36", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.9"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.6.8")
+          print("PATCH full gameplay source and version 2.6.9")
           PY
 
       - name: Generate original cinematic background music
@@ -125,7 +125,7 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.6.8": "versionCode = 35" in gradle and 'versionName = "2.6.8"' in gradle,
+              "release version is 2.6.9": "versionCode = 36" in gradle and 'versionName = "2.6.9"' in gradle,
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
@@ -157,6 +157,10 @@ jobs:
               "hangar ship icons are scaled to fit their tabs": "c.scale(0.42f, 0.42f, x, y)" in game,
               "upgrade headline and card labels are centered and separated from level text": 'text(c, "یک قابلیت را انتخاب کن"' in game and "drawFittedText(c, upgradeTitle(id), cx" in game and 'drawFittedText(c, "LVL "' in game,
               "wave progress resets for every new wave": "private fun spawnWave() {\n        wave++\n        waveKills = 0" in game,
+              "five ships have recognizable real spacecraft designs": all(x in game for x in ["Hubble: optical telescope", "James Webb:", "Voyager 1:", "Voyager 2:", "Phoenix Mars lander:"]),
+              "spacecraft retain their neon color palette and glow": "val colors = intArrayOf(0xFFFFD34F.toInt(), 0xFF45E6FF.toInt(), 0xFFFF8758.toInt(), 0xFFB78CFF.toInt(), 0xFFFF6EB5.toInt())" in game and "BlurMaskFilter(7.5f" in game and "paint.strokeWidth = 2.2f" in game,
+              "score, stage, boss health and progress marker avoid HUD collisions": 'drawFittedText(c, "امتیاز $score", 6f, 14f, 6.2f, YEL, 58f' in game and "96f*s, 21f*s, 184f*s, 25f*s" in game and "val top = 56f * s" in game,
+              "boss banner avoids repeating the stage number": '"نبرد با " + bossName' in game and "drawFittedText(c, combo" in game,
               "Persian UI text is constrained to one line unless explicitly wrapped": ".setMaxLines(1)" in game and ".setEllipsize(TextUtils.TruncateAt.END)" in game and "tp.measureText(value) * 1.22f" in game,
               "five ship upgrades show distinct icons and real effect descriptions": "private fun shipUpgradeDescription(stat: String)" in game and all(f'"{key}" ->' in game[game.index("private fun shipUpgradeDescription"):game.index("private fun drawShipUpgrades")] for key in ["attack", "armor", "mobility", "hull", "gold"]) and "drawShipUpgradeIcon(c, id.substringAfter(\"_\"), cx, cy)" in game and "shipUpgradeDescription(stat)" in game,
           }
@@ -215,13 +219,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.6.8.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.6.9.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.6.8
-          path: NeonShooter-Android-Project-v2.6.8.zip
+          name: NeonShooter-Android-Project-v2.6.9
+          path: NeonShooter-Android-Project-v2.6.9.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -268,16 +272,16 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.6.8 APK build
+      - name: Record verified v2.6.9 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
           test -s "$APK"
-          cat > release-proof-v2.6.8.txt <<EOF
+          cat > release-proof-v2.6.9.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.6.8
+          app_version=2.6.9
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
@@ -286,24 +290,24 @@ jobs:
       - name: Upload APK verification proof
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Release-Proof-v2.6.8
-          path: release-proof-v2.6.8.txt
+          name: NeonShooter-Release-Proof-v2.6.9
+          path: release-proof-v2.6.9.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.6.8-APK
+          name: Neon-Shooter-v2.6.9-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.6.8
+      - name: Publish Neon Shooter 2.6.9
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.6.8
-          name: Neon Shooter v2.6.8
+          tag_name: v2.6.9
+          name: Neon Shooter v2.6.9
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
@@ -334,6 +338,9 @@ jobs:
             - Ship workshop rows are compact, non-overlapping, and use five distinct stat icons.
             - The five ship-specific golden ultimates charge on kills and can be activated from the first wave.
             - Golden ship upgrades have visible prices in boss upgrade points and never consume coins.
+            - Five playable ships now have silhouettes inspired by Hubble, James Webb, Voyager 1, Voyager 2 and the Phoenix Mars lander.
+            - HUD score, stage title, boss name and boss health have separate regions to prevent collisions on tall phones.
+            - Original spacecraft palette and neon glow have been preserved.
             - Icon-only action buttons, Persian About page, and Telegram channel link.
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           fail_on_unmatched_files: true
