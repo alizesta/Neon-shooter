@@ -215,6 +215,58 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         "هشتک",
         "مار"
     )
+    private val stageDescriptions = arrayOf(
+        "کهکشان آندرومدا، همسایه بزرگ راه شیری، در این صورت فلکی دیده می‌شود",
+        "دلو، آب‌ریز آسمان و یکی از صورت‌های فلکی منطقةالبروج است",
+        "عقاب میزبان ستاره درخشان نسر واقع است",
+        "حَمَل یا بره، یکی از صورت‌های فلکی دایرةالبروج است",
+        "جبار، شکارچی آسمان، با سه ستاره کمربندش شناخته می‌شود",
+        "ارابه‌ران میزبان ستاره درخشان عَیوق است",
+        "گاوران یا شبان، ستاره سرخ‌رنگ سماک رامح را در خود دارد",
+        "خرچنگ از کم‌نورترین صورت‌های فلکی منطقةالبروج است",
+        "بزماهی، نماد اسطوره‌ای بز دریایی در آسمان است",
+        "دب‌اکبر با آرایش مشهور ملاقه بزرگ شناخته می‌شود",
+        "نهنگ، صورت فلکی پهناوری در آسمان جنوبی است",
+        "تاج شمالی، ردیفی خمیده از ستارگان شبیه تاج دارد",
+        "جام، جام افسانه‌ای خدایان در اسطوره‌های یونانی است",
+        "دجاجه یا قو، صلیب شمالی را در امتداد بدن خود دارد",
+        "عقرب با ستاره سرخ قلب‌العقرب درخشان‌تر شناخته می‌شود",
+        "دلفین، با چهار ستاره لوزی‌شکل کوچک خود پیدا می‌شود",
+        "اژدها مانند رشته‌ای بلند، دور قطب شمال آسمان می‌پیچد",
+        "دوپیکر با دو ستاره روشن کاستور و پولوکس شناخته می‌شود",
+        "هرکول، پهلوان اسطوره‌ای، یکی از صورت‌های فلکی بزرگ شمالی است",
+        "اسد یا شیر، ستاره درخشان قلب‌الاسد را در خود دارد",
+        "ترازو نماد ترازوی عدالت در منطقةالبروج است",
+        "گرگ میان صورت‌های فلکی قنطورس و عقرب قرار گرفته است",
+        "شلیاق میزبان ستاره درخشان نسر واقع است",
+        "مارافسای، مردی را نشان می‌دهد که ماری را در دست گرفته است",
+        "کمان در جهت مرکز کهکشان راه شیری قرار دارد",
+        "حوت، دو ماهی را نشان می‌دهد که با بندی به هم متصل‌اند",
+        "برساوش، نام قهرمان اسطوره‌ای و خاستگاه بارش شهابی برساوشی است",
+        "اسب بالدار با چهار ستاره بزرگ مربع پاییزی را می‌سازد",
+        "ققنوس، پرنده افسانه‌ای و صورت فلکی آسمان جنوبی است",
+        "ثور یا گاو، خوشه پروین و ستاره سرخ دَبَران را در خود جای داده است",
+        "مثلث میزبان کهکشان مارپیچی مشهور M33 است",
+        "سنبله، خوشه کهکشانی بزرگ سنبله را در پس‌زمینه خود دارد",
+        "روباهک صورت فلکی کوچکی میان قو و تیر است",
+        "ذات‌الکرسی با پنج ستاره شاخص، شکل W یا M می‌سازد",
+        "سگ بزرگ میزبان شباهنگ، درخشان‌ترین ستاره آسمان شب است",
+        "سگ کوچک با ستاره روشن پروکیون شناخته می‌شود",
+        "قنطورس میزبان آلفا قنطورس، نزدیک‌ترین سامانه ستاره‌ای به خورشید است",
+        "قیفاووس نامش را از پادشاه افسانه‌ای گرفته است",
+        "کبوتر، صورت فلکی کوچکی در جنوب خرگوش است",
+        "غراب با چهار ستاره اصلی، شکلی شبیه ذوزنقه دارد",
+        "صلیب جنوبی برای پیدا کردن جهت جنوب آسمان به کار می‌آید",
+        "ماهی زرین بخشی از آسمان نزدیک ابر ماژلانی بزرگ را در بر می‌گیرد",
+        "نهر، رودخانه‌ای بلند و پیچان در آسمان جنوبی است",
+        "درنا، پرنده‌ای بلندپا در صورت‌های فلکی جنوبی است",
+        "مار آبی از نظر مساحت بزرگ‌ترین صورت فلکی آسمان است",
+        "هندی، صورت فلکی کم‌نور آسمان جنوبی است",
+        "سوسمار، نواری کوچک از ستارگان میان ذات‌الکرسی و دجاجه است",
+        "تک‌شاخ، میان جبار و سگ بزرگ و کوچک قرار دارد",
+        "هشتک نزدیک قطب جنوب آسمان قرار گرفته است",
+        "مار به دو بخش سر و دم تقسیم می‌شود که مارافسای میان آن‌هاست"
+    )
     private val selectedAbilities = linkedSetOf<String>()
     private var extraAbilitiesUnlocked = false
     private var healthRegenTimer = 0f
@@ -475,11 +527,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun shipName(id: Int = currentShip): String = when (id) {
-        1 -> "جیمز وب"
-        2 -> "ویجر ۱"
-        3 -> "ویجر ۲"
-        4 -> "فونیکس"
-        else -> "هابل"
+        1 -> "کاوشگر جیمز وب"
+        2 -> "کاوشگر ویجر ۱"
+        3 -> "کاوشگر ویجر ۲"
+        4 -> "کاوشگر فونیکس"
+        else -> "تلسکوپ هابل"
     }
 
     private fun shipPrice(id: Int): Int = intArrayOf(0, 450, 900, 1550, 2400)[id.coerceIn(0, 4)]
@@ -496,7 +548,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         currentShip = id
         prefs.edit().putInt("ship", currentShip).apply()
-        adStatusText = "سفینه " + shipName() + " انتخاب شد"; adStatusTimer = 1.4f
+        adStatusText = "کاوشگر " + shipName() + " انتخاب شد"; adStatusTimer = 1.4f
     }
 
     private fun buyShipUpgrade(stat: String) {
@@ -508,7 +560,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         val cost = rank + 1
         if (upgradePoints < cost) {
-            adStatusText = "برای ارتقای " + (if (stat == "gold") "توان طلایی" else "سفینه") + " " + cost + " امتیاز باس لازم است"
+            adStatusText = "برای ارتقای " + (if (stat == "gold") "توان طلایی" else "کاوشگر") + " " + cost + " امتیاز باس لازم است"
             adStatusTimer = 2f
             return
         }
@@ -516,7 +568,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         upgradePoints -= cost
         prefs.edit().putInt("ship_upgrade_points", upgradePoints)
             .putInt("ship_upgrade_" + currentShip + "_" + stat, rank + 1).apply()
-        adStatusText = (if (stat == "gold") "توان طلایی" else "ارتقای سفینه") + " به سطح " + (rank + 1) + " رسید"
+        adStatusText = (if (stat == "gold") "توان طلایی" else "ارتقای کاوشگر") + " به سطح " + (rank + 1) + " رسید"
         adStatusTimer = 1.6f
     }
 
@@ -745,6 +797,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun waveTitle(level: Int = wave): String = "مرحله $level • " + waveName(level)
 
+    private fun stageDescription(level: Int = wave): String =
+        stageDescriptions.getOrElse(level - 1) { "در این مرحله با یکی از صورت‌های فلکی آسمان روبه‌رو می‌شوی" }
+
     private fun bossConstellationName(index: Int): String =
         bossConstellationNames[index.coerceIn(0, bossConstellationNames.lastIndex)]
 
@@ -887,8 +942,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 val y = wh * 0.44f
                 add("play", "شروع بازی", y)
                 add("sound", if (sfx.enabled) "صدا: روشن" else "صدا: خاموش", y + 22f)
-                add("ship", "آشیانه سفینه", y + 44f)
-                add("shipup", "ارتقای سفینه", y + 66f)
+                add("ship", "آشیانه کاوشگرها", y + 44f)
+                add("shipup", "ارتقای کاوشگر", y + 66f)
                 add("about", "درباره", y + 88f)
             }
             St.ABOUT -> {
@@ -924,7 +979,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             }
             St.UPGRADE -> {
                 val milestone = wave in 10..50 && wave % 10 == 0
-                val top = wh * 0.72f
+                val top = wh * 0.85f
                 for (i in 0..2) l.add(Btn("upgrade_$i", "انتخاب", RectF(5f + i * 72f, top, 67f + i * 72f, top + 25f)))
             }
             St.SHOP -> {
@@ -2396,8 +2451,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val combo = activeCombo()
             val bossName = enemies.firstOrNull { it.type == 2 && !it.dead }?.let { bossConstellationName(it.t0.toInt()) }
             val bannerTitle = if (boss && bossName != null) "نبرد با " + bossName else if (eventKind > 0) eventName() else waveTitle(wave)
-            drawFittedText(c, bannerTitle, W / 2f, wh * 0.4f, 11f, if (boss) RED else WHT, 180f)
-            if (combo.isNotEmpty()) drawFittedText(c, combo, W / 2f, wh * 0.4f + 15f, 6.2f, 0xFF72F0C0.toInt(), 160f)
+            drawFittedText(c, bannerTitle, W / 2f, wh * 0.4f, 10.2f, if (boss) RED else WHT, 180f)
+            drawFittedText(c, stageDescription(wave), W / 2f, wh * 0.4f + 11f, 4.25f, 0xFF72F0C0.toInt(), 190f)
+            if (combo.isNotEmpty()) drawFittedText(c, combo, W / 2f, wh * 0.4f + 19f, 5.2f, 0xFFFFD45C.toInt(), 160f)
         }
     }
 
@@ -2669,7 +2725,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         "dash" -> "یک جهش ایمن در میدان"
         "chain" -> "انتقال صاعقه به دشمن نزدیک"
         "hull" -> "افزایش یک واحد جان"
-        "health_regen" -> "ترمیم تدریجی بدنه سفینه"
+        "health_regen" -> "ترمیم تدریجی بدنه کاوشگر"
         "emp" -> "آسیب موجی به همه دشمن‌ها"
         "ricochet" -> "گلوله‌ها به هدف تازه کمانه می‌کنند"
         "gravity_well" -> "کشیدن و آسیب به دشمنان نزدیک"
@@ -2929,6 +2985,40 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         lines.take(2).forEachIndexed { index, part -> drawFittedText(c, part, x, y + index * 5.0f, size, color, maxWidth) }
     }
 
+    private fun drawOwnedAbilityList(c: Canvas, top: Float, bottom: Float, columns: Int, fontSize: Float) {
+        val owned = selectedAbilities.toList()
+        if (owned.isEmpty()) {
+            drawFittedText(c, "هنوز قابلیتی نگرفته‌ای", W / 2f, (top + bottom) / 2f + 1f, 4.0f, 0xFF9BAABC.toInt(), W - 24f)
+            return
+        }
+        val left = 7f
+        val usableWidth = W - 14f
+        val cellWidth = usableWidth / columns
+        val rows = (owned.size + columns - 1) / columns
+        val cellHeight = (bottom - top) / rows
+        owned.forEachIndexed { index, id ->
+            val col = index % columns
+            val row = index / columns
+            val cellX = left + col * cellWidth
+            val centerY = top + row * cellHeight + cellHeight / 2f
+            val accent = abilityColor(id)
+            paint.style = Paint.Style.FILL
+            paint.color = Color.argb(42, Color.red(accent), Color.green(accent), Color.blue(accent))
+            c.drawRoundRect(cellX*s, (centerY-cellHeight*0.46f)*s, (cellX+cellWidth-1.5f)*s, (centerY+cellHeight*0.46f)*s, 2.5f*s, 2.5f*s, paint)
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 0.65f*s
+            paint.color = Color.argb(125, Color.red(accent), Color.green(accent), Color.blue(accent))
+            c.drawCircle((cellX+5.5f)*s, centerY*s, 4.4f*s, paint)
+            c.save()
+            c.scale(0.34f, 0.34f, (cellX+5.5f)*s, centerY*s)
+            drawAbilityIcon(c, id, cellX+5.5f, centerY)
+            c.restore()
+            paint.style = Paint.Style.FILL
+            val label = upgradeTitle(id) + " " + abilityRank(id).coerceIn(0,5) + "/۵"
+            drawFittedText(c, label, cellX + 11f + (cellWidth - 11f)/2f, centerY + 1.25f, fontSize, if (abilityRank(id)>=5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), cellWidth-13f)
+        }
+    }
+
     private fun drawUpgrade(c: Canvas) {
         paint.color = 0xB807101D.toInt(); c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint)
         drawGlassPanel(c, 5f, wh * 0.30f, W - 5f, wh * 0.76f, 0xFF47DFFF.toInt(), 232)
@@ -2944,11 +3034,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.5f, 0xFFFFD45C.toInt(), 42f)
             drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 3.9f, 0xFF9CEBFF.toInt(), 52f)
         }
-        drawGlassPanel(c, 18f, wh * 0.615f, 202f, wh * 0.695f, 0xFFFFD45C.toInt(), 205)
-        drawFittedText(c, "مهارت ویژه سفینه: " + legendaryName(), W / 2f, wh * 0.638f, 5.3f, 0xFFFFD45C.toInt(), 176f)
-        drawWrappedCardText(c, legendaryDescription(), W / 2f, wh * 0.665f, 4.3f, 0xFFFFEBC1.toInt(), 180f)
+        drawGlassPanel(c, 7f, wh * 0.615f, W - 7f, wh * 0.825f, 0xFFFFD45C.toInt(), 220)
+        drawFittedText(c, "قابلیت‌های گرفته‌شده  •  " + selectedAbilities.size, W / 2f, wh * 0.637f, 4.7f, 0xFFFFD45C.toInt(), 180f)
+        drawFittedText(c, "توان ویژه: " + legendaryName(), W / 2f, wh * 0.655f, 3.8f, 0xFFFFEBC1.toInt(), 180f)
+        drawOwnedAbilityList(c, wh * 0.668f, wh * 0.815f, 4, 3.25f)
         drawButtons(c)
-        drawAdSlot(c, wh * 0.84f)
     }
 
     private fun drawShop(c: Canvas) {
@@ -2964,48 +3054,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.style = Paint.Style.FILL
         paint.color = 0xFF07101D.toInt()
         c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint)
-        // High-opacity glass card hides ships directly behind the pause controls.
-        drawGlassPanel(c, 18f, wh * 0.29f, 202f, wh * 0.91f, 0xFF47DFFF.toInt(), 248)
-        text(c, "بازی متوقف شد", W / 2f, wh * 0.335f, 15f, 0xFF9CEBFF.toInt())
+        drawGlassPanel(c, 18f, wh * 0.29f, 202f, wh * 0.93f, 0xFF47DFFF.toInt(), 248)
+        text(c, "بازی متوقف شد", W / 2f, wh * 0.335f, 13f, 0xFF9CEBFF.toInt())
         drawCoinCounter(c, 176f, wh * 0.335f)
         drawButtons(c)
-        text(c, "قابلیت‌های فعال", W / 2f, wh * 0.685f, 7.5f, 0xFFFFD45C.toInt())
-        if (selectedAbilities.isEmpty()) {
-            text(c, "هنوز قابلیتی انتخاب نشده", W / 2f, wh * 0.70f, 6f, 0xFF9BAABC.toInt())
-        } else {
-                val list = selectedAbilities.toList().take(28)
-            val cols = 4
-            val cellW = 49f
-            val left = 8f
-            val gridTop = wh * 0.705f
-            val rowCount = ((list.size + cols - 1) / cols).coerceAtLeast(1)
-            val cellH = ((wh * 0.905f - gridTop - 3f) / rowCount).coerceIn(10.5f, 16f)
-            list.forEachIndexed { index, id ->
-                val col = index % cols
-                val row = index / cols
-                val cellX = left + col * 50f
-                val cellY = gridTop + row * cellH
-                val centerY = cellY + cellH / 2f
-                val rank = abilityRank(id).coerceIn(0, 5)
-                val accent = abilityColor(id)
-                paint.style = Paint.Style.FILL
-                paint.color = 0x552BDAEF.toInt()
-                c.drawRoundRect(cellX*s, cellY*s, (cellX+cellW-2f)*s, (cellY+cellH-1f)*s, 3f*s, 3f*s, paint)
-                paint.color = Color.argb(76, Color.red(accent), Color.green(accent), Color.blue(accent))
-                c.drawCircle((cellX+8f)*s, centerY*s, 6.2f*s, paint)
-                paint.style = Paint.Style.STROKE
-                paint.strokeWidth = 0.8f*s
-                paint.color = accent
-                c.drawCircle((cellX+8f)*s, centerY*s, 6.2f*s, paint)
-                c.save()
-                c.scale(0.54f, 0.54f, (cellX+8f)*s, centerY*s)
-                drawAbilityIcon(c, id, cellX + 8f, centerY)
-                c.restore()
-                paint.style = Paint.Style.FILL
-                drawFittedText(c, upgradeTitle(id) + " " + rank + "/۵", cellX + 30f, centerY + 1.6f, 3.65f, if(rank >= 5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), 34f)
-            }
-        }
-        drawAdSlot(c, wh * 0.93f, 132f, 14f)
+        drawFittedText(c, "قابلیت‌های فعال  •  " + selectedAbilities.size, W / 2f, wh * 0.675f, 5.9f, 0xFFFFD45C.toInt(), 180f)
+        drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3, 3.25f)
     }
 
     private fun drawWeaponControls(c: Canvas) {
@@ -3314,16 +3368,16 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         "armor" -> "۵٫۵٪ شانس خنثی‌کردن ضربه در هر سطح"
         "mobility" -> "سرعت حرکت ۵٫۵٪ بیشتر در هر سطح"
         "hull" -> "یک جان اضافه در شروع هر بازی به‌ازای هر سطح"
-        "gold" -> "افزایش قدرت مهارت طلایی سفینه؛ زمان اثر بیشتر"
+        "gold" -> "افزایش قدرت مهارت طلایی کاوشگر؛ زمان اثر بیشتر"
         else -> ""
     }
 
     private fun drawShipUpgrades(c: Canvas) {
         paint.color = 0xE807101D.toInt(); c.drawRect(0f,0f,sw.toFloat(),sh.toFloat(),paint)
         drawGlassPanel(c,5f,wh*0.27f,W-5f,wh*0.86f,0xFF47DFFF.toInt(),244)
-        text(c,"کارگاه ارتقای سفینه",W/2f,wh*0.32f,11f,0xFF9CEBFF.toInt())
+        text(c,"کارگاه ارتقای کاوشگر",W/2f,wh*0.32f,11f,0xFF9CEBFF.toInt())
         text(c,shipName()+"  •  امتیاز ارتقای باس: $upgradePoints",W/2f,wh*0.35f,6.1f,0xFFFFD45C.toInt())
-        text(c,"هر ارتقا فقط روی همین سفینه اعمال می‌شود",W/2f,wh*0.382f,4.5f,0xFF9CEBFF.toInt())
+        text(c,"هر ارتقا فقط روی همین کاوشگر اعمال می‌شود",W/2f,wh*0.382f,4.5f,0xFF9CEBFF.toInt())
         drawButtons(c)
     }
 
@@ -3353,7 +3407,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         text(c, "نئون", W / 2, wh * 0.16f, 34f, YEL)
         text(c, "شوتر", W / 2, wh * 0.16f + 26f, 24f, RED)
         drawPlayerShip(c, W / 2, wh * 0.33f + sin(System.nanoTime() / 4e8f) * 3f)
-        text(c, "سفینه: " + shipName(), W / 2f, wh * 0.375f, 6.2f, 0xFF80E7FF.toInt())
+        text(c, "کاوشگر: " + shipName(), W / 2f, wh * 0.375f, 6.2f, 0xFF80E7FF.toInt())
         drawCoinCounter(c, 177f, wh * 0.375f)
         text(c, if (dailyDone) "ماموریت روزانه کامل شد: +۵۰۰" else "ماموریت روزانه: ۲۵ نابودی " + dailyKills + "/۲۵", W / 2f, wh * 0.397f, 6f, 0xFFFFD45C.toInt())
         text(c, "بهترین امتیاز: $best   رکورد مرحله: $bestWave", W / 2, wh * 0.419f, 7f, WHT)
@@ -3367,7 +3421,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         text(c, "درباره نئون شوتر", W / 2f, wh * 0.36f, 16f, 0xFF9CEBFF.toInt())
         text(c, "در موج‌های بی‌پایان دشمنان دوام بیاور،", W / 2f, wh * 0.43f, 6.4f, WHT)
         text(c, "قدرت‌هایت را ارتقا بده و باس‌ها را شکست بده.", W / 2f, wh * 0.46f, 6.4f, WHT)
-        text(c, "پنج سفینه با توانایی‌های طلایی متفاوت", W / 2f, wh * 0.49f, 6.4f, WHT)
+        text(c, "پنج کاوشگر با توانایی‌های طلایی متفاوت", W / 2f, wh * 0.49f, 6.4f, WHT)
         text(c, "و رویدادهای ویژه در انتظار تو هستند.", W / 2f, wh * 0.52f, 6.4f, WHT)
         text(c, "کانال رسمی بازی", W / 2f, wh * 0.57f, 6f, 0xFFFFD45C.toInt())
         drawButtons(c)
