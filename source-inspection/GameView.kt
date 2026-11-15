@@ -475,11 +475,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun shipName(id: Int = currentShip): String = when (id) {
-        1 -> "افعی"
-        2 -> "تایتان"
-        3 -> "شبح"
-        4 -> "ققنوس"
-        else -> "مهاجم"
+        1 -> "جیمز وب"
+        2 -> "ویجر ۱"
+        3 -> "ویجر ۲"
+        4 -> "فونیکس"
+        else -> "هابل"
     }
 
     private fun shipPrice(id: Int): Int = intArrayOf(0, 450, 900, 1550, 2400)[id.coerceIn(0, 4)]
@@ -2298,12 +2298,16 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             c.drawRect(p.x * s, p.y * s, (p.x + 1.6f) * s, (p.y + 1.6f) * s, paint)
         }
         paint.alpha = 255
-        text(c, "امتیاز $score", 6f, 14f, 9f, YEL, Paint.Align.LEFT)
+        // Separate score, wave/boss label, currency and pause into distinct columns.
+        drawFittedText(c, "امتیاز $score", 6f, 14f, 6.2f, YEL, 58f, Paint.Align.LEFT)
         drawCoinCounter(c, 164f, 14f)
-        if (enemies.none { it.type == 2 && !it.dead }) {
-            drawFittedText(c, waveTitle(wave), W / 2f, 14f, 4.8f, 0xFF9CEBFF.toInt(), 88f)
+        val activeBoss = enemies.firstOrNull { it.type == 2 && !it.dead }
+        if (activeBoss != null) {
+            val bossId = activeBoss.t0.toInt().coerceIn(0, 9)
+            drawFittedText(c, "باس " + bossConstellationName(bossId) + " • فاز " + activeBoss.phase, 105f, 14f, 4.7f, WHT, 68f)
+        } else {
+            drawFittedText(c, waveTitle(wave), 105f, 14f, 4.6f, 0xFF9CEBFF.toInt(), 68f)
         }
-        if (comboCount >= 3) text(c, "ترکیب x" + (1 + comboCount / 5).coerceAtMost(5), W / 2f, 31f, 6f, 0xFFFFD45C.toInt())
         text(c, "جان", 7f, 27f, 6f, 0xFF9CEBFF.toInt(), Paint.Align.LEFT)
         paint.style = Paint.Style.FILL
         paint.color = 0xCC25313D.toInt()
@@ -2317,7 +2321,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             c.drawRoundRect(18f * s, 23f * s, (18f + 54f * extraHealth / 5f) * s, 25f * s, 1.0f * s, 1.0f * s, paint)
         }
         if (lives > 5) text(c, "۲×", 77f, 25f, 7f, 0xFFFFC857.toInt(), Paint.Align.LEFT)
-        else text(c, lives.toString() + "/۵", 77f, 25f, 6f, 0xFFFFD45C.toInt(), Paint.Align.LEFT)
+        else drawFittedText(c, lives.toString() + "/۵", 77f, 25f, 5.5f, 0xFFFFD45C.toInt(), 16f, Paint.Align.LEFT)
         if (shieldRank > 0) {
             text(c, "سپر", 7f, 42f, 5.5f, 0xFF8BDFFF.toInt(), Paint.Align.LEFT)
             paint.color = 0x88303C4A.toInt(); c.drawRoundRect(18f*s, 36f*s, 72f*s, 39f*s, 1.5f*s, 1.5f*s, paint)
@@ -2325,6 +2329,19 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val shieldFrac = if (shieldMaxHp > 0) shieldHp.toFloat() / shieldMaxHp else 0f
             c.drawRoundRect(18f*s, 36f*s, (18f + 54f*shieldFrac)*s, 39f*s, 1.5f*s, 1.5f*s, paint)
         }
+        if (activeBoss != null) {
+            val frac = (activeBoss.hp.toFloat() / activeBoss.maxHp).coerceIn(0f, 1f)
+            paint.style = Paint.Style.FILL
+            paint.color = 0xAA222A35.toInt()
+            c.drawRoundRect(96f*s, 21f*s, 184f*s, 25f*s, 1.5f*s, 1.5f*s, paint)
+            paint.color = DRED
+            c.drawRoundRect(96f*s, 21f*s, (96f + 88f*frac)*s, 25f*s, 1.5f*s, 1.5f*s, paint)
+            paint.style = Paint.Style.STROKE; paint.strokeWidth = 0.65f*s; paint.color = RED
+            c.drawRoundRect(96f*s, 21f*s, 184f*s, 25f*s, 1.5f*s, 1.5f*s, paint)
+            paint.style = Paint.Style.FILL
+            activeBoss.bossSkills.take(2).forEachIndexed { index, skill -> drawAbilityIcon(c, skill, 105f + index * 18f, 37f) }
+        }
+        if (comboCount >= 3) drawFittedText(c, "ترکیب x" + (1 + comboCount / 5).coerceAtMost(5), 105f, 48f, 5.2f, 0xFFFFD45C.toInt(), 70f)
         val powerLabel = when {
             magnetLevel > 0 && shieldLevel > 0 -> "سپر مغناطیسی"
             shieldLevel > 0 -> "سپر بازتابی " + shieldLevel
@@ -2368,7 +2385,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             c.drawRect(20f * s, 22f * s, 160f * s, 25f * s, paint); paint.style = Paint.Style.FILL
         }
         if (waveTarget > 0 && (st == St.PLAY || st == St.PAUSE)) {
-            val x = (W - 5f) * s; val top = 42f * s; val bottom = (wh - 48f) * s
+            val x = (W - 5f) * s; val top = 56f * s; val bottom = (wh - 48f) * s
             val progress = (waveKills.toFloat() / waveTarget.toFloat()).coerceIn(0f, 1f)
             paint.color = 0x88434D5A.toInt(); c.drawRoundRect(x, top, x + 2.6f * s, bottom, 1.3f * s, 1.3f * s, paint)
             paint.color = 0xFF72E8FF.toInt(); c.drawRoundRect(x, bottom - (bottom - top) * progress, x + 2.6f * s, bottom, 1.3f * s, 1.3f * s, paint)
@@ -2377,9 +2394,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (bannerT > 0f && st == St.PLAY) {
             val boss = wave % 5 == 0
             val combo = activeCombo()
-            val bannerTitle = if (boss) "باس " + waveTitle(wave) else if (eventKind > 0) eventName() else waveTitle(wave)
-            drawFittedText(c, bannerTitle, W / 2f, wh * 0.4f, 12.5f, if (boss) RED else WHT, 180f)
-            if (combo.isNotEmpty()) text(c, combo, W / 2f, wh * 0.4f + 13f, 7f, 0xFF72F0C0.toInt())
+            val bossName = enemies.firstOrNull { it.type == 2 && !it.dead }?.let { bossConstellationName(it.t0.toInt()) }
+            val bannerTitle = if (boss && bossName != null) "نبرد با " + bossName else if (eventKind > 0) eventName() else waveTitle(wave)
+            drawFittedText(c, bannerTitle, W / 2f, wh * 0.4f, 11f, if (boss) RED else WHT, 180f)
+            if (combo.isNotEmpty()) drawFittedText(c, combo, W / 2f, wh * 0.4f + 15f, 6.2f, 0xFF72F0C0.toInt(), 160f)
         }
     }
 
@@ -2886,14 +2904,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.style = Paint.Style.FILL
     }
 
-    private fun drawFittedText(c: Canvas, value: String, x: Float, y: Float, size: Float, color: Int, maxWidth: Float) {
+    private fun drawFittedText(c: Canvas, value: String, x: Float, y: Float, size: Float, color: Int, maxWidth: Float, align: Paint.Align = Paint.Align.CENTER) {
         tp.textSize = size * s
         var fitted = size
         while (tp.measureText(value) * 1.22f > maxWidth * s && fitted > 2.8f) {
             fitted -= 0.2f
             tp.textSize = fitted * s
         }
-        text(c, value, x, y, fitted, color)
+        text(c, value, x, y, fitted, color, align)
     }
 
     private fun drawWrappedCardText(c: Canvas, value: String, x: Float, y: Float, size: Float, color: Int, maxWidth: Float) {
@@ -3154,69 +3172,124 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun drawPlayerShip(c: Canvas, x: Float, y: Float, shipId: Int = currentShip) {
+        // Real spacecraft silhouettes, retaining the original palette and neon bloom.
         val colors = intArrayOf(0xFFFFD34F.toInt(), 0xFF45E6FF.toInt(), 0xFFFF8758.toInt(), 0xFFB78CFF.toInt(), 0xFFFF6EB5.toInt())
         val glows = intArrayOf(0xFFFFFFA8.toInt(), 0xFFB8F7FF.toInt(), 0xFFFFD0A6.toInt(), 0xFFE3D2FF.toInt(), 0xFFFFC3E4.toInt())
         val id = shipId.coerceIn(0, 4)
         val color = colors[id]
+        val glow = glows[id]
         c.save()
         c.translate(x * s, y * s)
         c.scale(s, s)
-        paint.style = Paint.Style.FILL
-        val body = Path()
+
+        val filled = Path()
         val silhouette = Path()
+        val details = Path()
+        fun polygon(path: Path, vararg xy: Float) {
+            if (xy.size < 6 || xy.size % 2 != 0) return
+            path.moveTo(xy[0], xy[1])
+            var i = 2
+            while (i < xy.size) { path.lineTo(xy[i], xy[i + 1]); i += 2 }
+            path.close()
+        }
+        fun panel(left: Float, top: Float, right: Float, bottom: Float, radius: Float = 1.2f) {
+            val p = Path().apply { addRoundRect(RectF(left, top, right, bottom), radius, radius, Path.Direction.CW) }
+            filled.addPath(p); silhouette.addPath(p)
+        }
+        fun hex(path: Path, cx: Float, cy: Float, radius: Float, angle: Float = -PI / 2.0) {
+            for (i in 0 until 6) {
+                val a = angle + i * PI / 3.0
+                val px = cx + cos(a).toFloat() * radius
+                val py = cy + sin(a).toFloat() * radius
+                if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+            }
+            path.close()
+        }
+        fun line(path: Path, x1: Float, y1: Float, x2: Float, y2: Float) {
+            path.moveTo(x1, y1); path.lineTo(x2, y2)
+        }
+        fun circle(path: Path, cx: Float, cy: Float, radius: Float) {
+            path.addCircle(cx, cy, radius, Path.Direction.CW)
+        }
+
         when (id) {
-            0 -> {
-                body.moveTo(0f,-17f); body.lineTo(7f,7f); body.lineTo(0f,3f); body.lineTo(-7f,7f); body.close()
-                val wings = Path().apply { moveTo(-5f,1f); lineTo(-17f,10f); lineTo(-8f,9f); lineTo(0f,5f); lineTo(8f,9f); lineTo(17f,10f); lineTo(5f,1f); close() }
-                silhouette.addPath(wings)
-                paint.color = color; c.drawPath(wings, paint)
+            0 -> { // Hubble: optical telescope body and paired solar arrays.
+                panel(-4.6f, -13f, 4.6f, 11f, 3.8f)
+                panel(-21f, -2.5f, -7f, 5.5f)
+                panel(7f, -2.5f, 21f, 5.5f)
+                circle(filled, 0f, -10f, 5.2f); circle(silhouette, 0f, -10f, 5.2f)
+                line(details, -7f,1.5f, -4f,1.5f); line(details, 4f,1.5f, 7f,1.5f)
+                for (px in listOf(-18f,-14f,-10f,10f,14f,18f)) line(details,px,-2f,px,5f)
+                line(details,-20f,1.5f,-8f,1.5f); line(details,8f,1.5f,20f,1.5f)
+                line(details,-3f,-7f,3f,-7f); line(details,-3f,7f,3f,7f)
             }
-            1 -> {
-                body.moveTo(0f,-19f); body.cubicTo(9f,-5f,5f,8f,0f,12f); body.cubicTo(-5f,8f,-9f,-5f,0f,-19f); body.close()
-                val fins = Path().apply { moveTo(-4f,0f); lineTo(-18f,13f); lineTo(-7f,10f); lineTo(0f,6f); lineTo(7f,10f); lineTo(18f,13f); lineTo(4f,0f); close() }
-                silhouette.addPath(fins)
-                paint.color = color; c.drawPath(fins, paint)
+            1 -> { // James Webb: segmented hexagonal mirror above its layered sunshield.
+                polygon(filled,-13f,-3f, -9f,-7f, 0f,-10f, 9f,-7f, 13f,-3f, 9f,10f, 0f,15f, -9f,10f)
+                val mirror = Path(); hex(mirror,0f,-12f,8.2f)
+                filled.addPath(mirror); silhouette.addPath(mirror)
+                panel(-3.2f,-3f,3.2f,8f,1.4f)
+                hex(details,0f,-12f,5.1f)
+                line(details,-4.1f,-15.6f,4.1f,-8.4f); line(details,-4.1f,-8.4f,4.1f,-15.6f)
+                line(details,-10f,-3f,10f,-3f); line(details,-9f,0f,9f,0f)
+                line(details,-8f,4f,8f,4f); line(details,-6f,8f,6f,8f)
+                line(details,-2f,9f,2f,9f)
             }
-            2 -> {
-                body.moveTo(-6f,-15f); body.lineTo(6f,-15f); body.lineTo(11f,7f); body.lineTo(0f,12f); body.lineTo(-11f,7f); body.close()
-                val armor = Path().apply { moveTo(-7f,-1f); lineTo(-20f,8f); lineTo(-15f,14f); lineTo(-3f,8f); lineTo(3f,8f); lineTo(15f,14f); lineTo(20f,8f); lineTo(7f,-1f); close() }
-                silhouette.addPath(armor)
-                paint.color = color; c.drawPath(armor, paint)
+            2 -> { // Voyager 1: high-gain dish, instrument booms and RTG boom.
+                panel(-3.8f,-5f,3.8f,6f,1.1f)
+                circle(filled,0f,-10.2f,9.2f); circle(silhouette,0f,-10.2f,9.2f)
+                line(details,-6f,-14f,0f,-6f); line(details,6f,-14f,0f,-6f)
+                line(details,0f,-19f,0f,-16f); line(details,-3.5f,-10.2f,3.5f,-10.2f)
+                line(details,0f,-13.7f,0f,-6.7f)
+                line(silhouette,-3f,5f,10f,14f); panel(8f,11f,12f,16f,0.8f); panel(13f,14f,17f,18f,0.8f)
+                line(silhouette,-4f,0f,-17f,5f); circle(silhouette,-18f,5.5f,2.1f)
+                line(details,-3f,-2f,3f,-2f); line(details,-3f,2f,3f,2f)
             }
-            3 -> {
-                body.moveTo(0f,-19f); body.lineTo(5f,8f); body.lineTo(0f,5f); body.lineTo(-5f,8f); body.close()
-                val ghost = Path().apply { moveTo(-4f,-2f); lineTo(-17f,15f); lineTo(-12f,5f); lineTo(-4f,3f); lineTo(4f,3f); lineTo(12f,5f); lineTo(17f,15f); lineTo(4f,-2f); close() }
-                silhouette.addPath(ghost)
-                paint.color = color; c.drawPath(ghost, paint)
+            3 -> { // Voyager 2: same spacecraft family, with a distinct dish and boom orientation.
+                panel(-3.8f,-4f,3.8f,7f,1.1f)
+                circle(filled,-2.8f,-9.4f,8.9f); circle(silhouette,-2.8f,-9.4f,8.9f)
+                line(details,-8.5f,-14.5f,-2.8f,-5.5f); line(details,3f,-14.5f,-2.8f,-5.5f)
+                line(details,-2.8f,-18.3f,-2.8f,-15.5f); line(details,-6.2f,-9.4f,0.7f,-9.4f)
+                line(details,-2.8f,-12.8f,-2.8f,-6.2f)
+                line(silhouette,3f,5f,-11f,15f); panel(-14f,13f,-10f,18f,0.8f); panel(-19f,15f,-15f,19f,0.8f)
+                line(silhouette,4f,0f,18f,4f); circle(silhouette,19f,4.5f,2.1f)
+                line(details,0f,-1f,5f,-1f); line(details,0f,3f,5f,3f)
             }
-            else -> {
-                body.moveTo(0f,-20f); body.cubicTo(13f,-4f,9f,10f,0f,13f); body.cubicTo(-9f,10f,-13f,-4f,0f,-20f); body.close()
-                val flames = Path().apply { moveTo(-4f,2f); lineTo(-20f,15f); lineTo(-12f,3f); lineTo(-5f,6f); lineTo(0f,2f); lineTo(5f,6f); lineTo(12f,3f); lineTo(20f,15f); lineTo(4f,2f); close() }
-                silhouette.addPath(flames)
-                paint.color = color; c.drawPath(flames, paint)
+            else -> { // Phoenix Mars lander: hexagonal deck, side solar panels and three legs.
+                val deck = Path(); hex(deck,0f,-1f,8.3f)
+                filled.addPath(deck); silhouette.addPath(deck)
+                panel(-20f,-5f,-9f,3f,1f); panel(9f,-5f,20f,3f,1f)
+                line(silhouette,-8f,0f,-15f,12f); line(silhouette,8f,0f,15f,12f); line(silhouette,0f,6f,0f,17f)
+                line(details,-15f,8f,-12f,8f); line(details,12f,8f,15f,8f)
+                line(details,-2f,-4f,2f,-4f); line(details,-3f,0f,3f,0f)
+                line(details,-18f,-3f,-18f,1f); line(details,-14f,-3f,-14f,1f)
+                line(details,14f,-3f,14f,1f); line(details,18f,-3f,18f,1f)
+                line(details,-8f,-1f,-12f,-8f); circle(silhouette,-12f,-9f,1.8f)
             }
         }
-        silhouette.addPath(body)
-        paint.style = Paint.Style.STROKE
-        paint.strokeCap = Paint.Cap.ROUND
-        paint.strokeJoin = Paint.Join.ROUND
+
+        silhouette.addPath(filled)
+        // Original glow width, blur radius, colors and layered outline are intentionally preserved.
+        paint.style = Paint.Style.STROKE; paint.strokeCap = Paint.Cap.ROUND; paint.strokeJoin = Paint.Join.ROUND
         paint.strokeWidth = 7f
         paint.color = Color.argb(68, Color.red(color), Color.green(color), Color.blue(color))
         paint.maskFilter = BlurMaskFilter(7.5f, BlurMaskFilter.Blur.NORMAL)
         c.drawPath(silhouette, paint)
-        paint.maskFilter = null
-        paint.strokeWidth = 2.2f
-        paint.color = Color.argb(115, Color.red(glows[id]), Color.green(glows[id]), Color.blue(glows[id]))
+        paint.maskFilter = null; paint.strokeWidth = 2.2f
+        paint.color = Color.argb(115, Color.red(glow), Color.green(glow), Color.blue(glow))
         c.drawPath(silhouette, paint)
-        paint.style = Paint.Style.FILL
-        paint.color = color; c.drawPath(body, paint)
-        paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.2f; paint.color = glows[id]; c.drawPath(body, paint)
-        paint.style = Paint.Style.FILL; paint.color = glows[id]
-        c.drawRoundRect(-2.1f,-8f,2.1f,3f,2f,2f,paint)
-        paint.color = if (id == 2) 0xFFFF9B42.toInt() else 0xFFFFE08A.toInt()
-        val flame = Path().apply { moveTo(-3f,8f); lineTo(0f,18f + sin(time * 18f) * 2f); lineTo(3f,8f); close() }
-        c.drawPath(flame, paint)
-        paint.style = Paint.Style.FILL; c.restore()
+
+        paint.style = Paint.Style.FILL; paint.color = color; c.drawPath(filled, paint)
+        paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.15f; paint.color = glow
+        c.drawPath(details, paint); c.drawPath(filled, paint)
+        paint.style = Paint.Style.FILL; paint.color = glow
+        when (id) {
+            0 -> c.drawCircle(0f,-10f,2.1f,paint)
+            1 -> c.drawCircle(0f,-12f,1.6f,paint)
+            2 -> c.drawCircle(0f,-10.2f,1.6f,paint)
+            3 -> c.drawCircle(-2.8f,-9.4f,1.6f,paint)
+            else -> c.drawCircle(0f,-1f,1.5f,paint)
+        }
+        c.restore()
     }
 
     private fun drawShipHangar(c: Canvas) {
@@ -3229,7 +3302,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val owned = shipOwned(i)
             drawPlayerShip(c,25f,y+9f,i)
             text(c,shipName(i),48f,y+12f,5.4f,if(currentShip==i) 0xFFFFD45C.toInt() else WHT,Paint.Align.LEFT)
-            text(c,when(i){0->"متوازن";1->"سرعت بالا";2->"زره سنگین";3->"شلیک تند";else->"آتش ققنوس"},48f,y+18f,3.8f,0xFF9CEBFF.toInt(),Paint.Align.LEFT)
+            text(c,when(i){0->"تلسکوپ مداری • پنل خورشیدی";1->"آینه شش‌ضلعی • سپر خورشیدی";2->"کاوشگر بین‌ستاره‌ای";3->"کاوشگر بین‌ستاره‌ای";else->"مریخ‌نشین سه‌پایه"},48f,y+18f,3.8f,0xFF9CEBFF.toInt(),Paint.Align.LEFT)
             if (!owned) text(c,shipPrice(i).toString()+" سکه",190f,y+12f,4.5f,0xFFFFD45C.toInt(),Paint.Align.RIGHT)
             else if (currentShip==i) text(c,"فعال",190f,y+12f,4.5f,0xFF55DDAA.toInt(),Paint.Align.RIGHT)
         }
