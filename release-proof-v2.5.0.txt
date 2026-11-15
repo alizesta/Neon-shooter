@@ -1,0 +1,6 @@
+run_id=43681587271
+source_commit=ed2501d713c3b3009cae641517203a29bb556668
+app_version=2.5.0
+apk_sha256=042fa1574a4c9dd5fac308af80ef0afe46e6ea766a3222f0d48efdc8a72f0f4f
+apk_size_bytes=9978958
+signature=verified-by-apksigner
