@@ -24,6 +24,7 @@ jobs:
           cat build-assets/v24/source.part* > "$RUNNER_TEMP/neon-v24/project.b64"
           base64 --decode "$RUNNER_TEMP/neon-v24/project.b64" > "$RUNNER_TEMP/neon-v24/project.zip"
           echo "37349d4a8b0a5743b942cc129c7a1209fb839108ab3f2c16c0215a814d81f310  $RUNNER_TEMP/neon-v24/project.zip" | sha256sum --check -
+          rm -rf NeonShooter
           unzip -q "$RUNNER_TEMP/neon-v24/project.zip" -d .
           test -s NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt
           test -s NeonShooter/app/build.gradle.kts
