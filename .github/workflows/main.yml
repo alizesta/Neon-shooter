@@ -125,7 +125,7 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.6.8": "versionCode = 34" in gradle and 'versionName = "2.6.8"' in gradle,
+              "release version is 2.6.8": "versionCode = 35" in gradle and 'versionName = "2.6.8"' in gradle,
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
