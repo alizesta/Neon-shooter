@@ -2355,7 +2355,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.alpha = 255
         // Separate score, wave/boss label, currency and pause into distinct columns.
         drawFittedText(c, "امتیاز $score", 6f, 14f, 6.2f, YEL, 58f, Paint.Align.LEFT)
-        drawCoinCounter(c, 164f, 14f)
+        drawCoinCounter(c, 159f, 14f)
         val activeBoss = enemies.firstOrNull { it.type == 2 && !it.dead }
         if (activeBoss != null) {
             val bossId = activeBoss.t0.toInt().coerceIn(0, 9)
@@ -2431,8 +2431,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         enemies.firstOrNull { it.type == 2 }?.let { bs ->
             val bossId = bs.t0.toInt().coerceIn(0, 9)
-            drawBossConstellation(c, bossId, 16f, 13f, 0.44f, 235)
-            drawFittedText(c, bossConstellationName(bossId) + " • فاز " + bs.phase, W / 2f, 14f, 6.2f, WHT, 128f)
+            drawFittedText(c, bossConstellationName(bossId) + " • فاز " + bs.phase, 105f, 14f, 4.7f, WHT, 68f)
             bs.bossSkills.take(2).forEachIndexed { index, skill -> drawAbilityIcon(c, skill, W / 2f - 13f + index * 26f, 34f) }
             val frac = bs.hp.toFloat() / bs.maxHp
             paint.color = DRED; c.drawRect(20f * s, 22f * s, (20f + 140f * frac) * s, 25f * s, paint)
@@ -3383,24 +3382,24 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun drawCoinCounter(c: Canvas, centerX: Float, centerY: Float) {
-        val left = centerX - 23f
+        val left = centerX - 19f
         val top = centerY - 7.5f
         paint.style = Paint.Style.FILL
         paint.color = 0xCC101B2A.toInt()
-        c.drawRoundRect(left * s, top * s, (left + 46f) * s, (top + 15f) * s, 5f * s, 5f * s, paint)
+        c.drawRoundRect(left * s, top * s, (left + 38f) * s, (top + 15f) * s, 5f * s, 5f * s, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 0.9f * s
         paint.color = 0xFFFFD45C.toInt()
-        c.drawRoundRect(left * s, top * s, (left + 46f) * s, (top + 15f) * s, 5f * s, 5f * s, paint)
+        c.drawRoundRect(left * s, top * s, (left + 38f) * s, (top + 15f) * s, 5f * s, 5f * s, paint)
         paint.style = Paint.Style.FILL
         paint.color = 0xFFFFD45C.toInt()
-        c.drawCircle((left + 8f) * s, centerY * s, 3.7f * s, paint)
+        c.drawCircle((left + 7f) * s, centerY * s, 3.5f * s, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = 0.65f * s
         paint.color = 0xFFFFF0A6.toInt()
-        c.drawCircle((left + 8f) * s, centerY * s, 2.4f * s, paint)
+        c.drawCircle((left + 7f) * s, centerY * s, 2.2f * s, paint)
         paint.style = Paint.Style.FILL
-        drawFittedText(c, credits.toString(), left + 29f, centerY + 2f, 5.4f, 0xFFFFE8A6.toInt(), 25f)
+        drawFittedText(c, credits.toString(), left + 24f, centerY + 2f, 5.2f, 0xFFFFE8A6.toInt(), 19f)
     }
 
     private fun drawMenu(c: Canvas) {
