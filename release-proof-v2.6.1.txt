@@ -1,0 +1,6 @@
+run_id=43760363220
+source_commit=09219e6446bf4f4dbe85260db383420ce92118ef
+app_version=2.6.1
+apk_sha256=b4e18f96fbea59ab25cf43c504b7e83f718682b797de7364a27455b106bbcd57
+apk_size_bytes=9980318
+signature=verified-by-apksigner
