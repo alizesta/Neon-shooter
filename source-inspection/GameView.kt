@@ -862,11 +862,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 add("shipBack", "بازگشت", wh * 0.77f)
             }
             St.SHIP_UPGRADE -> {
-                val y = wh * 0.38f
-                val stats = listOf("attack" to "قدرت سلاح", "armor" to "زره", "mobility" to "سرعت", "hull" to "جان اولیه", "gold" to "توان طلایی")
+                val y = wh * 0.405f
+                val stats = listOf("attack" to "قدرت سلاح", "armor" to "زره", "mobility" to "سرعت", "hull" to "جان شروع", "gold" to "توان طلایی")
                 stats.forEachIndexed { i, pair ->
                     val rank = shipUpgradeRank(pair.first)
-                    val label = if (rank >= 5) pair.second + " MAX" else pair.second + " " + rank + "/۵ • هزینه " + (rank + 1)
+                    val label = if (rank >= 5) pair.second + " • MAX" else pair.second + " • " + rank + "/۵ • " + (rank + 1) + " امتیاز"
                     l.add(Btn("shipup_" + pair.first, label, RectF(12f, y + i * 23f, 208f, y + i * 23f + 20f)))
                 }
                 add("shipUpgradeBack", "بازگشت به آشیانه", wh * 0.77f)
@@ -2900,6 +2900,59 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         control("laser", W - 49f, W - 8f, laserCooldown <= 0f)
     }
 
+    private fun drawShipUpgradeIcon(c: Canvas, stat: String, cx: Float, cy: Float) {
+        val x = cx * s
+        val y = cy * s
+        paint.style = Paint.Style.STROKE
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeJoin = Paint.Join.ROUND
+        paint.strokeWidth = 1.45f * s
+        when (stat) {
+            "attack" -> {
+                paint.color = 0xFFFFB64D.toInt()
+                c.drawCircle(x, y, 7.2f*s, paint); c.drawCircle(x, y, 2.1f*s, paint)
+                c.drawLine(x-11f*s,y,x-4f*s,y,paint); c.drawLine(x+4f*s,y,x+11f*s,y,paint)
+                c.drawLine(x,y-11f*s,x,y-4f*s,paint); c.drawLine(x,y+4f*s,x,y+11f*s,paint)
+            }
+            "armor" -> {
+                paint.color = 0xFF69DFFF.toInt()
+                val outer = Path().apply { moveTo(x,y-10f*s); lineTo(x+9f*s,y-6f*s); lineTo(x+7f*s,y+4f*s); lineTo(x,y+10f*s); lineTo(x-7f*s,y+4f*s); lineTo(x-9f*s,y-6f*s); close() }
+                val inner = Path().apply { moveTo(x,y-5f*s); lineTo(x+4f*s,y-3f*s); lineTo(x+3f*s,y+3f*s); lineTo(x,y+6f*s); lineTo(x-3f*s,y+3f*s); lineTo(x-4f*s,y-3f*s); close() }
+                c.drawPath(outer,paint); c.drawPath(inner,paint)
+            }
+            "mobility" -> {
+                paint.color = 0xFFB68CFF.toInt()
+                val wing = Path().apply { moveTo(x-10f*s,y+6f*s); lineTo(x-2f*s,y-2f*s); lineTo(x+1f*s,y-9f*s); lineTo(x+4f*s,y-2f*s); lineTo(x+10f*s,y-6f*s); lineTo(x+5f*s,y+3f*s); close() }
+                c.drawPath(wing,paint)
+                c.drawLine(x-11f*s,y+10f*s,x-3f*s,y+10f*s,paint); c.drawLine(x-8f*s,y+7f*s,x-2f*s,y+7f*s,paint)
+            }
+            "hull" -> {
+                paint.color = 0xFFFF789D.toInt()
+                val heart = Path().apply {
+                    moveTo(x,y+9f*s)
+                    cubicTo(x-3f*s,y+6f*s,x-11f*s,y+1f*s,x-8f*s,y-5f*s)
+                    cubicTo(x-6f*s,y-10f*s,x-1f*s,y-8f*s,x,y-4f*s)
+                    cubicTo(x+2f*s,y-9f*s,x+7f*s,y-10f*s,x+9f*s,y-5f*s)
+                    cubicTo(x+11f*s,y+1f*s,x+3f*s,y+7f*s,x,y+9f*s)
+                }
+                c.drawPath(heart,paint); c.drawLine(x-3f*s,y,x+3f*s,y,paint); c.drawLine(x,y-3f*s,x,y+3f*s,paint)
+            }
+            "gold" -> {
+                paint.color = 0xFFFFD45C.toInt()
+                val star = Path()
+                for (i in 0 until 10) {
+                    val angle = -PI / 2.0 + i * PI / 5.0
+                    val radius = if (i % 2 == 0) 10f else 4f
+                    val px = x + cos(angle).toFloat() * radius * s
+                    val py = y + sin(angle).toFloat() * radius * s
+                    if (i == 0) star.moveTo(px,py) else star.lineTo(px,py)
+                }
+                star.close(); c.drawPath(star,paint); c.drawCircle(x,y,2f*s,paint)
+            }
+        }
+        paint.style = Paint.Style.FILL
+    }
+
     private fun drawButtonIcon(c: Canvas, id: String, cx: Float, cy: Float) {
         val color = when { id.startsWith("shop_") -> 0xFFFFD45C.toInt(); id.startsWith("upgrade_") -> 0xFF55DFFF.toInt(); id == "about" || id == "telegram" -> 0xFF55DFFF.toInt(); else -> 0xFF9CEBFF.toInt() }
         paint.style = Paint.Style.STROKE; paint.strokeCap = Paint.Cap.ROUND; paint.strokeJoin = Paint.Join.ROUND
@@ -2914,7 +2967,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             return
         }
         if (id.startsWith("shipup_")) {
-            drawAbilityIcon(c, when(id.substringAfter("_")) { "attack" -> "firepower"; "armor" -> "shield"; "mobility" -> "dash"; "hull" -> "hull"; else -> "phoenix" }, cx, cy)
+            drawShipUpgradeIcon(c, id.substringAfter("_"), cx, cy)
             return
         }
         if (id.startsWith("ship_")) {
@@ -3077,13 +3130,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawGlassPanel(c,5f,wh*0.27f,W-5f,wh*0.86f,0xFF47DFFF.toInt(),244)
         text(c,"کارگاه ارتقای سفینه",W/2f,wh*0.32f,11f,0xFF9CEBFF.toInt())
         text(c,shipName()+"  •  امتیاز ارتقا: $upgradePoints",W/2f,wh*0.35f,6.1f,0xFFFFD45C.toInt())
-        val stats = listOf("attack" to "قدرت سلاح", "armor" to "زره و دفع ضربه", "mobility" to "سرعت مانور", "hull" to "جان شروع", "gold" to "توان طلایی")
-        stats.forEachIndexed { i,pair ->
-            val rank = shipUpgradeRank(pair.first)
-            val y = wh*0.38f + i*23f
-            text(c,pair.second,W/2f,y+8f,5.5f,WHT)
-            text(c,"سطح " + rank + "/۵  •  هزینه " + (rank+1) + " امتیاز",W/2f,y+15f,4.1f,0xFF9CEBFF.toInt())
-        }
+        text(c,"هر ارتقا فقط روی همین سفینه اعمال می‌شود",W/2f,wh*0.382f,4.5f,0xFF9CEBFF.toInt())
         drawButtons(c)
     }
 
