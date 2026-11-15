@@ -531,7 +531,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         2 -> "کاوشگر ویجر ۱"
         3 -> "کاوشگر ویجر ۲"
         4 -> "کاوشگر فونیکس"
-        else -> "تلسکوپ هابل"
+        else -> "کاوشگر هابل"
     }
 
     private fun shipPrice(id: Int): Int = intArrayOf(0, 450, 900, 1550, 2400)[id.coerceIn(0, 4)]
@@ -3036,8 +3036,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         drawGlassPanel(c, 7f, wh * 0.615f, W - 7f, wh * 0.825f, 0xFFFFD45C.toInt(), 220)
         drawFittedText(c, "قابلیت‌های گرفته‌شده  •  " + selectedAbilities.size, W / 2f, wh * 0.637f, 4.7f, 0xFFFFD45C.toInt(), 180f)
-        drawFittedText(c, "توان ویژه: " + legendaryName(), W / 2f, wh * 0.655f, 3.8f, 0xFFFFEBC1.toInt(), 180f)
-        drawOwnedAbilityList(c, wh * 0.668f, wh * 0.815f, 4, 3.25f)
+        drawFittedText(c, "توان ویژه: " + legendaryName(), W / 2f, wh * 0.653f, 3.7f, 0xFFFFEBC1.toInt(), 180f)
+        drawWrappedCardText(c, legendaryDescription(), W / 2f, wh * 0.667f, 2.85f, 0xFFB9D9E8.toInt(), 180f)
+        drawOwnedAbilityList(c, wh * 0.685f, wh * 0.815f, 4, 3.0f)
         drawButtons(c)
     }
 
