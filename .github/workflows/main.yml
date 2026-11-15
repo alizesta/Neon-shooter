@@ -1,10 +1,11 @@
-name: Build Neon Shooter 2.5.0 • ship progression
+name: Build Neon Shooter 2.6.0 • ship progression
 
 on:
   push:
     paths:
       - '.github/workflows/main.yml'
       - 'build-assets/v24/source.part*'
+      - 'source-inspection/GameView.kt'
   workflow_dispatch:
 
 permissions:
@@ -72,11 +73,11 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.5.0")
-          s = s.replace("versionCode = 25", "versionCode = 26", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.5.0"', 1)
+              raise SystemExit("Unexpected base version before v2.6.0")
+          s = s.replace("versionCode = 25", "versionCode = 27", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.0"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.5.0")
+          print("PATCH full gameplay source and version 2.6.0")
           PY
 
       - name: Generate original cinematic background music
@@ -111,7 +112,15 @@ jobs:
               "coin visuals are smaller": 'if (item.type == 13) 0.66f else 1f' in game,
               "coin pickup does not trigger stage banner": '13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply() }' in game,
               "music state is synced when pausing": "st = St.PAUSE\n                            syncMusic()" in game,
-              "release version is 2.5.0": "versionCode = 26" in gradle and 'versionName = "2.5.0"' in gradle,
+              "ability combo registry is active": "private fun activeCombo()" in game and "val combo = activeCombo()" in game,
+              "drone missile swarm gains count, damage and homing": "val swarmCombo" in game and "if (swarmCombo) 1 else 0" in game and "val homingSpeed = if (droneLevel > 0 && missileLevel > 0) 215f else 175f" in game,
+              "prism laser and scanner synergy improve beam damage": "val prismCombo" in game and "if (prismCombo) 1.22f else 1f" in game and "scannerRank * 2" in game,
+              "magnetic shield increases interception radius and capacity": "val magneticShieldRadius = if (magnetLevel > 0 && shieldLevel > 0) 34f else 27f" in game and "shieldMaxHp += 4" in game,
+              "gravity EMP combo damages and slows enemies": "enemySlowTimer = max(enemySlowTimer, 1.4f + empRank * 0.25f)" in game and "target.hp -= empRank * 2" in game,
+              "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
+              "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
+              "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
+              "release version is 2.6.0": "versionCode = 27" in gradle and 'versionName = "2.6.0"' in gradle,
           }
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
@@ -126,13 +135,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.5.0.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.6.0.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.5.0
-          path: NeonShooter-Android-Project-v2.5.0.zip
+          name: NeonShooter-Android-Project-v2.6.0
+          path: NeonShooter-Android-Project-v2.6.0.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -179,37 +188,37 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.5.0 APK build
+      - name: Record verified v2.6.0 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
-          cat > release-proof-v2.5.0.txt <<EOF
+          cat > release-proof-v2.6.0.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.5.0
+          app_version=2.6.0
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add release-proof-v2.5.0.txt
-          git commit -m "build: record verified v2.5.0 APK metadata"
+          git add release-proof-v2.6.0.txt
+          git commit -m "build: record verified v2.6.0 APK metadata"
           git push origin HEAD:main
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.5.0-APK
+          name: Neon-Shooter-v2.6.0-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.5.0
+      - name: Publish Neon Shooter 2.6.0
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.5.0
-          name: Neon Shooter v2.5.0
+          tag_name: v2.6.0
+          name: Neon Shooter v2.6.0
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
@@ -223,6 +232,8 @@ jobs:
             - Bosses randomly inherit two abilities owned by the player.
             - Black holes bend and pull the starfield and nearby entities.
             - Five ships with distinct golden abilities.
+            - Six real ability synergies: missile-drone swarm, prism laser, magnetic shield, gravity EMP, explosive chain lightning, and scanner laser.
+            - Boss phase three calls in elite reinforcements; phase transitions gain distinct neon rings and intensified attack patterns.
             - Icon-only action buttons, Persian About page, and Telegram channel link.
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           fail_on_unmatched_files: true
