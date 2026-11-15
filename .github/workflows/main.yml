@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.4.1
+name: Build Neon Shooter 2.5.0
 
 on:
   push:
@@ -71,6 +71,23 @@ jobs:
           gp.write_text(gradle, encoding="utf-8")
           print("PATCH app version 2.4.1")
           PY
+      - name: Apply full ship progression gameplay source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp source-inspection/GameView.kt NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("NeonShooter/app/build.gradle.kts")
+          s = p.read_text(encoding="utf-8")
+          if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
+              raise SystemExit("Unexpected base version before v2.5.0")
+          s = s.replace("versionCode = 25", "versionCode = 26", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.5.0"', 1)
+          p.write_text(s, encoding="utf-8")
+          print("PATCH full gameplay source and version 2.5.0")
+          PY
+
       - name: Generate original cinematic background music
         run: python3 NeonShooter/tools/generate_ambient.py
 
@@ -93,12 +110,17 @@ jobs:
               "buttons use icon drawing": "drawButtonIcon(c, b.id" in game and "text(c, b.label" not in game,
               "about page and Telegram link exist": "درباره نئون شوتر" in game and "https://t.me/gateneon" in game,
               "background music player is wired": "MediaPlayer.create(act, R.raw.ambient_theme)" in game,
+              "five ships have coin-purchased ownership": "private fun shipPrice(id: Int)" in game and "private fun buyOrSelectShip" in game and "ship_buy_4" in game,
+              "ship selection persists and changes actual ship artwork": "putInt(\"ship\", currentShip)" in game and "drawPlayerShip(c, px, py)" in game and "drawPlayerShip(c, cx, cy, shipId)" in game,
+              "bosses grant a separate persistent upgrade currency": "upgradePoints += earned" in game and "ship_upgrade_points" in game,
+              "per-ship upgrades affect attack, armor, mobility, hull and golden ability": all(x in game for x in ["shipUpgradeRank(\"attack\")", "shipUpgradeRank(\"armor\")", "shipUpgradeRank(\"mobility\")", "shipUpgradeRank(\"hull\")", "shipUpgradeRank(\"gold\")"]),
+              "hangar and upgrade workshop have interactive screens": "drawShipHangar(c)" in game and "drawShipUpgrades(c)" in game and "St.SHIP_UPGRADE" in game,
               "upgrade action uses a download icon": "c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)" in game,
               "main menu shows text beside icons": 'drawFittedText(c, b.label' in game and 'if (st == St.MENU)' in game,
               "coin visuals are smaller": 'if (item.type == 13) 0.66f else 1f' in game,
               "coin pickup does not trigger stage banner": '13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply() }' in game,
               "music state is synced when pausing": "st = St.PAUSE\n                            syncMusic()" in game,
-              "release version is 2.4.1": "versionCode = 25" in gradle and 'versionName = "2.4.1"' in gradle,
+              "release version is 2.5.0": "versionCode = 26" in gradle and 'versionName = "2.5.0"' in gradle,
           }
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
@@ -113,13 +135,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.4.1.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.5.0.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.4.1
-          path: NeonShooter-Android-Project-v2.4.1.zip
+          name: NeonShooter-Android-Project-v2.5.0
+          path: NeonShooter-Android-Project-v2.5.0.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -166,39 +188,43 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.4.1 APK build
+      - name: Record verified v2.5.0 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
-          cat > release-proof-v2.4.1.txt <<EOF
+          cat > release-proof-v2.5.0.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.4.1
+          app_version=2.5.0
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add release-proof-v2.4.1.txt
-          git commit -m "build: record verified v2.4.1 APK metadata"
+          git add release-proof-v2.5.0.txt
+          git commit -m "build: record verified v2.5.0 APK metadata"
           git push origin HEAD:main
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.4.1-APK
+          name: Neon-Shooter-v2.5.0-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.4.1
+      - name: Publish Neon Shooter 2.5.0
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.4.1
-          name: Neon Shooter v2.4.1
+          tag_name: v2.5.0
+          name: Neon Shooter v2.5.0
           body: |
             Actual gameplay update:
+            - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
+            - Ship prices: 450, 900, 1,550 and 2,400 coins; the starter ship is free.
+            - Bosses award a separate permanent-upgrade currency: 2 points per boss, 4 at waves 25, 50, etc.
+            - Each ship has its own persistent upgrade tree: weapon power, armor, mobility, hull and golden ability.
             - Level-5 abilities remain active and are excluded from future upgrade choices.
             - Pause screen displays the acquired ability list and ranks.
             - Enemies and bosses drop collectible coins; magnet and scavenger abilities collect/increase them.
