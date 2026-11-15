@@ -39,7 +39,7 @@ jobs:
           p = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt")
           source = p.read_text(encoding="utf-8")
           patches = [
-              ("        if (id.startsWith(\"upgrade_\")) {\n            val i = id.substringAfter('_').toIntOrNull() ?: 0\n            upgradeChoices.getOrNull(i)?.let { drawAbilityIcon(c, it, cx, cy) }\n            return\n        }", "        if (id.startsWith(\"upgrade_\")) {\n            // The ability is already shown on its card; this button means choose/download.\n            c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)\n            c.drawLine(x, y + 3f * s, x - 4.5f * s, y - 1.5f * s, paint)\n            c.drawLine(x, y + 3f * s, x + 4.5f * s, y - 1.5f * s, paint)\n            c.drawLine(x - 8f * s, y + 7f * s, x + 8f * s, y + 7f * s, paint)\n            return\n        }", "download icon on upgrade button"),
+              ("        if (id.startsWith(\"upgrade_\")) {\n            val i = id.substringAfter('_').toIntOrNull() ?: 0\n            upgradeChoices.getOrNull(i)?.let { drawAbilityIcon(c, it, cx, cy) }\n            return\n        }", "        if (id.startsWith(\"upgrade_\")) {\n            // The ability is already shown on its card; this button means choose/download.\n            c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)\n            c.drawLine(x, y + 3f * s, x - 4.5f * s, y - 1.5f * s, paint)\n            c.drawLine(x, y + 3f * s, x + 4.5f * s, y - 1.5f * s, paint)\n            c.drawLine(x - 8f * s, y + 7f * s, x + 8f * s, y + 7f * s, paint)\n            paint.style = Paint.Style.FILL\n            return\n        }", "download icon on upgrade button"),
               ("            drawButtonIcon(c, b.id, (r.left+r.right)/2f, r.top + 11f)", "            if (st == St.MENU) {\n                val cy = (r.top + r.bottom) / 2f\n                drawButtonIcon(c, b.id, r.left + 18f, cy)\n                drawFittedText(c, b.label, (r.left + r.right) / 2f + 10f, cy + 2.1f, 6.1f, 0xFFEAFBFF.toInt(), 82f)\n            } else {\n                drawButtonIcon(c, b.id, (r.left+r.right)/2f, r.top + 11f)\n            }", "text labels beside main-menu icons"),
               ("        val scale = s * (1f + sin(item.age * 5f) * 0.06f)", "        val coinScale = if (item.type == 13) 0.66f else 1f\n        val scale = s * coinScale * (1f + sin(item.age * 5f) * 0.06f)", "smaller coin rendering"),
               ("                13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt(\"credits\", credits).apply(); bannerT = 0.45f }", "                13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt(\"credits\", credits).apply() }", "coin pickup no longer triggers stage banner"),
@@ -86,10 +86,6 @@ jobs:
               "main menu shows text beside icons": 'drawFittedText(c, b.label' in game and 'if (st == St.MENU)' in game,
               "coin visuals are smaller": 'if (item.type == 13) 0.66f else 1f' in game,
               "coin pickup does not trigger stage banner": '13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply() }' in game,
-              "upgrade button uses a download icon": "c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)" in game,
-              "main menu labels accompany icons": 'drawFittedText(c, b.label' in game and 'if (st == St.MENU)' in game,
-              "coins render smaller": 'if (item.type == 13) 0.66f else 1f' in game,
-              "coin pickup does not show a stage banner": '13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply() }' in game,
               "music state is synced when pausing": "st = St.PAUSE\n                            syncMusic()" in game,
               "release version is 2.4.1": "versionCode = 25" in gradle and 'versionName = "2.4.1"' in gradle,
           }
