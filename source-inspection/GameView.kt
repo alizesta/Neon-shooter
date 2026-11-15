@@ -800,7 +800,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }.joinToString("")
 
     private fun waveTitle(level: Int = wave): String =
-        "مرحله\u00A0\u200E" + persianNumber(level) + "\u200E\u00A0• " + waveName(level)
+        "مرحله " + persianNumber(level) + " • " + waveName(level)
 
     private fun stageDescription(level: Int = wave): String =
         stageDescriptions.getOrElse(level - 1) { "در این مرحله با یکی از صورت‌های فلکی آسمان روبه‌رو می‌شوی" }
@@ -985,7 +985,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             St.UPGRADE -> {
                 val milestone = wave in 10..50 && wave % 10 == 0
                 val top = wh * 0.85f
-                for (i in 0..2) l.add(Btn("upgrade_$i", "انتخاب", RectF(5f + i * 72f, top, 67f + i * 72f, top + 25f)))
+                val gap = 4f
+                val width = (W - 10f - gap * 2f) / 3f
+                for (i in 0..2) {
+                    val left = 5f + i * (width + gap)
+                    l.add(Btn("upgrade_$i", "انتخاب", RectF(left, top, left + width, top + 25f)))
+                }
             }
             St.SHOP -> {
                 val y = wh * 0.46f
@@ -1092,7 +1097,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val side = if (Random.nextBoolean()) 1f else -1f
             blackHoles.add(BlackHole(Random.nextFloat() * (W - 76f) + 38f, -18f, 48f + Random.nextFloat() * 12f, 72000f, side * (5f + Random.nextFloat() * 8f)))
         }
-        bannerT = 2.0f
+        bannerT = 5.0f
         if (wave % 5 == 0) {
             waveTarget = enemies.count { !it.dead } + 1 + if (eventKind == 5) 3 else 0
             val bossBaseHp = 300 + wave * 44
@@ -2459,7 +2464,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val boss = wave % 5 == 0
             val combo = activeCombo()
             val bossName = enemies.firstOrNull { it.type == 2 && !it.dead }?.let { bossConstellationName(it.t0.toInt()) }
-            val bannerTitle = if (boss && bossName != null) "نبرد با " + bossName else if (eventKind > 0) eventName() else waveTitle(wave)
+            val bannerTitle = if (boss && bossName != null) "نبرد با " + bossName else waveTitle(wave)
             drawFittedText(c, bannerTitle, W / 2f, wh * 0.4f, 10.2f, if (boss) RED else WHT, 180f)
             drawFittedText(c, stageDescription(wave), W / 2f, wh * 0.4f + 11f, 4.25f, 0xFF72F0C0.toInt(), 190f)
             if (combo.isNotEmpty()) drawFittedText(c, combo, W / 2f, wh * 0.4f + 19f, 5.2f, 0xFFFFD45C.toInt(), 160f)
@@ -3026,6 +3031,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             drawFittedText(c, "هنوز قابلیتی نگرفته‌ای", W / 2f, (top + bottom) / 2f + 1f, 4.0f, 0xFF9BAABC.toInt(), W - 24f)
             return
         }
+        c.save()
+        c.clipRect(7f * s, top * s, (W - 7f) * s, bottom * s)
         val left = 7f
         val usableWidth = W - 14f
         val cellWidth = usableWidth / columns
@@ -3057,6 +3064,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             drawFittedText(c, label, cellX + 11f + (cellWidth - 11f)/2f, centerY + 1.25f, fontSize, if (abilityRank(id)>=5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), cellWidth-13f)
             c.restore()
         }
+        c.restore()
     }
 
     private fun drawUpgrade(c: Canvas) {
@@ -3064,15 +3072,22 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawGlassPanel(c, 5f, wh * 0.30f, W - 5f, wh * 0.76f, 0xFF47DFFF.toInt(), 232)
         text(c, "یک قابلیت را انتخاب کن", W / 2f, wh * 0.365f, 8.4f, 0xFF9CEBFF.toInt())
         text(c, if (extraAbilitiesUnlocked) "قابلیت‌های تازه باز شده‌اند" else "قابلیت‌های انتخاب‌شده", W / 2f, wh * 0.402f, 5.0f, 0xFFFFD45C.toInt())
+        val optionGap = 4f
+        val optionWidth = (W - 14f - optionGap * 2f) / 3f
         for (i in 0..2) {
             val id = upgradeChoices.getOrNull(i) ?: continue
-            val cx = 36f + i * 74f
-            drawGlassPanel(c, cx - 30f, wh * 0.43f, cx + 30f, wh * 0.60f, abilityColor(id), 190)
+            val left = 7f + i * (optionWidth + optionGap)
+            val right = left + optionWidth
+            val cx = (left + right) / 2f
+            c.save()
+            c.clipRect(left * s, (wh * 0.425f) * s, right * s, (wh * 0.605f) * s)
+            drawGlassPanel(c, left, wh * 0.43f, right, wh * 0.60f, abilityColor(id), 190)
             drawAbilityIcon(c, id, cx, wh * 0.462f)
             val rank = abilityRank(id)
-            drawFittedText(c, upgradeTitle(id), cx, wh * 0.512f, 4.8f, WHT, 54f)
-            drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.5f, 0xFFFFD45C.toInt(), 42f)
-            drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 3.9f, 0xFF9CEBFF.toInt(), 52f)
+            drawFittedText(c, upgradeTitle(id), cx, wh * 0.512f, 4.6f, WHT, optionWidth - 6f)
+            drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.4f, 0xFFFFD45C.toInt(), optionWidth - 8f)
+            drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 3.7f, 0xFF9CEBFF.toInt(), optionWidth - 8f)
+            c.restore()
         }
         drawGlassPanel(c, 7f, wh * 0.615f, W - 7f, wh * 0.825f, 0xFFFFD45C.toInt(), 220)
         drawFittedText(c, "قابلیت‌های گرفته‌شده  •  " + ownedAbilityIds().size, W / 2f, wh * 0.637f, 4.7f, 0xFFFFD45C.toInt(), 180f)
