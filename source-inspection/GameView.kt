@@ -561,7 +561,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun prepareUpgradeChoices() {
         val all = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield",
             "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix")
-        if (!extraAbilitiesUnlocked && wave > 25 && selectedAbilities.size >= 5 && selectedAbilities.all { abilityRank(it) >= 5 }) {
+        if (!extraAbilitiesUnlocked && wave >= 25 && selectedAbilities.size >= 5 && selectedAbilities.all { abilityRank(it) >= 5 }) {
             extraAbilitiesUnlocked = true
         }
         val eligible = all.filter { id ->
