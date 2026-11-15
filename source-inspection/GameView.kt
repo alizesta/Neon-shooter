@@ -2593,14 +2593,17 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 line(-4f, -4f, 4f, 4f, 1.8f)
             }
             "hull" -> {
-                poly(0f, -10f, 8f, -5f, 7f, 6f, 0f, 10f, -7f, 6f, -8f, -5f, 0f, -10f)
-                line(-4f, -1f, 4f, -1f, 2f); line(0f, -5f, 0f, 5f, 2f)
-                line(-5f, 4f, 5f, 4f, 0.8f)
+                poly(0f, -10f, 5f, -3f, 9f, 7f, 3f, 5f, 0f, 9f, -3f, 5f, -9f, 7f, -5f, -3f, 0f, -10f)
+                line(-5f, -3f, 5f, -3f, 1.8f)
+                line(-3f, 1f, 3f, 1f, 1.4f)
+                line(-2f, 6f, 2f, 6f, 1.1f)
             }
             "emp" -> {
-                poly(1f, -10f, -5f, -1f, -1f, -1f, -4f, 9f, 7f, -3f, 2f, -3f, 1f, -10f)
-                line(-10f, -7f, -7f, -4f); line(10f, -7f, 7f, -4f)
-                line(-10f, 7f, -7f, 4f); line(10f, 7f, 7f, 4f)
+                circle(0f, 0f, 2.2f, true)
+                c.drawArc(RectF((cx - 6f)*s, (cy - 6f)*s, (cx + 6f)*s, (cy + 6f)*s), 205f, 130f, false, paint)
+                c.drawArc(RectF((cx - 10f)*s, (cy - 10f)*s, (cx + 10f)*s, (cy + 10f)*s), 25f, 130f, false, paint)
+                c.drawArc(RectF((cx - 10f)*s, (cy - 10f)*s, (cx + 10f)*s, (cy + 10f)*s), 205f, 130f, false, paint)
+                line(-12f, 0f, -9f, 0f); line(9f, 0f, 12f, 0f)
             }
             "ricochet" -> {
                 poly(-9f, 8f, -3f, 1f, 2f, 5f, 8f, -3f, 4f, -3f, 8f, -3f, 8f, 1f)
@@ -2642,9 +2645,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 line(-10f, 10f, 10f, 10f)
             }
             "ricochet_shield" -> {
-                poly(0f, -10f, 8f, -6f, 6f, 4f, 0f, 10f, -6f, 4f, -8f, -6f, 0f, -10f)
-                line(-3f, -2f, 4f, -2f); line(4f, -2f, 1f, -5f); line(4f, -2f, 1f, 1f)
-                line(3f, 4f, -4f, 4f); line(-4f, 4f, -1f, 1f); line(-4f, 4f, -1f, 7f)
+                c.drawArc(RectF((cx - 10f)*s, (cy - 10f)*s, (cx + 10f)*s, (cy + 10f)*s), 205f, 125f, false, paint)
+                c.drawArc(RectF((cx - 10f)*s, (cy - 10f)*s, (cx + 10f)*s, (cy + 10f)*s), 25f, 125f, false, paint)
+                poly(-8f, -8f, -8f, -2f, -2f, -2f)
+                poly(8f, 8f, 8f, 2f, 2f, 2f)
+                line(-5f, 6f, 5f, -6f, 1.7f)
             }
             "health_regen" -> {
                 poly(-10f, -2f, -7f, -7f, -2f, -7f, 0f, -3f, 2f, -7f, 7f, -7f, 10f, -2f, 0f, 9f, -10f, -2f)
