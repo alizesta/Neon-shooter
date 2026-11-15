@@ -133,7 +133,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var scavengerRank = 0
     private var multishotRank = 0
     private var phoenixRank = 0
-    private val bossConstellationNames = arrayOf("جبار", "اسد", "عقرب", "ذات‌الکرسی", "دب‌اکبر", "دجاجه", "شلیاق", "اسب‌بالدار", "آندرومدا", "اژدها")
+    private val bossConstellationNames = arrayOf("جبار", "دب‌اکبر", "عقرب", "اسد", "کمان", "ثور", "سگ بزرگ", "غراب", "مار آبی", "مار")
     private val bossConstellationColors = intArrayOf(
         0xFF8BE9FF.toInt(), 0xFFFFC76A.toInt(), 0xFFFF8A9D.toInt(), 0xFFC5A1FF.toInt(), 0xFF70E5C2.toInt(),
         0xFF83C8FF.toInt(), 0xFFFFD97A.toInt(), 0xFFFFA7D8.toInt(), 0xFF9DEBFF.toInt(), 0xFFB6F28D.toInt()
@@ -163,56 +163,56 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         arrayOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 6, 6 to 7, 7 to 0)
     )
     private val stageNames = arrayOf(
-        "عطارد",
-        "زهره",
-        "زمین",
-        "ماه",
-        "مریخ",
-        "سرس",
-        "مشتری",
-        "اروپا",
-        "گانیمد",
-        "کالیستو",
-        "زحل",
-        "تیتان",
-        "انسلادوس",
-        "اورانوس",
-        "نپتون",
-        "تریتون",
-        "پلوتو",
-        "شارون",
-        "اریس",
-        "ماکی‌ماکی",
-        "هائومیا",
-        "پروکسیما قنطورس بی",
-        "تراپیست-۱بی",
-        "تراپیست-۱ئی",
-        "کپلر-۲۲بی",
-        "کپلر-۴۵۲بی",
-        "۵۱ پگاسی بی",
-        "واسپ-۱۲بی",
-        "گلیزه ۱۲۱۴بی",
-        "ال‌اچ‌اس ۱۱۴۰بی",
-        "سیریوس",
-        "آلفا قنطورس",
-        "وگا",
-        "دبران",
-        "رجل‌الجبار",
-        "خوشه پروین",
-        "سحابی جبار",
-        "سحابی عقاب",
-        "سحابی خرچنگ",
-        "سحابی مرداب",
-        "کهکشان آندرومدا",
-        "کهکشان مثلث",
-        "ابر ماژلانی بزرگ",
-        "ابر ماژلانی کوچک",
-        "کهکشان گرداب",
-        "کهکشان چرخ‌گاری",
-        "قنطورس آ",
-        "کمان ای*",
-        "کهکشان کلاه‌مکزیکی",
-        "میدان ژرف هابل"
+        "آندرومدا",
+        "دلو",
+        "عقاب",
+        "بره",
+        "جبار",
+        "ارابه‌ران",
+        "گاوران",
+        "خرچنگ",
+        "بزماهی",
+        "دب‌اکبر",
+        "نهنگ",
+        "تاج شمالی",
+        "جام",
+        "دجاجه",
+        "عقرب",
+        "دلفین",
+        "اژدها",
+        "دوپیکر",
+        "هرکول",
+        "اسد",
+        "ترازو",
+        "گرگ",
+        "شلیاق",
+        "مارافسای",
+        "کمان",
+        "حوت",
+        "برساوش",
+        "اسب‌بالدار",
+        "ققنوس",
+        "ثور",
+        "مثلث",
+        "سنبله",
+        "روباهک",
+        "ذات‌الکرسی",
+        "سگ بزرگ",
+        "سگ کوچک",
+        "قنطورس",
+        "قیفاووس",
+        "کبوتر",
+        "غراب",
+        "صلیب جنوبی",
+        "ماهی زرین",
+        "نهر",
+        "درنا",
+        "مار آبی",
+        "هندی",
+        "سوسمار",
+        "تک‌شاخ",
+        "هشتک",
+        "مار"
     )
     private val selectedAbilities = linkedSetOf<String>()
     private var extraAbilitiesUnlocked = false
@@ -750,12 +750,20 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun drawBossConstellation(c: Canvas, index: Int, centerX: Float, centerY: Float, size: Float = 1f, alpha: Int = 160) {
         val safeIndex = index.coerceIn(0, bossConstellationPoints.lastIndex)
         val points = bossConstellationPoints[safeIndex]
+        val edges = bossConstellationEdges[safeIndex]
         val color = bossConstellationColors[safeIndex]
+        val cr = Color.red(color)
+        val cg = Color.green(color)
+        val cb = Color.blue(color)
+
+        // The constellation itself forms the boss silhouette: connected nebula lines and bright stars.
         paint.style = Paint.Style.STROKE
         paint.strokeCap = Paint.Cap.ROUND
-        paint.strokeWidth = max(0.65f, 0.95f * size) * s
-        paint.color = Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
-        for ((from, to) in bossConstellationEdges[safeIndex]) {
+        paint.strokeJoin = Paint.Join.ROUND
+        paint.strokeWidth = 5.2f * size * s
+        paint.color = Color.argb((alpha * 0.30f).toInt(), cr, cg, cb)
+        paint.maskFilter = BlurMaskFilter(4.2f * size * s, BlurMaskFilter.Blur.NORMAL)
+        for ((from, to) in edges) {
             val a = points[from]
             val b = points[to]
             c.drawLine(
@@ -763,12 +771,35 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 (centerX + b.first * size) * s, (centerY + b.second * size) * s, paint
             )
         }
+        paint.maskFilter = null
+        paint.strokeWidth = 1.45f * size * s
+        paint.color = Color.argb(alpha, cr, cg, cb)
+        for ((from, to) in edges) {
+            val a = points[from]
+            val b = points[to]
+            c.drawLine(
+                (centerX + a.first * size) * s, (centerY + a.second * size) * s,
+                (centerX + b.first * size) * s, (centerY + b.second * size) * s, paint
+            )
+        }
+
         paint.style = Paint.Style.FILL
         for ((starIndex, point) in points.withIndex()) {
-            val radius = (if (starIndex == 0 || starIndex == points.lastIndex) 1.55f else 1.05f) * size * s
-            paint.color = Color.argb(alpha, 242, 250, 255)
-            c.drawCircle((centerX + point.first * size) * s, (centerY + point.second * size) * s, radius, paint)
+            val major = starIndex == 0 || starIndex == points.lastIndex || starIndex == points.size / 2
+            val radius = (if (major) 2.75f else 1.85f) * size * s
+            val x = (centerX + point.first * size) * s
+            val y = (centerY + point.second * size) * s
+            paint.color = Color.argb((alpha * 0.40f).toInt(), cr, cg, cb)
+            paint.maskFilter = BlurMaskFilter(radius * 2.2f, BlurMaskFilter.Blur.NORMAL)
+            c.drawCircle(x, y, radius * 2.0f, paint)
+            paint.maskFilter = null
+            paint.color = Color.argb(alpha, min(255, 225 + cr / 9), min(255, 235 + cg / 12), min(255, 245 + cb / 24))
+            c.drawCircle(x, y, radius, paint)
+            paint.color = Color.argb(alpha, 255, 255, 255)
+            c.drawCircle(x, y, radius * 0.42f, paint)
         }
+        paint.style = Paint.Style.FILL
+        paint.maskFilter = null
     }
 
     private fun eventName(): String = when (eventKind) {
@@ -2151,9 +2182,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         for (hole in blackHoles) drawBlackHole(c, hole)
         drawNeonAbilityVfx(c)
         for (e in enemies) {
-            val sprite = when (e.type) { 2 -> bossSprites[e.t0.toInt().coerceIn(0, 9)]; 1 -> bE1; 3 -> bE2; 4 -> bE3; 5 -> bossSprites[5]; 6 -> bossSprites[6]; else -> bE0 }
-            if (e.type == 2) drawBossConstellation(c, e.t0.toInt(), e.x, e.y, 1.45f, 76)
-            spr(c, sprite, e.x, e.y)
+            if (e.type == 2) {
+                val bossId = e.t0.toInt().coerceIn(0, 9)
+                val constellationScale = e.hw * 0.085f
+                drawBossConstellation(c, bossId, e.x, e.y, constellationScale, 235)
+            } else {
+                val sprite = when (e.type) { 1 -> bE1; 3 -> bE2; 4 -> bE3; 5 -> bossSprites[5]; 6 -> bossSprites[6]; else -> bE0 }
+                spr(c, sprite, e.x, e.y)
+            }
             if (e.type == 2 && e.phase >= 2) {
                 paint.style = Paint.Style.STROKE
                 paint.strokeWidth = (if (e.phase >= 3) 1.8f else 1.1f) * s
