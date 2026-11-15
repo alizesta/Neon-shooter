@@ -47,10 +47,41 @@ jobs:
         run: |
           xz -dc patch_game_v22.py.xz > patch_game_v22.py
           python3 patch_game_v22.py
-      - name: Apply Neon Shooter 2.3.0 rhythm combat and new ships
+      - name: Apply Neon Shooter 2.3.0 gameplay recovery patch
         run: |
-          cat build-assets/v23/patch_game_v23.part01 build-assets/v23/patch_game_v23.part02 build-assets/v23/patch_game_v23.part03 build-assets/v23/patch_game_v23.part04 | base64 -d | xz --ignore-check -dc > patch_game_v23.py
-          python3 patch_game_v23.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt")
+          s = p.read_text()
+          def sub(old, new, label):
+              global s
+              if old not in s:
+                  raise SystemExit("Missing patch anchor: " + label)
+              s = s.replace(old, new, 1)
+          sub("for (star in stars) star.phase += dt * (2.4f + star.sp * 0.16f)",
+              "for (star in stars) { star.phase += dt * (2.4f + star.sp * 0.16f); star.y += star.sp * dt; if (star.y > wh) star.y = -1f }",
+              "downward starfield")
+          sub("110 + wave * 18", "77 + wave * 13", "first boss health reduction")
+          sub("val hp = when (type) { 1 -> 5 + wave / 8; 3 -> 4 + wave / 10; 4 -> 3 + wave / 12; else -> 2 + wave / 12 }",
+              "val baseHp = when (type) { 1 -> 5 + wave / 8; 3 -> 4 + wave / 10; 4 -> 3 + wave / 12; else -> 2 + wave / 12 }; val hp = if (wave >= 10) (baseHp * 1.5f).toInt() else baseHp",
+              "late-wave enemy scaling")
+          sub("roll < 0.985f -> 9\n                else -> 10",
+              "roll < 0.985f -> 9\n                roll < 0.995f -> 10\n                else -> 11",
+              "coin drops")
+          sub("10 -> 0xFF72F0C0.toInt()\n            else -> 0xFFB68CFF.toInt()",
+              "10 -> 0xFF72F0C0.toInt()\n            11 -> 0xFFFFD34F.toInt()\n            else -> 0xFFB68CFF.toInt()",
+              "coin appearance")
+          sub("10 -> piercingTimer = max(piercingTimer, 8f)\n                else -> activateSquadron()",
+              "10 -> piercingTimer = max(piercingTimer, 8f)\n                11 -> score += 25\n                else -> activateSquadron()",
+              "coin collection")
+          sub("0xFF8C63FF.toInt()", "0xFFFFC247.toInt()", "gold black-hole ring")
+          sub("0xFF35D9F2.toInt()", "0xFFFFE08A.toInt()", "gold black-hole ring highlight")
+          sub("0xFFFF75D8.toInt()", "0xFFFFA51F.toInt()", "gold black-hole arc")
+          sub("0xFFB59BFF.toInt()", "0xFFFFD36A.toInt()", "gold black-hole core")
+          sub("Thread.sleep(8)", "Thread.sleep(11)", "90 FPS frame pacing")
+          p.write_text(s)
+          print("Neon Shooter 2.3 gameplay recovery patch applied.")
+          PY
       - name: Package complete Android project
         run: zip -qr NeonShooter-Android-Project-v2.3.0.zip NeonShooter
       - name: Upload Android project artifact
@@ -100,6 +131,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v2.3.0
-          name: Neon Shooter v2.3.0 (Rhythm Combat + Five Ships + Persian UI)
+          name: Neon Shooter v2.3.0 (Gameplay Polish + Persian UI)
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           fail_on_unmatched_files: true
