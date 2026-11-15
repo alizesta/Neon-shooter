@@ -500,10 +500,23 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun buyShipUpgrade(stat: String) {
         val rank = shipUpgradeRank(stat)
-        if (rank >= 5 || upgradePoints < rank + 1) return
-        upgradePoints -= rank + 1
+        if (rank >= 5) {
+            adStatusText = "این ارتقا به سطح MAX رسیده"
+            adStatusTimer = 1.6f
+            return
+        }
+        val cost = rank + 1
+        if (upgradePoints < cost) {
+            adStatusText = "برای ارتقای " + (if (stat == "gold") "توان طلایی" else "سفینه") + " " + cost + " امتیاز باس لازم است"
+            adStatusTimer = 2f
+            return
+        }
+        // Permanent ship upgrades, including the golden ability, only spend boss upgrade points.
+        upgradePoints -= cost
         prefs.edit().putInt("ship_upgrade_points", upgradePoints)
             .putInt("ship_upgrade_" + currentShip + "_" + stat, rank + 1).apply()
+        adStatusText = (if (stat == "gold") "توان طلایی" else "ارتقای سفینه") + " به سطح " + (rank + 1) + " رسید"
+        adStatusTimer = 1.6f
     }
 
     private fun shipMoveMultiplier(): Float = (when (currentShip) {
@@ -910,7 +923,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 val stats = listOf("attack" to "قدرت سلاح", "armor" to "زره", "mobility" to "سرعت", "hull" to "جان شروع", "gold" to "توان طلایی")
                 stats.forEachIndexed { i, pair ->
                     val rank = shipUpgradeRank(pair.first)
-                    val label = if (rank >= 5) pair.second + " • MAX" else pair.second + " • " + rank + "/۵ • " + (rank + 1) + " امتیاز"
+                    val cost = rank + 1
+                    val price = if (pair.first == "gold") "هزینه " + cost + " امتیاز باس" else cost.toString() + " امتیاز باس"
+                    val label = if (rank >= 5) pair.second + " • MAX" else pair.second + " • " + rank + "/۵ • " + price
                     l.add(Btn("shipup_" + pair.first, label, RectF(12f, y + i * 23f, 208f, y + i * 23f + 20f)))
                 }
                 add("shipUpgradeBack", "بازگشت به آشیانه", wh * 0.77f)
@@ -3188,7 +3203,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.color = 0xE807101D.toInt(); c.drawRect(0f,0f,sw.toFloat(),sh.toFloat(),paint)
         drawGlassPanel(c,5f,wh*0.27f,W-5f,wh*0.86f,0xFF47DFFF.toInt(),244)
         text(c,"کارگاه ارتقای سفینه",W/2f,wh*0.32f,11f,0xFF9CEBFF.toInt())
-        text(c,shipName()+"  •  امتیاز ارتقا: $upgradePoints",W/2f,wh*0.35f,6.1f,0xFFFFD45C.toInt())
+        text(c,shipName()+"  •  امتیاز ارتقای باس: $upgradePoints",W/2f,wh*0.35f,6.1f,0xFFFFD45C.toInt())
         text(c,"هر ارتقا فقط روی همین سفینه اعمال می‌شود",W/2f,wh*0.382f,4.5f,0xFF9CEBFF.toInt())
         drawButtons(c)
     }
