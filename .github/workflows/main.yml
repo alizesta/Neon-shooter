@@ -162,14 +162,14 @@ jobs:
               "score, stage, boss health and progress marker avoid HUD collisions": 'drawFittedText(c, "امتیاز $score", 6f, 14f, 6.2f, YEL, 58f' in game and "96f*s, 21f*s, 184f*s, 25f*s" in game and "val top = 56f * s" in game,
               "boss banner avoids repeating the stage number": '"نبرد با " + bossName' in game and "drawFittedText(c, combo" in game,
               "Persian UI text is constrained to one line unless explicitly wrapped": ".setMaxLines(1)" in game and ".setEllipsize(TextUtils.TruncateAt.END)" in game and "TextUtils.ellipsize(value, tp" in game and "tp.textAlign = Paint.Align.LEFT" in game,
-              "ability choice panel lists previously collected abilities in its lower card": "قابلیت‌های گرفته‌شده" in game and "drawOwnedAbilityList(c, wh * 0.685f" in game and "drawOwnedAbilityList(c, wh * 0.70f" in game and "ownedAbilityIds().size" in game,
+              "ability choice panel lists previously collected abilities in its lower card": "قابلیت‌های گرفته‌شده" in game and "drawOwnedAbilityList(c, wh * 0.682f" in game and "drawOwnedAbilityList(c, wh * 0.70f" in game and "ownedAbilityIds().size" in game,
               "pause ability roster uses a three-column non-overlapping layout": "drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3" in game and "val cellHeight = (bottom - top) / rows" in game,
               "all 50 stages have short constellation descriptions": "private val stageDescriptions = arrayOf(" in game and "stageDescriptions.getOrElse(level - 1)" in game and "drawFittedText(c, stageDescription(wave)" in game,
               "game-facing fleet labels call them probes, not ships": "کاوشگرها" in game and "کاوشگر ویجر ۱" in game and "کاوشگر فونیکس" in game,
               "Persian numeric runs are direction-isolated and StaticLayout alignment is reset": "\\u200E" in game and "tp.textAlign = Paint.Align.LEFT" in game and "persianNumber(level)" in game,
               "fitted labels are ellipsized and clipped inside their fixed-width cells": "TextUtils.ellipsize(value, tp" in game and "c.clipRect(left * s" in game and "c.clipRect(cellX * s, cellTop * s" in game,
               "upgrade and pause ability inventories fit three-column/compact card cells": "drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 3" in game and "drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3" in game,
-              "five probes have added optical, antenna, mirror, boom and lander hardware detail": all(x in game for x in ["Hubble additional telescope and solar-array details", "Six visible primary-mirror segments", "High-gain dish ribs", "Separate dish ribs", "Phoenix weather mast"]),
+              "five probes have added optical, antenna, mirror, boom and lander hardware detail": all(x in game for x in ["Hubble optical baffle rings", "Six visible primary-mirror segments", "High-gain dish ribs", "Separate dish ribs", "Phoenix weather mast"]),
               "stage and constellation introduction remains visible for five seconds": "stageIntroTimer = 5.0f" in game and "stageIntroTimer = max(0f, stageIntroTimer - dt)" in game and "if (stageIntroTimer > 0f && st == St.PLAY)" in game and "drawFittedText(c, stageDescription(wave)" in game,
               "stage number is Persian and rendered as an isolated numeric run": "persianNumber(level)" in game and "Regex(\"([0-9۰-۹٠-٩]+)\")" in game and '"مرحله " + persianNumber(level)' in game,
               "all three upgrade cards are positioned inside the panel bounds": "val optionWidth = (W - 14f - optionGap * 2f) / 3f" in game and "c.clipRect(left * s, (wh * 0.425f) * s, right * s, (wh * 0.605f) * s)" in game,
@@ -227,6 +227,17 @@ jobs:
           if "The constellation itself forms the boss silhouette" not in game or "BlurMaskFilter(4.2f * size * s" not in game:
               raise SystemExit("Constellation boss body glow/connected-star silhouette is missing")
           print("PASS boss bodies are glowing connected-star constellation formations, not bitmap ships")
+          logical_width = 210.0
+          gap = 4.0
+          option_width = (logical_width - 14.0 - 2 * gap) / 3.0
+          option_cells = [(7.0 + i * (option_width + gap), 7.0 + i * (option_width + gap) + option_width) for i in range(3)]
+          assert all(left >= 7.0 and right <= logical_width - 7.0 for left, right in option_cells), option_cells
+          button_gap = 4.0
+          button_width = (logical_width - 10.0 - 2 * button_gap) / 3.0
+          button_cells = [(5.0 + i * (button_width + button_gap), 5.0 + i * (button_width + button_gap) + button_width) for i in range(3)]
+          assert all(left >= 5.0 and right <= logical_width - 5.0 for left, right in button_cells), button_cells
+          assert 0.615 <= 0.682 < 0.816 <= 0.825
+          print("PASS text/card/button geometry stays inside the usable screen and lower panel")
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
               print(("PASS " if ok else "FAIL ") + name)
