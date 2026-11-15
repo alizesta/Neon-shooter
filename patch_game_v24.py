@@ -34,6 +34,22 @@ for order in itertools.permutations(range(len(segments))):
         break
 
 if recovered is None:
+    print("PATCH_DIAGNOSTIC: encoded_lengths=" + str([len(x) for x in segments]))
+    for i, chunk in enumerate(segments):
+        print(f"PATCH_DIAGNOSTIC: chunk{i+1}_bytes={len(chunk)} prefix={chunk[:8].hex()}")
+        try:
+            one = lzma.decompress(chunk)
+            print(f"PATCH_DIAGNOSTIC: chunk{i+1}_xz_output={len(one)} prefix={one[:48]!r}")
+        except Exception as exc:
+            print(f"PATCH_DIAGNOSTIC: chunk{i+1}_xz_error={type(exc).__name__}:{exc}")
+    for order in itertools.permutations(range(len(segments))):
+        try:
+            packed = b"".join(segments[i] for i in order)
+            raw = lzma.decompress(packed)
+            print(f"PATCH_DIAGNOSTIC: decoded_binary_order={order}, bytes={len(raw)}, head={raw[:120]!r}")
+        except Exception as exc:
+            if order == (0, 1, 2, 3):
+                print(f"PATCH_DIAGNOSTIC: binary_join_default_error={type(exc).__name__}:{exc}")
     raise SystemExit("Could not recover a valid Python feature patch from the four XZ segments")
 
 patch_path = Path("patch_game_v23.py")
