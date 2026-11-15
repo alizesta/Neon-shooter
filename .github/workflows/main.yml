@@ -29,6 +29,20 @@ jobs:
           test -s NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt
           test -s NeonShooter/app/build.gradle.kts
 
+      - name: Export gameplay source for targeted fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source-inspection
+          cp NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt source-inspection/GameView.kt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add source-inspection/GameView.kt
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: expose gameplay source for focused fixes"
+            git push origin HEAD:main
+          fi
+
       - name: Generate original cinematic background music
         run: python3 NeonShooter/tools/generate_ambient.py
 
