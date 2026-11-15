@@ -221,7 +221,9 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var shopHandledWave = -1
     private var upgradeHandledWave = -1
     private var legendaryTime = 0f
-    private var legendaryCooldown = 0f
+    private var legendaryCharge = 0
+    private var legendaryChargeSuppressed = false
+    private val legendaryChargeNeeded = 15
     private var weaponTimer = 0f
     private var piercingTimer = 0f
     private var enemySlowTimer = 0f
@@ -432,7 +434,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                     lx = e.x; ly = e.y; controlTouch = false
                     if (st == St.PLAY) {
                         val x = e.x / s; val y = e.y / s
-                        if (y >= wh - 34f && x in 48f..108f && legendaryTier() > 0) {
+                        if (y >= wh - 34f && x in 48f..108f) {
                             activateLegendary()
                             controlTouch = true
                         } else if (x >= W - 32f && y <= 30f) {
@@ -641,33 +643,75 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         prefs.edit().putInt("credits", credits).apply()
     }
 
-    private fun legendaryTier(): Int = maxOf(wave, bestWave) / 10
-
     private fun legendaryName(): String = when (currentShip) {
-        0 -> "فراشتاب"
-        1 -> "پس‌سوز"
-        2 -> "ایجیس"
-        4 -> "ققنوس طلایی"
-        else -> "مخفی‌کاری"
+        0 -> "طوفان پلاسما"
+        1 -> "پس‌سوز کوانتومی"
+        2 -> "ایجیس مطلق"
+        3 -> "فاز شبح"
+        else -> "انفجار ققنوس"
+    }
+
+    private fun legendaryDescription(): String = when (currentShip) {
+        0 -> "۱۵ نابودی: شلیک پلاسما با سرعت بسیار بالا برای چند ثانیه"
+        1 -> "۱۵ نابودی: جهش سریع، افزایش مانور و ایمنی کوتاه"
+        2 -> "۱۵ نابودی: بازیابی سپر و مصونیت موقت"
+        3 -> "۱۵ نابودی: محو شدن، عبور از گلوله‌ها و کند کردن دشمنان"
+        else -> "۱۵ نابودی: پاک‌سازی تیرها، نابودی دشمنان عادی و ضربه سنگین به باس"
     }
 
     private fun activateLegendary() {
-        if (st != St.PLAY || legendaryTier() <= 0 || legendaryCooldown > 0f || legendaryTime > 0f) return
-        legendaryTime = 5f + shipUpgradeRank("gold") * 0.7f
-        legendaryCooldown = max(11f, 20f - shipUpgradeRank("gold") * 1.4f)
-        if (currentShip == 2) invul = max(invul, 5f + shipUpgradeRank("gold") * 0.7f)
-        if (currentShip == 4) {
-            lives = min(10, lives + 1)
-            invul = max(invul, 3.2f + shipUpgradeRank("gold") * 0.7f)
-            bullets.removeAll { !it.mine }
-            enemyLasers.clear()
-            for (enemy in enemies.toList()) {
-                if (enemy.type == 2) { enemy.hp -= 70 + wave * 3; if (enemy.hp <= 0) kill(enemy) }
-                else kill(enemy)
+        if (st != St.PLAY || legendaryCharge < legendaryChargeNeeded || legendaryTime > 0f) return
+        legendaryCharge = 0
+        val duration = 4.5f + shipUpgradeRank("gold") * 0.65f
+        when (currentShip) {
+            0 -> {
+                legendaryTime = duration
+                rapidTimer = max(rapidTimer, duration)
             }
-            boom(px, py, 65, 130f)
+            1 -> {
+                legendaryTime = duration
+                invul = max(invul, 1.25f + shipUpgradeRank("gold") * 0.12f)
+                val direction = if (px < W / 2f) 1f else -1f
+                px = (px + direction * 76f).coerceIn(12f, W - 12f)
+                boom(px, py, 26, 82f)
+            }
+            2 -> {
+                legendaryTime = duration
+                shieldHp = shieldMaxHp
+                reflectiveShield = shieldHp > 0
+                invul = max(invul, duration)
+                impactRings.add(ImpactRing(px, py, 0.55f, 0.55f))
+            }
+            3 -> {
+                legendaryTime = duration
+                invul = max(invul, duration)
+                enemySlowTimer = max(enemySlowTimer, duration * 0.65f)
+                bullets.removeAll { !it.mine }
+                enemyLasers.clear()
+            }
+            4 -> {
+                legendaryTime = 1.4f
+                lives = min(10, lives + 1 + shipUpgradeRank("gold") / 3)
+                invul = max(invul, 3.2f + shipUpgradeRank("gold") * 0.3f)
+                bullets.removeAll { !it.mine }
+                enemyLasers.clear()
+                legendaryChargeSuppressed = true
+                try {
+                    for (enemy in enemies.toList()) {
+                        if (enemy.type == 2) {
+                            enemy.hp -= 100 + wave * 5 + shipUpgradeRank("gold") * 20
+                            if (enemy.hp <= 0) kill(enemy)
+                        } else kill(enemy)
+                    }
+                } finally {
+                    legendaryChargeSuppressed = false
+                }
+                boom(px, py, 65, 130f)
+            }
         }
         bannerT = 1.6f
+        adStatusText = legendaryName() + " فعال شد"
+        adStatusTimer = 1.5f
         sfx.play("power")
     }
 
@@ -843,7 +887,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             }
             St.UPGRADE -> {
                 val milestone = wave in 10..50 && wave % 10 == 0
-                val top = wh * if (milestone) 0.72f else 0.62f
+                val top = wh * 0.72f
                 for (i in 0..2) l.add(Btn("upgrade_$i", "انتخاب", RectF(5f + i * 72f, top, 67f + i * 72f, top + 25f)))
             }
             St.SHOP -> {
@@ -890,7 +934,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         upgradesTaken = 0; intermissionHandledWave = -1; shopHandledWave = -1; upgradeHandledWave = -1; upgradeChoices = emptyList()
         selectedAbilities.clear(); extraAbilitiesUnlocked = false; hullRank = 0; healthRegenRank = 0; armorRank = 0; criticalRank = 0; overdriveRank = 0
         explosiveRank = 0; piercingRank = 0; stasisRank = 0; scavengerRank = 0; multishotRank = 0; phoenixRank = 0
-        healthRegenTimer = 0f; empPulseTimer = 0f; empRank = 0; phoenixUsed = false; legendaryTime = 0f; legendaryCooldown = 0f
+        healthRegenTimer = 0f; empPulseTimer = 0f; empRank = 0; phoenixUsed = false; legendaryTime = 0f; legendaryCharge = 0; legendaryChargeSuppressed = false
         ricochetRank = 0; gravityWellRank = 0; overloadRank = 0; nanobotsRank = 0; scannerRank = 0; salvageDroneRank = 0; killStreakRank = 0; ricochetShieldRank = 0
         gravityPulseTimer = 0f; gravityActiveTimer = 0f; overloadTimer = 0f; nanobotTimer = 0f; scannerPulseTimer = 0f; scannerTimer = 0f; salvageTimer = 0f
         weaponLevel = 1; missileLevel = 0; laserLevel = 0; droneLevel = 0
@@ -1021,6 +1065,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         boom(e.x, e.y, if (e.type == 2) 70 else 16, if (e.type == 2) 90f else 55f)
         sfx.play(if (e.type == 2) "bigboom" else "boom")
         kills++
+        if (!legendaryChargeSuppressed) legendaryCharge = (legendaryCharge + if (e.type == 2) 5 else 1).coerceAtMost(legendaryChargeNeeded)
         if (e.type == 2) {
             val earned = if (wave > 0 && wave % 25 == 0) 4 else 2
             upgradePoints += earned
@@ -1238,7 +1283,6 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             }
         }
         legendaryTime = max(0f, legendaryTime - dt)
-        legendaryCooldown = max(0f, legendaryCooldown - dt)
         if (eventTimer > 0f) {
             eventTimer = max(0f, eventTimer - dt)
             if (eventKind == 1) {
@@ -2450,18 +2494,35 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun drawLegendaryControl(c: Canvas) {
-        if (legendaryTier() <= 0) return
         val left = 48f; val top = wh - 32f; val right = 108f; val bottom = wh - 7f
-        val ready = legendaryCooldown <= 0f && legendaryTime <= 0f
-        val accent = if (ready) 0xFFFFD45C.toInt() else 0xFF677786.toInt()
-        paint.style = Paint.Style.FILL; paint.color = 0x4435D9F2.toInt()
+        val ready = legendaryCharge >= legendaryChargeNeeded && legendaryTime <= 0f
+        val accent = if (ready) 0xFFFFD45C.toInt() else 0xFF718294.toInt()
+        paint.style = Paint.Style.FILL
+        paint.color = 0xCC101B2A.toInt()
         c.drawRoundRect(left*s, top*s, right*s, bottom*s, 4f*s, 4f*s, paint)
+        val progress = (legendaryCharge.toFloat() / legendaryChargeNeeded).coerceIn(0f, 1f)
+        if (progress > 0f) {
+            paint.color = Color.argb(if (ready) 100 else 54, Color.red(accent), Color.green(accent), Color.blue(accent))
+            c.drawRoundRect(left*s, top*s, (left + (right-left)*progress)*s, bottom*s, 4f*s, 4f*s, paint)
+        }
         paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.1f*s; paint.color = accent
         c.drawRoundRect(left*s, top*s, right*s, bottom*s, 4f*s, 4f*s, paint)
         paint.style = Paint.Style.FILL
         val glyph = when (currentShip) { 0 -> "overdrive"; 1 -> "dash"; 2 -> "shield"; 3 -> "stasis"; else -> "phoenix" }
-        drawAbilityIcon(c, glyph, (left + right) / 2f, wh - 19.5f)
-        if (!ready && legendaryTime <= 0f) text(c, (legendaryCooldown.toInt() + 1).toString(), right - 7f, wh - 9f, 3.8f, accent)
+        drawAbilityIcon(c, glyph, left + 14f, top + 10.5f)
+        val status = when {
+            legendaryTime > 0f -> "فعال"
+            ready -> "آماده!"
+            else -> "$legendaryCharge/$legendaryChargeNeeded"
+        }
+        drawFittedText(c, status, left + 42f, top + 14f, 4.1f, if (ready) 0xFFFFE38A.toInt() else 0xFFEAF4FF.toInt(), 33f)
+        if (ready) {
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 0.85f*s
+            paint.color = 0xFFFFE38A.toInt()
+            c.drawRoundRect((left-1f)*s,(top-1f)*s,(right+1f)*s,(bottom+1f)*s,5f*s,5f*s,paint)
+            paint.style = Paint.Style.FILL
+        }
     }
 
     private fun drawPauseControl(c: Canvas) {
@@ -2819,11 +2880,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.5f, 0xFFFFD45C.toInt(), 42f)
             drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 3.9f, 0xFF9CEBFF.toInt(), 52f)
         }
-        if (wave in 10..50 && wave % 10 == 0) {
-            drawGlassPanel(c, 18f, wh * 0.615f, 202f, wh * 0.695f, 0xFFFFD45C.toInt(), 205)
-            drawFittedText(c, "قدرت لجندری باز شد: " + legendaryName(), W / 2f, wh * 0.638f, 5.8f, 0xFFFFD45C.toInt(), 176f)
-            drawWrappedCardText(c, legendaryDescription(), W / 2f, wh * 0.665f, 4.6f, 0xFFFFEBC1.toInt(), 180f)
-        }
+        drawGlassPanel(c, 18f, wh * 0.615f, 202f, wh * 0.695f, 0xFFFFD45C.toInt(), 205)
+        drawFittedText(c, "مهارت ویژه سفینه: " + legendaryName(), W / 2f, wh * 0.638f, 5.3f, 0xFFFFD45C.toInt(), 176f)
+        drawWrappedCardText(c, legendaryDescription(), W / 2f, wh * 0.665f, 4.3f, 0xFFFFEBC1.toInt(), 180f)
         drawButtons(c)
         drawAdSlot(c, wh * 0.84f)
     }
