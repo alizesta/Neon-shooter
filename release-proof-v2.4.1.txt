@@ -1,0 +1,6 @@
+run_id=43681160909
+source_commit=7fca61a692d005d944cc56210b5e18ec00d893f8
+app_version=2.4.1
+apk_sha256=fbc145d0427aa6a0ed13fb71dce0e9d63970dd82530bedca7af36fefaa6b4f11
+apk_size_bytes=9973806
+signature=verified-by-apksigner
