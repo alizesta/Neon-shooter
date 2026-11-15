@@ -130,7 +130,7 @@ jobs:
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, e.t0.toInt()" in game,
               "pause panel renders acquired ability glyphs with visible backgrounds": "drawAbilityIcon(c, id, cellX + 8f, centerY)" in game and "c.drawCircle((cellX+8f)*s, centerY*s, 6.2f*s, paint)" in game,
-              "new ability pool unlocks after wave 25": "wave > 25 && selectedAbilities.size >= 5" in game and "wave > 50 && selectedAbilities.size >= 5" not in game,
+              "new ability pool unlocks after wave 25": "wave >= 25 && selectedAbilities.size >= 5" in game and "wave > 50 && selectedAbilities.size >= 5" not in game,
               "regular enemy health doubles after wave 25": "val hp = ceil(baseHp * difficulty * if (wave > 25) 2f else 1f).toInt()" in game,
               "boss health doubles after wave 25": "val bossHp = if (wave > 25) earlyBossAdjustedHp * 2 else earlyBossAdjustedHp" in game,
 
