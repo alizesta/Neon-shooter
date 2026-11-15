@@ -20,7 +20,7 @@ import kotlin.random.Random
 
 class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Callback, Runnable {
 
-    private enum class St { MENU, PLAY, PAUSE, OVER, UPGRADE, SHOP, AD_BREAK, ABOUT }
+    private enum class St { MENU, PLAY, PAUSE, OVER, UPGRADE, SHOP, AD_BREAK, ABOUT, SHIPS, SHIP_UPGRADE }
     private class B(var x: Float, var y: Float, var vx: Float, var vy: Float, var mine: Boolean) { val hitEnemies = HashSet<E>() }
     private class E(var x: Float, var y: Float, val type: Int, var hp: Int, val bx: Float, val amp: Float, val t0: Float) {
         var bossSkills: List<String> = emptyList()
@@ -153,6 +153,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private var credits = prefs.getInt("credits", 0)
     private var bestWave = prefs.getInt("best_wave", 0)
     private var currentShip = prefs.getInt("ship", 0).coerceIn(0, 4)
+    private var upgradePoints = prefs.getInt("ship_upgrade_points", 0)
     private var dailyDay = prefs.getLong("daily_day", -1L)
     private var dailyKills = prefs.getInt("daily_kills", 0)
     private var dailyDone = prefs.getBoolean("daily_done", false)
@@ -349,7 +350,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
     }
 
-    private fun shipName(): String = when (currentShip) {
+    private fun shipName(id: Int = currentShip): String = when (id) {
         1 -> "افعی"
         2 -> "تایتان"
         3 -> "شبح"
@@ -357,21 +358,45 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         else -> "مهاجم"
     }
 
-    private fun shipMoveMultiplier(): Float = when (currentShip) {
+    private fun shipPrice(id: Int): Int = intArrayOf(0, 450, 900, 1550, 2400)[id.coerceIn(0, 4)]
+    private fun shipOwned(id: Int): Boolean = id == 0 || prefs.getBoolean("ship_unlocked_" + id, false)
+    private fun shipUpgradeRank(stat: String, ship: Int = currentShip): Int = prefs.getInt("ship_upgrade_" + ship + "_" + stat, 0).coerceIn(0, 5)
+
+    private fun buyOrSelectShip(id: Int) {
+        if (id !in 0..4) return
+        if (!shipOwned(id)) {
+            val cost = shipPrice(id)
+            if (credits < cost) return
+            credits -= cost
+            prefs.edit().putInt("credits", credits).putBoolean("ship_unlocked_" + id, true).apply()
+        }
+        currentShip = id
+        prefs.edit().putInt("ship", currentShip).apply()
+    }
+
+    private fun buyShipUpgrade(stat: String) {
+        val rank = shipUpgradeRank(stat)
+        if (rank >= 5 || upgradePoints < rank + 1) return
+        upgradePoints -= rank + 1
+        prefs.edit().putInt("ship_upgrade_points", upgradePoints)
+            .putInt("ship_upgrade_" + currentShip + "_" + stat, rank + 1).apply()
+    }
+
+    private fun shipMoveMultiplier(): Float = (when (currentShip) {
         1 -> 1.22f
         2 -> 0.86f
         3 -> 1.04f
         4 -> 1.10f
         else -> 1f
-    } * (if (legendaryTime > 0f && currentShip == 1) 1.65f else 1f)
+    } * (1f + shipUpgradeRank("mobility") * 0.055f)) * (if (legendaryTime > 0f && currentShip == 1) 1.65f else 1f)
 
-    private fun shipFireDelay(): Float = when (currentShip) {
+    private fun shipFireDelay(): Float = (when (currentShip) {
         1 -> 0.92f
         2 -> 1.12f
         3 -> 0.82f
         4 -> 0.94f
         else -> 1f
-    }
+    } * (1f - shipUpgradeRank("attack") * 0.045f)).coerceAtLeast(0.68f)
 
     private fun cycleShip() {
         val highestUnlocked = (bestWave / 10).coerceIn(0, 4)
@@ -499,8 +524,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun activateLegendary() {
         if (st != St.PLAY || legendaryTier() <= 0 || legendaryCooldown > 0f || legendaryTime > 0f) return
-        legendaryTime = 5f
-        legendaryCooldown = 20f
+        legendaryTime = 5f + shipUpgradeRank("gold") * 0.7f
+        legendaryCooldown = max(11f, 20f - shipUpgradeRank("gold") * 1.4f)
         if (currentShip == 2) invul = max(invul, 5f)
         if (currentShip == 4) {
             lives = min(10, lives + 1)
@@ -546,7 +571,24 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "telegram" -> try { act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/gateneon"))) } catch (e: Exception) { Log.e("NeonShooter", "Telegram link unavailable", e) }
             "resume" -> { st = St.PLAY; syncMusic() }
             "pauseRestart" -> startGame()
-            "ship" -> cycleShip()
+            "ship" -> st = St.SHIPS
+            "shipup" -> st = St.SHIP_UPGRADE
+            "shipBack" -> st = St.MENU
+            "shipUpgradeBack" -> st = St.SHIPS
+            "ship_buy_1" -> buyOrSelectShip(1)
+            "ship_buy_2" -> buyOrSelectShip(2)
+            "ship_buy_3" -> buyOrSelectShip(3)
+            "ship_buy_4" -> buyOrSelectShip(4)
+            "ship_select_0" -> buyOrSelectShip(0)
+            "ship_select_1" -> buyOrSelectShip(1)
+            "ship_select_2" -> buyOrSelectShip(2)
+            "ship_select_3" -> buyOrSelectShip(3)
+            "ship_select_4" -> buyOrSelectShip(4)
+            "shipup_attack" -> buyShipUpgrade("attack")
+            "shipup_armor" -> buyShipUpgrade("armor")
+            "shipup_mobility" -> buyShipUpgrade("mobility")
+            "shipup_hull" -> buyShipUpgrade("hull")
+            "shipup_gold" -> buyShipUpgrade("gold")
             "upgrade_0" -> chooseUpgrade(0)
             "upgrade_1" -> chooseUpgrade(1)
             "upgrade_2" -> chooseUpgrade(2)
@@ -591,8 +633,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 val y = wh * 0.45f
                 add("play", "شروع بازی", y)
                 add("sound", if (sfx.enabled) "صدا: روشن" else "صدا: خاموش", y + 30f)
-                add("ship", "سفینه: " + shipName(), y + 60f)
-                add("about", "درباره", y + 90f)
+                add("ship", "آشیانه سفینه", y + 60f)
+                add("shipup", "ارتقای سفینه", y + 90f)
+                add("about", "درباره", y + 120f)
             }
             St.ABOUT -> {
                 val y = wh * 0.62f
@@ -638,9 +681,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     // ---------- game logic ----------
     private fun startGame() {
         bullets.clear(); enemies.clear(); pendingWaveEnemies.clear(); parts.clear(); items.clear(); playerBeams.clear(); missiles.clear(); enemyLasers.clear(); squadShips.clear(); blackHoles.clear(); chainArcs.clear(); comets.clear(); impactRings.clear()
-        score = 0; lives = 3; wave = 0; kills = 0; invul = 2.2f; fireT = 0f; time = 0f
+        score = 0; lives = 3 + shipUpgradeRank("hull"); wave = 0; kills = 0; invul = 2.2f; fireT = 0f; time = 0f
         weaponLevel = 1; missileLevel = 0; laserLevel = 0; droneLevel = 0; dashRank = 0; shieldRank = if (currentShip == 2) 1 else 0
-        bonusDamage = if (currentShip == 3 || currentShip == 4) 1 else 0; fireRateBonus = 0f; magnetLevel = 0
+        bonusDamage = (if (currentShip == 3 || currentShip == 4) 1 else 0) + shipUpgradeRank("attack"); fireRateBonus = 0f; magnetLevel = 0
         shieldLevel = shieldRank; shieldMaxHp = if (shieldRank > 0) 16 else 0; shieldHp = shieldMaxHp; reflectiveShield = shieldHp > 0
         dashCharges = 0; chainLevel = 0; comboCount = 0; comboTimer = 0f
         eventKind = 0; eventTimer = 0f; meteorTimer = 0f; goldenCrateSpawned = false
@@ -779,6 +822,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         sfx.play(if (e.type == 2) "bigboom" else "boom")
         kills++
         if (e.type == 2) {
+            val earned = if (wave > 0 && wave % 25 == 0) 4 else 2
+            upgradePoints += earned
+            prefs.edit().putInt("ship_upgrade_points", upgradePoints).apply()
+            adStatusText = "پاداش باس: $earned امتیاز ارتقا"
+            adStatusTimer = 2.0f
             repeat(5) { i -> items.add(Item(e.x + (i - 2) * 5.5f, e.y + abs(i - 2) * 2f, 13, 20 + scavengerRank * 4)) }
         } else if (Random.nextFloat() < 0.48f) {
             items.add(Item(e.x, e.y, 13, 5 + scavengerRank * 2))
@@ -812,7 +860,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun hurt() {
         if (invul > 0f || legendaryTime > 0f && currentShip == 3) return
-        if (armorRank > 0 && Random.nextFloat() < armorRank * 0.075f) { invul = 0.55f; boom(px, py, 8, 34f); return }
+        val permanentArmor = shipUpgradeRank("armor")
+        if ((armorRank * 0.075f + permanentArmor * 0.055f).coerceAtMost(0.48f) > Random.nextFloat()) { invul = 0.55f; boom(px, py, 8, 34f); return }
         if (ricochetShieldRank > 0 && Random.nextFloat() < ricochetShieldRank * 0.12f) {
             invul = 0.72f
             val nearest = enemies.filter { !it.dead }.minByOrNull { hypot(it.x - px, it.y - py) }
