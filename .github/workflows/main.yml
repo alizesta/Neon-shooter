@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.6.6 • ship progression
+name: Build Neon Shooter 2.6.7 • ship progression
 
 on:
   push:
@@ -77,11 +77,11 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.6.6")
-          s = s.replace("versionCode = 25", "versionCode = 33", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.6"', 1)
+              raise SystemExit("Unexpected base version before v2.6.7")
+          s = s.replace("versionCode = 25", "versionCode = 34", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.7"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.6.6")
+          print("PATCH full gameplay source and version 2.6.7")
           PY
 
       - name: Generate original cinematic background music
@@ -125,10 +125,10 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.6.6": "versionCode = 33" in gradle and 'versionName = "2.6.6"' in gradle,
+              "release version is 2.6.7": "versionCode = 34" in gradle and 'versionName = "2.6.7"' in gradle,
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
-              "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, e.t0.toInt()" in game,
+              "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
               "pause panel renders acquired ability glyphs with visible backgrounds": "drawAbilityIcon(c, id, cellX + 8f, centerY)" in game and "c.drawCircle((cellX+8f)*s, centerY*s, 6.2f*s, paint)" in game,
               "new ability pool unlocks after all five core abilities reach rank five at wave 25": 'coreAbilities = listOf("firepower", "missile", "laser", "drone", "magnet")' in game and "wave >= 25 && coreAbilities.all { abilityRank(it) >= 5 }" in game and "val pool = if (extraAbilitiesUnlocked) allAbilities else coreAbilities" in game,
               "regular enemy health doubles after wave 25": "val hp = ceil(baseHp * difficulty * if (wave > 25) 2f else 1f).toInt()" in game,
@@ -186,6 +186,20 @@ jobs:
           if points_source.count("arrayOf(") - 1 != 10 or edges_source.count("arrayOf(") - 1 != 10:
               raise SystemExit("Expected ten constellation diagrams with points and connecting lines")
           print("PASS ten named constellation bosses have individual star diagrams")
+          milestone_names = [stage_names[index * 5 - 1] for index in range(1, 11)]
+          if constellation_names != milestone_names:
+              raise SystemExit("Boss names do not match the stage constellation at waves 5, 10, ... 50")
+          print("PASS boss constellation names match their milestone stage names")
+          boss_draw_start = game.index("private fun drawGame(c: Canvas)")
+          boss_draw_end = game.index("for (ring in impactRings)", boss_draw_start)
+          boss_draw_source = game[boss_draw_start:boss_draw_end]
+          if "drawBossConstellation(c, bossId" not in boss_draw_source:
+              raise SystemExit("Boss constellation body renderer is not wired into gameplay")
+          if "if (e.type == 2) {" not in boss_draw_source or "spr(c, sprite, e.x, e.y)" not in boss_draw_source:
+              raise SystemExit("Expected constellation bodies for bosses and bitmap sprites only for regular enemies")
+          if "The constellation itself forms the boss silhouette" not in game or "BlurMaskFilter(4.2f * size * s" not in game:
+              raise SystemExit("Constellation boss body glow/connected-star silhouette is missing")
+          print("PASS boss bodies are glowing connected-star constellation formations, not bitmap ships")
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
               print(("PASS " if ok else "FAIL ") + name)
@@ -199,13 +213,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.6.6.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.6.7.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.6.6
-          path: NeonShooter-Android-Project-v2.6.6.zip
+          name: NeonShooter-Android-Project-v2.6.7
+          path: NeonShooter-Android-Project-v2.6.7.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -252,16 +266,16 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.6.6 APK build
+      - name: Record verified v2.6.7 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
           test -s "$APK"
-          cat > release-proof-v2.6.6.txt <<EOF
+          cat > release-proof-v2.6.7.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.6.6
+          app_version=2.6.7
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
@@ -270,24 +284,24 @@ jobs:
       - name: Upload APK verification proof
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Release-Proof-v2.6.6
-          path: release-proof-v2.6.6.txt
+          name: NeonShooter-Release-Proof-v2.6.7
+          path: release-proof-v2.6.7.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.6.6-APK
+          name: Neon-Shooter-v2.6.7-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.6.6
+      - name: Publish Neon Shooter 2.6.7
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.6.6
-          name: Neon Shooter v2.6.6
+          tag_name: v2.6.7
+          name: Neon Shooter v2.6.7
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
@@ -307,10 +321,10 @@ jobs:
             - Upgrade text is centered with separate level labels; ship aura follows its silhouette and hangar icons are resized.
             - Coin balance is visible in both the main menu and gameplay HUD; wave progress resets at every new wave.
             - Twenty-eight ability upgrades now have separate custom icons and distinct colors.
-            - The first 50 waves use unique planetary, stellar, nebula and galaxy names.
+            - The first 50 stages use 50 unique constellation names; boss milestones on waves 5, 10, ... 50 use the matching stage constellation.
             - Each ship has its own golden ultimate, charged by 15 enemy kills; bosses grant five charge points.
             - Enemy and boss coins drop in smaller pieces and more frequently; magnet pickup has a shorter, bounded radius.
-            - Ten bosses are named after constellations and display their own linked-star patterns.
+            - Boss bitmap artwork is replaced by ten glowing constellation-shaped bosses made from connected stars; each boss name matches its milestone stage.
             - Pause ability inventory shows a larger, distinct glyph for each acquired ability.
             - The expanded ability pool unlocks after wave 25; regular enemies and bosses have double HP after wave 25.
             - Every ability has a five-rank maximum; only the five core abilities appear until all reach rank five and wave 25 is reached.
