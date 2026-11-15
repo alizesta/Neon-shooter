@@ -89,6 +89,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
           game = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt").read_text(encoding="utf-8")
           gradle = Path("NeonShooter/app/build.gradle.kts").read_text(encoding="utf-8")
           checks = {
