@@ -1506,7 +1506,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 10 -> piercingTimer = max(piercingTimer, 8f)
                 11 -> enemySlowTimer = max(enemySlowTimer, 10f)
                 12 -> { credits += 300; score += 500; prefs.edit().putInt("credits", credits).apply() }
-                13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply(); bannerT = 0.45f }
+                13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply() }
                 else -> activateSquadron()
             }
             collected.add(item); boom(item.x, item.y, 10, 42f); sfx.play("power")
@@ -1589,7 +1589,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun drawItem(c: Canvas, item: Item) {
         val cx = item.x * s
         val cy = item.y * s
-        val scale = s * (1f + sin(item.age * 5f) * 0.06f)
+        val coinScale = if (item.type == 13) 0.66f else 1f
+        val scale = s * coinScale * (1f + sin(item.age * 5f) * 0.06f)
         val color = when (item.type) {
             13 -> 0xFFFFD34F.toInt()
             0 -> 0xFFFF647C.toInt()
@@ -2526,7 +2527,15 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             c.drawRoundRect(r.left*s,r.top*s,r.right*s,r.bottom*s,5f*s,5f*s,paint)
             paint.strokeWidth = (if (pressed) 1.9f else 1.2f) * s; paint.color = col
             c.drawRoundRect(r.left*s,r.top*s,r.right*s,r.bottom*s,5f*s,5f*s,paint)
-            drawButtonIcon(c, b.id, (r.left+r.right)/2f, r.top + 11f)
+            if (st == St.MENU) {
+                val cy = (r.top + r.bottom) / 2f
+                drawButtonIcon(c, b.id, r.left + 18f, cy)
+                drawFittedText(c, b.label, (r.left + r.right) / 2f + 10f, cy + 2.1f, 6.1f, 0xFFEAFBFF.toInt(), 82f)
+            } else if ((st == St.SHIPS || st == St.SHIP_UPGRADE) && (b.id.startsWith("ship_") || b.id.startsWith("shipup_"))) {
+                val cy = (r.top + r.bottom) / 2f
+                drawButtonIcon(c, b.id, r.left + 18f, cy)
+                drawFittedText(c, b.label, (r.left + r.right) / 2f + 13f, cy + 2f, 4.8f, 0xFFEAFBFF.toInt(), 142f)
+            } else drawButtonIcon(c, b.id, (r.left+r.right)/2f, r.top + 11f)
         }
     }
 
