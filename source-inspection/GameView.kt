@@ -527,10 +527,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (st != St.PLAY || legendaryTier() <= 0 || legendaryCooldown > 0f || legendaryTime > 0f) return
         legendaryTime = 5f + shipUpgradeRank("gold") * 0.7f
         legendaryCooldown = max(11f, 20f - shipUpgradeRank("gold") * 1.4f)
-        if (currentShip == 2) invul = max(invul, 5f)
+        if (currentShip == 2) invul = max(invul, 5f + shipUpgradeRank("gold") * 0.7f)
         if (currentShip == 4) {
             lives = min(10, lives + 1)
-            invul = max(invul, 3.2f)
+            invul = max(invul, 3.2f + shipUpgradeRank("gold") * 0.7f)
             bullets.removeAll { !it.mine }
             enemyLasers.clear()
             for (enemy in enemies.toList()) {
@@ -2510,7 +2510,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "sound" -> { val p=Path().apply { moveTo(x-10f*s,y-4f*s); lineTo(x-5f*s,y-4f*s); lineTo(x+1f*s,y-9f*s); lineTo(x+1f*s,y+9f*s); lineTo(x-5f*s,y+4f*s); lineTo(x-10f*s,y+4f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawArc(x-4f*s,y-9f*s,x+13f*s,y+9f*s,-60f,120f,false,paint); c.drawArc(x-7f*s,y-13f*s,x+18f*s,y+13f*s,-60f,120f,false,paint) }
             "ship" -> { val p=Path().apply { moveTo(x,y-11f*s); lineTo(x+8f*s,y+9f*s); lineTo(x,y+5f*s); lineTo(x-8f*s,y+9f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawLine(x-11f*s,y+3f*s,x-6f*s,y+5f*s,paint); c.drawLine(x+11f*s,y+3f*s,x+6f*s,y+5f*s,paint) }
             "about" -> { c.drawCircle(x,y,9f*s,paint); paint.style=Paint.Style.FILL; c.drawCircle(x,y-5f*s,1.4f*s,paint); c.drawRoundRect(x-1.5f*s,y-1f*s,x+1.5f*s,y+6f*s,1f*s,1f*s,paint) }
-            "aboutBack", "menu" -> { if(id=="menu") { for(row in -1..1) for(col in -1..1) c.drawCircle(x+col*6f*s,y+row*6f*s,1.9f*s,paint) } else { c.drawLine(x+9f*s,y,x-8f*s,y,paint); c.drawLine(x-8f*s,y,x-1f*s,y-7f*s,paint); c.drawLine(x-8f*s,y,x-1f*s,y+7f*s,paint) } }
+            "aboutBack", "menu", "shipBack", "shipUpgradeBack" -> { if(id=="menu") { for(row in -1..1) for(col in -1..1) c.drawCircle(x+col*6f*s,y+row*6f*s,1.9f*s,paint) } else { c.drawLine(x+9f*s,y,x-8f*s,y,paint); c.drawLine(x-8f*s,y,x-1f*s,y-7f*s,paint); c.drawLine(x-8f*s,y,x-1f*s,y+7f*s,paint) } }
             "pauseRestart" -> { c.drawArc(x-9f*s,y-9f*s,x+9f*s,y+9f*s,35f,285f,false,paint); c.drawLine(x+7f*s,y-8f*s,x+10f*s,y-1f*s,paint); c.drawLine(x+7f*s,y-8f*s,x,y-8f*s,paint) }
             "telegram" -> { val p=Path().apply { moveTo(x-11f*s,y-2f*s); lineTo(x+11f*s,y-8f*s); lineTo(x+4f*s,y+10f*s); lineTo(x,y+3f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawLine(x,y+3f*s,x+7f*s,y-4f*s,paint) }
             "extraLife", "shop_repair" -> { val p=Path().apply { moveTo(x,y+9f*s); cubicTo(x-17f*s,y-2f*s,x-8f*s,y-13f*s,x,y-6f*s); cubicTo(x+8f*s,y-13f*s,x+17f*s,y-2f*s,x,y+9f*s) }; c.drawPath(p,paint) }
@@ -2544,7 +2544,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 val cy = (r.top + r.bottom) / 2f
                 drawButtonIcon(c, b.id, r.left + 18f, cy)
                 drawFittedText(c, b.label, (r.left + r.right) / 2f + 10f, cy + 2.1f, 6.1f, 0xFFEAFBFF.toInt(), 82f)
-            } else if ((st == St.SHIPS || st == St.SHIP_UPGRADE) && (b.id.startsWith("ship_") || b.id.startsWith("shipup_"))) {
+            } else if ((st == St.SHIPS || st == St.SHIP_UPGRADE) && (b.id.startsWith("ship_") || b.id.startsWith("shipup_") || b.id == "shipBack" || b.id == "shipUpgradeBack")) {
                 val cy = (r.top + r.bottom) / 2f
                 drawButtonIcon(c, b.id, r.left + 18f, cy)
                 drawFittedText(c, b.label, (r.left + r.right) / 2f + 13f, cy + 2f, 4.8f, 0xFFEAFBFF.toInt(), 142f)
@@ -2638,9 +2638,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         text(c, "نئون", W / 2, wh * 0.16f, 34f, YEL)
         text(c, "شوتر", W / 2, wh * 0.16f + 26f, 24f, RED)
         drawPlayerShip(c, W / 2, wh * 0.33f + sin(System.nanoTime() / 4e8f) * 3f)
-        text(c, "سفینه: " + shipName() + "   سکه: " + credits, W / 2f, wh * 0.395f, 6.5f, 0xFF80E7FF.toInt())
-        text(c, if (dailyDone) "ماموریت روزانه کامل شد: +۵۰۰" else "ماموریت روزانه: ۲۵ نابودی " + dailyKills + "/۲۵", W / 2f, wh * 0.417f, 6f, 0xFFFFD45C.toInt())
-        text(c, "بهترین امتیاز: $best   رکورد مرحله: $bestWave", W / 2, wh * 0.44f, 7f, WHT)
+        text(c, "سفینه: " + shipName() + "   سکه: " + credits, W / 2f, wh * 0.375f, 6.5f, 0xFF80E7FF.toInt())
+        text(c, if (dailyDone) "ماموریت روزانه کامل شد: +۵۰۰" else "ماموریت روزانه: ۲۵ نابودی " + dailyKills + "/۲۵", W / 2f, wh * 0.397f, 6f, 0xFFFFD45C.toInt())
+        text(c, "بهترین امتیاز: $best   رکورد مرحله: $bestWave", W / 2, wh * 0.419f, 7f, WHT)
         drawButtons(c)
         drawAdSlot(c, wh * 0.83f)
     }
