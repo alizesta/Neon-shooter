@@ -3120,7 +3120,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawGlassPanel(c, 7f, wh * 0.615f, W - 7f, wh * 0.825f, 0xFFFFD45C.toInt(), 220)
         drawFittedText(c, "قابلیت‌های گرفته‌شده  •  " + ownedAbilityIds().size, W / 2f, wh * 0.637f, 4.7f, 0xFFFFD45C.toInt(), 180f)
         drawFittedText(c, "توان ویژه: " + legendaryName(), W / 2f, wh * 0.653f, 3.7f, 0xFFFFEBC1.toInt(), 180f)
-        drawWrappedCardText(c, legendaryDescription(), W / 2f, wh * 0.667f, 2.85f, 0xFFB9D9E8.toInt(), 180f)
+        drawFittedText(c, legendaryDescription(), W / 2f, wh * 0.667f, 2.65f, 0xFFB9D9E8.toInt(), 180f)
         drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 4, 2.45f, 10f, W - 10f)
         drawButtons(c)
     }
