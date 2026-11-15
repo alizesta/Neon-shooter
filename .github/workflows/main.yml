@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.4.0
+name: Build Neon Shooter 2.4.1
 
 on:
   push:
@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore the complete v2.4.0 Android project
+      - name: Restore the complete v2.4.1 Android project
         shell: bash
         run: |
           set -euo pipefail
@@ -29,20 +29,55 @@ jobs:
           test -s NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt
           test -s NeonShooter/app/build.gradle.kts
 
-      - name: Export gameplay source for targeted fixes
+
+      - name: Apply 2.4.1 menu, upgrade and coin fixes
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p source-inspection
-          cp NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt source-inspection/GameView.kt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add source-inspection/GameView.kt
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: expose gameplay source for focused fixes"
-            git push origin HEAD:main
-          fi
-
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt")
+          s = p.read_text(encoding="utf-8")
+          replacements = [
+              ("""        if (id.startsWith("upgrade_")) {
+              val i = id.substringAfter('_').toIntOrNull() ?: 0
+              upgradeChoices.getOrNull(i)?.let { drawAbilityIcon(c, it, cx, cy) }
+              return
+          }""", """        if (id.startsWith("upgrade_")) {
+              // The skill icon is already shown on its card; this is the choose/download action.
+              c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)
+              c.drawLine(x, y + 3f * s, x - 4.5f * s, y - 1.5f * s, paint)
+              c.drawLine(x, y + 3f * s, x + 4.5f * s, y - 1.5f * s, paint)
+              c.drawLine(x - 8f * s, y + 7f * s, x + 8f * s, y + 7f * s, paint)
+              return
+          }""", "upgrade button download icon"),
+              ("""            drawButtonIcon(c, b.id, (r.left+r.right)/2f, r.top + 11f)""", """            if (st == St.MENU) {
+                          val cy = (r.top + r.bottom) / 2f
+                          drawButtonIcon(c, b.id, r.left + 18f, cy)
+                          drawFittedText(c, b.label, (r.left + r.right) / 2f + 10f, cy + 2.1f,
+                              6.1f, 0xFFEAFBFF.toInt(), 82f)
+                      } else {
+                          drawButtonIcon(c, b.id, (r.left+r.right)/2f, r.top + 11f)
+                      }""", "main menu icon and text"),
+              ("""        val scale = s * (1f + sin(item.age * 5f) * 0.06f)""", """        val coinScale = if (item.type == 13) 0.66f else 1f
+                  val scale = s * coinScale * (1f + sin(item.age * 5f) * 0.06f)""", "smaller coin rendering"),
+              ("""                13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply(); bannerT = 0.45f }""", """                13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply() }""", "coin pickup no longer triggers stage banner"),
+          ]
+          for old, new, label in replacements:
+              n = s.count(old)
+              if n != 1:
+                  raise SystemExit(f"{label}: expected exactly one source match, got {n}")
+              s = s.replace(old, new, 1)
+              print("PATCH " + label)
+          p.write_text(s, encoding="utf-8")
+          gp = Path("NeonShooter/app/build.gradle.kts")
+          g = gp.read_text(encoding="utf-8")
+          if g.count("versionCode = 24") != 1 or g.count('versionName = "2.4.1"') != 1:
+              raise SystemExit("Unexpected Gradle version markers")
+          g = g.replace("versionCode = 24", "versionCode = 25", 1)
+          gp.write_text(g, encoding="utf-8")
+          print("PATCH version 2.4.1")
+          PY
       - name: Generate original cinematic background music
         run: python3 NeonShooter/tools/generate_ambient.py
 
@@ -65,8 +100,12 @@ jobs:
               "buttons use icon drawing": "drawButtonIcon(c, b.id" in game and "text(c, b.label" not in game,
               "about page and Telegram link exist": "درباره نئون شوتر" in game and "https://t.me/gateneon" in game,
               "background music player is wired": "MediaPlayer.create(act, R.raw.ambient_theme)" in game,
+              "upgrade button uses a download icon": "c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)" in game,
+              "main menu labels accompany icons": 'drawFittedText(c, b.label' in game and 'if (st == St.MENU)' in game,
+              "coins render smaller": 'if (item.type == 13) 0.66f else 1f' in game,
+              "coin pickup does not show a stage banner": '13 -> { credits += item.amount.coerceAtLeast(1); score += item.amount * 2; prefs.edit().putInt("credits", credits).apply() }' in game,
               "music state is synced when pausing": "st = St.PAUSE\n                            syncMusic()" in game,
-              "release version is 2.4.0": "versionCode = 24" in gradle and 'versionName = "2.4.0"' in gradle,
+              "release version is 2.4.1": "versionCode = 25" in gradle and 'versionName = "2.4.1"' in gradle,
           }
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
@@ -81,13 +120,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.4.0.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.4.1.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.4.0
-          path: NeonShooter-Android-Project-v2.4.0.zip
+          name: NeonShooter-Android-Project-v2.4.1
+          path: NeonShooter-Android-Project-v2.4.1.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -137,16 +176,16 @@ jobs:
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.4.0-APK
+          name: Neon-Shooter-v2.4.1-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.4.0
+      - name: Publish Neon Shooter 2.4.1
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.4.0
-          name: Neon Shooter v2.4.0
+          tag_name: v2.4.1
+          name: Neon Shooter v2.4.1
           body: |
             Actual gameplay update:
             - Level-5 abilities remain active and are excluded from future upgrade choices.
