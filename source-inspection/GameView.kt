@@ -31,6 +31,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
         var fire = Random.nextFloat() * 2f + 1f
         var healTimer = 2.2f
         var phase = 1
+        var phaseSummonTimer = 6.0f
         var attackWarned = false
         var warning = 0f
         var hitFlash = 0f
@@ -456,8 +457,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "missile" -> missileLevel = min(5, missileLevel + 1)
             "laser" -> laserLevel = min(5, laserLevel + 1)
             "drone" -> droneLevel = min(5, droneLevel + 1)
-            "magnet" -> magnetLevel = min(5, magnetLevel + 1)
-            "shield" -> { shieldRank = min(5, shieldRank + 1); shieldLevel = shieldRank; shieldMaxHp = 10 + shieldRank * 6; shieldHp = min(shieldMaxHp, if (shieldHp <= 0) shieldMaxHp else shieldHp + 8); reflectiveShield = shieldHp > 0 }
+            "magnet" -> {
+                magnetLevel = min(5, magnetLevel + 1)
+                if (shieldLevel > 0) { shieldMaxHp += 4; shieldHp = min(shieldMaxHp, shieldHp + 4) }
+            }
+            "shield" -> { shieldRank = min(5, shieldRank + 1); shieldLevel = shieldRank; shieldMaxHp = 10 + shieldRank * 6 + if (magnetLevel > 0) 4 else 0; shieldHp = min(shieldMaxHp, if (shieldHp <= 0) shieldMaxHp else shieldHp + 8); reflectiveShield = shieldHp > 0 }
             "dash" -> { dashRank = min(5, dashRank + 1); dashCharges = min(5, dashCharges + 1) }
             "chain" -> chainLevel = min(5, chainLevel + 1)
             "hull" -> { hullRank = min(5, hullRank + 1); lives = min(10, lives + 1) }
@@ -481,14 +485,18 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "multishot" -> multishotRank = min(5, multishotRank + 1)
             "phoenix" -> phoenixRank = min(5, phoenixRank + 1)
         }
-        val combo = when {
-            missileLevel > 0 && droneLevel > 0 -> "پهپاد موشکی"
-            laserLevel > 0 && weaponLevel >= 3 -> "لیزر منشوری"
-            magnetLevel > 0 && shieldLevel > 0 -> "سپر مغناطیسی"
-            else -> ""
-        }
-        if (combo.isNotEmpty()) bannerT = 2.8f
+        if (activeCombo().isNotEmpty()) bannerT = 2.8f
         sfx.play("power")
+    }
+
+    private fun activeCombo(): String = when {
+        missileLevel > 0 && droneLevel > 0 -> "یورش پهپاد موشکی"
+        laserLevel > 0 && weaponLevel >= 3 -> "لیزر منشوری"
+        magnetLevel > 0 && shieldLevel > 0 -> "سپر مغناطیسی"
+        gravityWellRank > 0 && empRank > 0 -> "توفان گرانشی"
+        chainLevel > 0 && explosiveRank > 0 -> "زنجیره انفجاری"
+        scannerRank > 0 && laserLevel > 0 -> "لیزر نقطه‌زن"
+        else -> ""
     }
 
     private fun chooseUpgrade(index: Int) {
@@ -945,9 +953,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun fireLaser() {
         if (st != St.PLAY || laserLevel <= 0 || laserCooldown > 0f) return
-        val width = 5f + laserLevel * 2.2f
-        val offsets = if (laserLevel > 0 && weaponLevel >= 3) floatArrayOf(-12f, 0f, 12f) else floatArrayOf(0f)
-        val damage = 2 + laserLevel * 3 + bonusDamage
+        val prismCombo = laserLevel > 0 && weaponLevel >= 3
+        val width = (5f + laserLevel * 2.2f) * if (prismCombo) 1.22f else 1f
+        val offsets = if (prismCombo) floatArrayOf(-12f, 0f, 12f) else floatArrayOf(0f)
+        val damage = 2 + laserLevel * 3 + bonusDamage + (if (prismCombo) 2 else 0) + (if (scannerTimer > 0f && scannerRank > 0) scannerRank * 2 else 0)
         for (offset in offsets) {
             val beamX = (px + offset).coerceIn(5f, W - 5f)
             playerBeams.add(PlayerBeam(beamX, py, width, 0.52f))
@@ -965,10 +974,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun launchMissiles() {
         if (st != St.PLAY || missileCooldown > 0f) return
-        val count = 2 + missileLevel + if (missileLevel > 0 && droneLevel > 0) 2 else 0
+        val swarmCombo = missileLevel > 0 && droneLevel > 0
+        val count = 2 + missileLevel + if (swarmCombo) 2 else 0
         for (i in 0 until count) {
             val offset = (i - (count - 1) / 2) * 7f
-            missiles.add(Missile((px + offset).coerceIn(5f, W - 5f), py - 8f, offset * 0.8f, -115f, 2 + missileLevel * 2 + bonusDamage))
+            missiles.add(Missile((px + offset).coerceIn(5f, W - 5f), py - 8f, offset * 0.8f, -115f, (2 + missileLevel * 2 + bonusDamage + if (swarmCombo) 1 else 0)))
         }
         missileCooldown = max(1.8f, 5.2f - missileLevel * 0.65f)
         sfx.play("missile")
@@ -1078,6 +1088,15 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 gravityActiveTimer = 1.65f
                 gravityPulseTimer = max(5.0f, 11.0f - gravityWellRank * 1.15f)
                 impactRings.add(ImpactRing(px, py, 0.42f, 0.42f))
+                if (empRank > 0) {
+                    enemySlowTimer = max(enemySlowTimer, 1.4f + empRank * 0.25f)
+                    for (target in enemies) if (!target.dead) {
+                        target.hp -= empRank * 2
+                        target.hitFlash = 0.3f
+                        impactRings.add(ImpactRing(target.x, target.y, 0.22f, 0.22f))
+                        if (target.hp <= 0) kill(target)
+                    }
+                }
                 sfx.play("power")
             }
             if (gravityActiveTimer > 0f) {
@@ -1195,7 +1214,18 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                     if (d < 150f) { px = (px + dx / d * 10f * enemyDt).coerceIn(10f, W - 10f); py = (py + dy / d * 6f * enemyDt).coerceIn(30f, wh - 48f) }
                 }
                 val newPhase = when { e.hp <= e.maxHp / 3 -> 3; e.hp <= (e.maxHp * 2) / 3 -> 2; else -> 1 }
-                if (newPhase > e.phase) { e.phase = newPhase; e.fire = 0.35f; boom(e.x, e.y, 28, 80f) }
+                if (newPhase > e.phase) { e.phase = newPhase; e.fire = 0.35f; boom(e.x, e.y, 28, 80f); impactRings.add(ImpactRing(e.x, e.y, 0.55f, 0.55f)) }
+                if (e.phase >= 3) {
+                    e.phaseSummonTimer -= enemyDt
+                    if (e.phaseSummonTimer <= 0f && enemies.count { it.type != 2 && !it.dead } + summonedEnemies.size < 5) {
+                        for (side in -1..1 step 2) {
+                            val sx = (e.x + side * 22f).coerceIn(12f, W - 12f)
+                            summonedEnemies.add(E(sx, e.y + 12f, 6, 5 + wave / 10, sx, 14f, e.age + side))
+                        }
+                        e.phaseSummonTimer = 7.5f
+                        boom(e.x, e.y + 10f, 18, 58f)
+                    }
+                }
             }
             if (e.type == 2) {
                 val bossId = e.t0.toInt().coerceIn(0, 9)
@@ -1389,9 +1419,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             if (target != null) {
                 val dx = target.x - missile.x; val dy = target.y - missile.y
                 val d = max(1f, hypot(dx, dy))
-                val desiredX = dx / d * 175f; val desiredY = dy / d * 175f
-                missile.vx += (desiredX - missile.vx).coerceIn(-260f * dt, 260f * dt)
-                missile.vy += (desiredY - missile.vy).coerceIn(-260f * dt, 260f * dt)
+                val homingSpeed = if (droneLevel > 0 && missileLevel > 0) 215f else 175f
+                val desiredX = dx / d * homingSpeed; val desiredY = dy / d * homingSpeed
+                missile.vx += (desiredX - missile.vx).coerceIn(-320f * dt, 320f * dt)
+                missile.vy += (desiredY - missile.vy).coerceIn(-320f * dt, 320f * dt)
             } else { missile.vy = -175f; missile.vx *= 0.96f }
             missile.x += missile.vx * dt; missile.y += missile.vy * dt
             val hitTarget = target?.takeIf { !it.dead && hypot(it.x - missile.x, it.y - missile.y) < it.hw + 7f }
@@ -1431,7 +1462,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                     }
                 }
             }
-            if (!b.mine && shieldHp > 0 && hypot(b.x - px, b.y - py) < 27f) {
+            val magneticShieldRadius = if (magnetLevel > 0 && shieldLevel > 0) 34f else 27f
+            if (!b.mine && shieldHp > 0 && hypot(b.x - px, b.y - py) < magneticShieldRadius) {
                 b.mine = true
                 val target = enemies.filter { !it.dead }.minByOrNull { hypot(it.x - b.x, it.y - b.y) }
                 if (target != null) {
@@ -1556,6 +1588,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                         if (next != null && hypot(next.x - e.x, next.y - e.y) < 78f) {
                             chainArcs.add(Arc(e.x, e.y, next.x, next.y))
                             next.hp -= chainLevel
+                            if (explosiveRank > 0) {
+                                for (splash in enemies) if (splash !== e && splash !== next && !splash.dead && hypot(splash.x - next.x, splash.y - next.y) < 20f + explosiveRank * 4f) {
+                                    splash.hp -= explosiveRank
+                                    splash.hitFlash = 0.16f
+                                    if (splash.hp <= 0) kill(splash)
+                                }
+                                impactRings.add(ImpactRing(next.x, next.y, 0.30f, 0.30f))
+                            }
                             chainCooldown = 0.48f
                             boom((e.x + next.x) / 2f, (e.y + next.y) / 2f, 5, 34f)
                             if (next.hp <= 0) kill(next)
@@ -1874,6 +1914,16 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         for (e in enemies) {
             val sprite = when (e.type) { 2 -> bossSprites[e.t0.toInt().coerceIn(0, 9)]; 1 -> bE1; 3 -> bE2; 4 -> bE3; 5 -> bossSprites[5]; 6 -> bossSprites[6]; else -> bE0 }
             spr(c, sprite, e.x, e.y)
+            if (e.type == 2 && e.phase >= 2) {
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = (if (e.phase >= 3) 1.8f else 1.1f) * s
+                paint.color = if (e.phase >= 3) 0xFFFF65C8.toInt() else 0xFF63E8FF.toInt()
+                for (ring in 0 until e.phase) {
+                    val radius = (e.hw + 6f + ring * 5f + sin(time * 4f + ring) * 1.5f) * s
+                    c.drawCircle(e.x * s, e.y * s, radius, paint)
+                }
+                paint.style = Paint.Style.FILL
+            }
             if (e.hitFlash > 0f) { paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.5f * s; paint.color = Color.argb((210f * e.hitFlash / 0.14f).toInt().coerceIn(0, 210), 255, 255, 255); c.drawCircle(e.x * s, e.y * s, (e.hw + 3f) * s, paint); paint.style = Paint.Style.FILL }
             if (e.type == 2 && e.warning > 0f) {
                 paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.1f * s
@@ -2041,7 +2091,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         if (bannerT > 0f && st == St.PLAY) {
             val boss = wave % 5 == 0
-            val combo = if (missileLevel > 0 && droneLevel > 0) "پهپاد موشکی" else if (laserLevel > 0 && weaponLevel >= 3) "لیزر منشوری" else if (magnetLevel > 0 && shieldLevel > 0) "سپر مغناطیسی" else ""
+            val combo = activeCombo()
             text(c, if (boss) "!! باس !!" else if (eventKind > 0) eventName() else "مرحله $wave", W / 2, wh * 0.4f, 15f, if (boss) RED else WHT)
             if (combo.isNotEmpty()) text(c, combo, W / 2f, wh * 0.4f + 13f, 7f, 0xFF72F0C0.toInt())
         }
