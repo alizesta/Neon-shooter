@@ -101,7 +101,7 @@ jobs:
               "five distinct ships are implemented": "coerceIn(0, 4)" in game and '4 -> "ققنوس"' in game,
               "buttons use icon drawing": "drawButtonIcon(c, b.id" in game and "text(c, b.label" not in game,
               "about page and Telegram link exist": "درباره نئون شوتر" in game and "https://t.me/gateneon" in game,
-              "background music player is wired": "MediaPlayer.create(act, R.raw.ambient_theme)" in game,
+              "background music player is wired": "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game,
               "five ships have coin-purchased ownership": "private fun shipPrice(id: Int)" in game and "private fun buyOrSelectShip" in game and "ship_buy_4" in game,
               "ship selection persists and changes actual ship artwork": "putInt(\"ship\", currentShip)" in game and "drawPlayerShip(c, px, py)" in game and "drawPlayerShip(c, cx, cy, shipId)" in game,
               "bosses grant a separate persistent upgrade currency": "upgradePoints += earned" in game and "ship_upgrade_points" in game,
