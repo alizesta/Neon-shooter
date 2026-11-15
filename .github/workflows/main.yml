@@ -145,7 +145,7 @@ jobs:
 
 
 
-              "legendary ship skill description is visible and kill charged": "private fun legendaryDescription()" in game and "drawWrappedCardText(c, legendaryDescription()" in game and "مهارت ویژه سفینه:" in game and "legendaryChargeNeeded = 15" in game and "legendaryTier()" not in game,
+              "legendary ship skill description is visible and kill charged": "private fun legendaryDescription()" in game and "drawWrappedCardText(c, legendaryDescription()" in game and "مهارت ویژه کاوشگر:" in game and "legendaryChargeNeeded = 15" in game and "legendaryTier()" not in game,
               "first 50 waves have distinct astronomical stage names": "private val stageNames = arrayOf(" in game and "private fun waveTitle(level: Int = wave)" in game and "stageNames.getOrElse(level - 1)" in game,
               "every upgrade ability has its own icon case": "private fun drawAbilityIcon" in game,
 
