@@ -673,6 +673,24 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 add("shop_dash", "جهش | ۲۲۰ سکه", y + 56f)
                 add("shop_continue", "ادامه", y + 84f)
             }
+            St.SHIPS -> {
+                val y = wh * 0.38f
+                for (i in 0..4) {
+                    val label = if (shipOwned(i)) { if (currentShip == i) "فعال: " + shipName(i) else "انتخاب " + shipName(i) } else "خرید " + shipPrice(i) + " سکه • " + shipName(i)
+                    l.add(Btn(if (shipOwned(i)) "ship_select_$i" else "ship_buy_$i", label, RectF(12f, y + i * 23f, 208f, y + i * 23f + 20f)))
+                }
+                add("shipBack", "بازگشت", wh * 0.77f)
+            }
+            St.SHIP_UPGRADE -> {
+                val y = wh * 0.38f
+                val stats = listOf("attack" to "قدرت سلاح", "armor" to "زره", "mobility" to "سرعت", "hull" to "جان اولیه", "gold" to "توان طلایی")
+                stats.forEachIndexed { i, pair ->
+                    val rank = shipUpgradeRank(pair.first)
+                    val label = if (rank >= 5) pair.second + " MAX" else pair.second + " " + rank + "/۵ • هزینه " + (rank + 1)
+                    l.add(Btn("shipup_" + pair.first, label, RectF(12f, y + i * 23f, 208f, y + i * 23f + 20f)))
+                }
+                add("shipUpgradeBack", "بازگشت به آشیانه", wh * 0.77f)
+            }
             else -> {}
         }
         return l
@@ -1762,6 +1780,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             St.AD_BREAK -> { drawGame(c); drawAdBreak(c) }
             St.UPGRADE -> drawUpgrade(c)
             St.SHOP -> drawShop(c)
+            St.SHIPS -> drawShipHangar(c)
+            St.SHIP_UPGRADE -> drawShipUpgrades(c)
         }
         c.restore()
         if (damageFlash > 0f) { paint.style = Paint.Style.FILL; paint.color = Color.argb((58f * damageFlash / 0.22f).toInt().coerceIn(0, 58), 255, 42, 66); c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint) }
@@ -1937,7 +1957,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if ((st == St.PLAY || st == St.PAUSE) && (invul <= 0f || (time * 12).toInt() % 2 == 0)) {
             val oldAlpha = spritePaint.alpha
             if (legendaryTime > 0f && currentShip == 3) spritePaint.alpha = 92
-            spr(c, bPlayer, px, py)
+            drawPlayerShip(c, px, py)
             spritePaint.alpha = oldAlpha
         }
         for (p in parts) {
@@ -2510,11 +2530,100 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
     }
 
+    private fun drawPlayerShip(c: Canvas, x: Float, y: Float, shipId: Int = currentShip) {
+        val colors = intArrayOf(0xFFFFD34F.toInt(), 0xFF45E6FF.toInt(), 0xFFFF8758.toInt(), 0xFFB78CFF.toInt(), 0xFFFF6EB5.toInt())
+        val glows = intArrayOf(0xFFFFFFA8.toInt(), 0xFFB8F7FF.toInt(), 0xFFFFD0A6.toInt(), 0xFFE3D2FF.toInt(), 0xFFFFC3E4.toInt())
+        val id = shipId.coerceIn(0, 4)
+        val color = colors[id]
+        c.save()
+        c.translate(x * s, y * s)
+        c.scale(s, s)
+        paint.style = Paint.Style.FILL
+        paint.color = Color.argb(65, Color.red(color), Color.green(color), Color.blue(color))
+        c.drawCircle(0f, 1f, 17f, paint)
+        val body = Path()
+        when (id) {
+            0 -> {
+                body.moveTo(0f,-17f); body.lineTo(7f,7f); body.lineTo(0f,3f); body.lineTo(-7f,7f); body.close()
+                val wings = Path().apply { moveTo(-5f,1f); lineTo(-17f,10f); lineTo(-8f,9f); lineTo(0f,5f); lineTo(8f,9f); lineTo(17f,10f); lineTo(5f,1f); close() }
+                paint.color = color; c.drawPath(wings, paint)
+            }
+            1 -> {
+                body.moveTo(0f,-19f); body.cubicTo(9f,-5f,5f,8f,0f,12f); body.cubicTo(-5f,8f,-9f,-5f,0f,-19f); body.close()
+                val fins = Path().apply { moveTo(-4f,0f); lineTo(-18f,13f); lineTo(-7f,10f); lineTo(0f,6f); lineTo(7f,10f); lineTo(18f,13f); lineTo(4f,0f); close() }
+                paint.color = color; c.drawPath(fins, paint)
+            }
+            2 -> {
+                body.moveTo(-6f,-15f); body.lineTo(6f,-15f); body.lineTo(11f,7f); body.lineTo(0f,12f); body.lineTo(-11f,7f); body.close()
+                val armor = Path().apply { moveTo(-7f,-1f); lineTo(-20f,8f); lineTo(-15f,14f); lineTo(-3f,8f); lineTo(3f,8f); lineTo(15f,14f); lineTo(20f,8f); lineTo(7f,-1f); close() }
+                paint.color = color; c.drawPath(armor, paint)
+            }
+            3 -> {
+                body.moveTo(0f,-19f); body.lineTo(5f,8f); body.lineTo(0f,5f); body.lineTo(-5f,8f); body.close()
+                val ghost = Path().apply { moveTo(-4f,-2f); lineTo(-17f,15f); lineTo(-12f,5f); lineTo(-4f,3f); lineTo(4f,3f); lineTo(12f,5f); lineTo(17f,15f); lineTo(4f,-2f); close() }
+                paint.color = color; c.drawPath(ghost, paint)
+            }
+            else -> {
+                body.moveTo(0f,-20f); body.cubicTo(13f,-4f,9f,10f,0f,13f); body.cubicTo(-9f,10f,-13f,-4f,0f,-20f); body.close()
+                val flames = Path().apply { moveTo(-4f,2f); lineTo(-20f,15f); lineTo(-12f,3f); lineTo(-5f,6f); lineTo(0f,2f); lineTo(5f,6f); lineTo(12f,3f); lineTo(20f,15f); lineTo(4f,2f); close() }
+                paint.color = color; c.drawPath(flames, paint)
+            }
+        }
+        paint.color = color
+        c.drawPath(body, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.2f
+        paint.color = glows[id]
+        c.drawPath(body, paint)
+        paint.style = Paint.Style.FILL
+        paint.color = glows[id]
+        c.drawRoundRect(-2.1f,-8f,2.1f,3f,2f,2f,paint)
+        paint.color = if (id == 2) 0xFFFF9B42.toInt() else 0xFFFFE08A.toInt()
+        val flame = Path().apply { moveTo(-3f,8f); lineTo(0f,18f + sin(time * 18f) * 2f); lineTo(3f,8f); close() }
+        c.drawPath(flame, paint)
+        paint.style = Paint.Style.FILL
+        c.restore()
+    }
+
+    private fun drawShipHangar(c: Canvas) {
+        paint.color = 0xE807101D.toInt()
+        c.drawRect(0f,0f,sw.toFloat(),sh.toFloat(),paint)
+        drawGlassPanel(c,5f,wh*0.27f,W-5f,wh*0.86f,0xFFFFD45C.toInt(),244)
+        text(c,"آشیانه ناوگان",W/2f,wh*0.32f,12f,0xFFFFD45C.toInt())
+        text(c,"سکه: $credits",W/2f,wh*0.35f,7f,WHT)
+        for (i in 0..4) {
+            val y = wh*0.38f + i*23f
+            val owned = shipOwned(i)
+            drawPlayerShip(c,25f,y+9f,i)
+            text(c,shipName(i),48f,y+12f,5.4f,if(currentShip==i) 0xFFFFD45C.toInt() else WHT,Paint.Align.LEFT)
+            text(c,when(i){0->"متوازن";1->"سرعت بالا";2->"زره سنگین";3->"شلیک تند";else->"آتش ققنوس"},48f,y+18f,3.8f,0xFF9CEBFF.toInt(),Paint.Align.LEFT)
+            if (!owned) text(c,shipPrice(i).toString()+" سکه",190f,y+12f,4.5f,0xFFFFD45C.toInt(),Paint.Align.RIGHT)
+            else if (currentShip==i) text(c,"فعال",190f,y+12f,4.5f,0xFF55DDAA.toInt(),Paint.Align.RIGHT)
+        }
+        drawButtons(c)
+    }
+
+    private fun drawShipUpgrades(c: Canvas) {
+        paint.color = 0xE807101D.toInt()
+        c.drawRect(0f,0f,sw.toFloat(),sh.toFloat(),paint)
+        drawGlassPanel(c,5f,wh*0.27f,W-5f,wh*0.86f,0xFF47DFFF.toInt(),244)
+        text(c,"کارگاه ارتقای سفینه",W/2f,wh*0.32f,11f,0xFF9CEBFF.toInt())
+        text(c,shipName()+"  •  امتیاز ارتقا: $upgradePoints",W/2f,wh*0.35f,6.1f,0xFFFFD45C.toInt())
+        val stats = listOf("attack" to "قدرت سلاح", "armor" to "زره و دفع ضربه", "mobility" to "سرعت مانور", "hull" to "جان شروع", "gold" to "توان طلایی")
+        stats.forEachIndexed { i,pair ->
+            val rank = shipUpgradeRank(pair.first)
+            val y = wh*0.38f + i*23f
+            text(c,pair.second,W/2f,y+8f,5.5f,WHT)
+            text(c,"سطح " + rank + "/۵  •  هزینه " + (rank+1) + " امتیاز",W/2f,y+15f,4.1f,0xFF9CEBFF.toInt())
+        }
+        drawButtons(c)
+    }
+
     private fun drawMenu(c: Canvas) {
         drawGlassPanel(c, 18f, wh * 0.35f, 202f, wh * 0.80f, 0xFF47DFFF.toInt(), 224)
         text(c, "نئون", W / 2, wh * 0.16f, 34f, YEL)
         text(c, "شوتر", W / 2, wh * 0.16f + 26f, 24f, RED)
-        spr(c, bPlayer, W / 2, wh * 0.33f + sin(System.nanoTime() / 4e8f) * 3f)
+        drawPlayerShip(c, W / 2, wh * 0.33f + sin(System.nanoTime() / 4e8f) * 3f)
         text(c, "سفینه: " + shipName() + "   سکه: " + credits, W / 2f, wh * 0.395f, 6.5f, 0xFF80E7FF.toInt())
         text(c, if (dailyDone) "ماموریت روزانه کامل شد: +۵۰۰" else "ماموریت روزانه: ۲۵ نابودی " + dailyKills + "/۲۵", W / 2f, wh * 0.417f, 6f, 0xFFFFD45C.toInt())
         text(c, "بهترین امتیاز: $best   رکورد مرحله: $bestWave", W / 2, wh * 0.44f, 7f, WHT)
