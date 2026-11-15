@@ -201,7 +201,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private var musicPlayer: MediaPlayer? = null
     private var musicPrepared = false
 
-    init { refreshDaily(); holder.addCallback(this); TapsellAds.preloadAll(); prepareMusic() }
+    init { for (i in 1..currentShip) prefs.edit().putBoolean("ship_unlocked_" + i, true).apply(); refreshDaily(); holder.addCallback(this); TapsellAds.preloadAll(); prepareMusic() }
 
     private fun prepareMusic() {
         if (musicPrepared) return
@@ -366,12 +366,13 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (id !in 0..4) return
         if (!shipOwned(id)) {
             val cost = shipPrice(id)
-            if (credits < cost) return
+            if (credits < cost) { adStatusText = "سکه کافی نیست"; adStatusTimer = 1.6f; return }
             credits -= cost
             prefs.edit().putInt("credits", credits).putBoolean("ship_unlocked_" + id, true).apply()
         }
         currentShip = id
         prefs.edit().putInt("ship", currentShip).apply()
+        adStatusText = "سفینه " + shipName() + " انتخاب شد"; adStatusTimer = 1.4f
     }
 
     private fun buyShipUpgrade(stat: String) {
@@ -630,12 +631,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         fun add(id: String, label: String, y: Float) { l.add(Btn(id, label, RectF(50f, y, 170f, y + 22f))) }
         when (st) {
             St.MENU -> {
-                val y = wh * 0.45f
+                val y = wh * 0.44f
                 add("play", "شروع بازی", y)
-                add("sound", if (sfx.enabled) "صدا: روشن" else "صدا: خاموش", y + 30f)
-                add("ship", "آشیانه سفینه", y + 60f)
-                add("shipup", "ارتقای سفینه", y + 90f)
-                add("about", "درباره", y + 120f)
+                add("sound", if (sfx.enabled) "صدا: روشن" else "صدا: خاموش", y + 22f)
+                add("ship", "آشیانه سفینه", y + 44f)
+                add("shipup", "ارتقای سفینه", y + 66f)
+                add("about", "درباره", y + 88f)
             }
             St.ABOUT -> {
                 val y = wh * 0.62f
@@ -2488,8 +2489,20 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.strokeWidth = 1.8f * s; paint.color = color
         val x = cx * s; val y = cy * s
         if (id.startsWith("upgrade_")) {
-            val i = id.substringAfter('_').toIntOrNull() ?: 0
-            upgradeChoices.getOrNull(i)?.let { drawAbilityIcon(c, it, cx, cy) }
+            c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)
+            c.drawLine(x, y + 3f * s, x - 4.5f * s, y - 1.5f * s, paint)
+            c.drawLine(x, y + 3f * s, x + 4.5f * s, y - 1.5f * s, paint)
+            c.drawLine(x - 8f * s, y + 7f * s, x + 8f * s, y + 7f * s, paint)
+            paint.style = Paint.Style.FILL
+            return
+        }
+        if (id.startsWith("shipup_")) {
+            drawAbilityIcon(c, when(id.substringAfter("_")) { "attack" -> "firepower"; "armor" -> "shield"; "mobility" -> "dash"; "hull" -> "hull"; else -> "phoenix" }, cx, cy)
+            return
+        }
+        if (id.startsWith("ship_")) {
+            val shipId = id.substringAfterLast("_").toIntOrNull() ?: 0
+            drawPlayerShip(c, cx, cy, shipId)
             return
         }
         when (id) {
