@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.7.2 • ship progression
+name: Build Neon Shooter 2.7.3 • ship progression
 
 on:
   push:
@@ -77,11 +77,11 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.7.2")
-          s = s.replace("versionCode = 25", "versionCode = 39", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.2"', 1)
+              raise SystemExit("Unexpected base version before v2.7.3")
+          s = s.replace("versionCode = 25", "versionCode = 40", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.3"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.7.2")
+          print("PATCH full gameplay source and version 2.7.3")
           PY
 
       - name: Generate original cinematic background music
@@ -125,7 +125,7 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.7.2": "versionCode = 39" in gradle and 'versionName = "2.7.2"' in gradle,
+              "release version is 2.7.3": "versionCode = 40" in gradle and 'versionName = "2.7.3"' in gradle,
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
@@ -161,7 +161,7 @@ jobs:
               "spacecraft retain their neon color palette and glow": "val colors = intArrayOf(0xFFFFD34F.toInt(), 0xFF45E6FF.toInt(), 0xFFFF8758.toInt(), 0xFFB78CFF.toInt(), 0xFFFF6EB5.toInt())" in game and "BlurMaskFilter(7.5f" in game and "paint.strokeWidth = 2.2f" in game,
               "score, stage, boss health and progress marker avoid HUD collisions": 'drawFittedText(c, "امتیاز $score", 6f, 14f, 6.2f, YEL, 58f' in game and "96f*s, 21f*s, 184f*s, 25f*s" in game and "val top = 56f * s" in game,
               "boss banner avoids repeating the stage number": '"نبرد با " + bossName' in game and "drawFittedText(c, combo" in game,
-              "Persian UI text is constrained to one line unless explicitly wrapped": ".setMaxLines(1)" in game and ".setEllipsize(TextUtils.TruncateAt.END)" in game and "tp.measureText(value) * 1.22f" in game,
+              "Persian UI text is constrained to one line unless explicitly wrapped": ".setMaxLines(1)" in game and ".setEllipsize(TextUtils.TruncateAt.END)" in game and "TextUtils.ellipsize(value, tp" in game and "tp.textAlign = Paint.Align.LEFT" in game,
               "ability choice panel lists previously collected abilities in its lower card": "قابلیت‌های گرفته‌شده" in game and "drawOwnedAbilityList(c, wh * 0.685f" in game and "drawOwnedAbilityList(c, wh * 0.70f" in game and "ownedAbilityIds().size" in game,
               "pause ability roster uses a three-column non-overlapping layout": "drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3" in game and "val cellHeight = (bottom - top) / rows" in game,
               "all 50 stages have short constellation descriptions": "private val stageDescriptions = arrayOf(" in game and "stageDescriptions.getOrElse(level - 1)" in game and "drawFittedText(c, stageDescription(wave)" in game,
@@ -170,7 +170,7 @@ jobs:
               "fitted labels are ellipsized and clipped inside their fixed-width cells": "TextUtils.ellipsize(value, tp" in game and "c.clipRect(left * s" in game and "c.clipRect(cellX * s, cellTop * s" in game,
               "upgrade and pause ability inventories fit three-column/compact card cells": "drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 3" in game and "drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3" in game,
               "five probes have added optical, antenna, mirror, boom and lander hardware detail": all(x in game for x in ["Hubble additional telescope and solar-array details", "Six visible primary-mirror segments", "High-gain dish ribs", "Separate dish ribs", "Phoenix weather mast"]),
-              "stage and constellation introduction remains visible for five seconds": "bannerT = 5.0f" in game and "drawFittedText(c, stageDescription(wave)" in game,
+              "stage and constellation introduction remains visible for five seconds": "stageIntroTimer = 5.0f" in game and "stageIntroTimer = max(0f, stageIntroTimer - dt)" in game and "if (stageIntroTimer > 0f && st == St.PLAY)" in game and "drawFittedText(c, stageDescription(wave)" in game,
               "stage number is Persian and rendered as an isolated numeric run": "persianNumber(level)" in game and "Regex(\"([0-9۰-۹٠-٩]+)\")" in game and '"مرحله " + persianNumber(level)' in game,
               "all three upgrade cards are positioned inside the panel bounds": "val optionWidth = (W - 14f - optionGap * 2f) / 3f" in game and "c.clipRect(left * s, (wh * 0.425f) * s, right * s, (wh * 0.605f) * s)" in game,
               "all upgrade buttons stay inside the screen width": "val width = (W - 10f - gap * 2f) / 3f" in game and "RectF(left, top, left + width, top + 25f)" in game,
@@ -240,13 +240,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.7.2.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.7.3.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.7.2
-          path: NeonShooter-Android-Project-v2.7.2.zip
+          name: NeonShooter-Android-Project-v2.7.3
+          path: NeonShooter-Android-Project-v2.7.3.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -309,16 +309,16 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.7.2 APK build
+      - name: Record verified v2.7.3 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
           test -s "$APK"
-          cat > release-proof-v2.7.2.txt <<EOF
+          cat > release-proof-v2.7.3.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.7.2
+          app_version=2.7.3
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
@@ -327,24 +327,24 @@ jobs:
       - name: Upload APK verification proof
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Release-Proof-v2.7.2
-          path: release-proof-v2.7.2.txt
+          name: NeonShooter-Release-Proof-v2.7.3
+          path: release-proof-v2.7.3.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.7.2-APK
+          name: Neon-Shooter-v2.7.3-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.7.2
+      - name: Publish Neon Shooter 2.7.3
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.7.2
-          name: Neon Shooter v2.7.2
+          tag_name: v2.7.3
+          name: Neon Shooter v2.7.3
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
