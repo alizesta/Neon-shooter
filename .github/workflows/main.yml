@@ -1,92 +1,73 @@
 name: Build Neon Shooter 2.4.0
+
 on:
   push:
     paths:
-      - 'NeonShooter_*.zip'
-      - 'patch_game*.py'
-      - 'patch_game_v211.py.xz'
-      - 'patch_game_v22.py.xz'
-      - 'patch_progression_17.part*'
-      - 'SPRITES_V5_DUMP.kt'
-      - 'build-assets/v23/patch_game_v23.part*'
+      - '.github/workflows/main.yml'
+      - 'build-assets/v24/source.part*'
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract Android project
-        run: rm -rf NeonShooter && unzip -oq NeonShooter_*.zip
-      - name: Apply 2D art and gameplay refinement
-        run: python3 patch_game_v3.py
-      - name: Add progression, ships, bosses and dynamic events
-        run: python3 patch_game_features.py
-      - name: Apply gameplay polish and stackable upgrade system
-        run: python3 patch_game_polish.py
-      - name: Apply 1.6 glass UI, shield health and reserved ad slots
-        run: python3 patch_game_next.py
-      - name: Apply Pixelfx-inspired native Android visual effects
-        run: python3 patch_game_pixelfx.py
-      - name: Apply Neon Shooter 1.7 progression, extra health and ship legendaries
+
+      - name: Restore the complete v2.4.0 Android project
+        shell: bash
         run: |
-          cat patch_progression_17.part01 patch_progression_17.part02 patch_progression_17.part03 patch_progression_17.part04 > patch_game_progression.py
-          python3 patch_game_progression.py
-      - name: Apply Neon Shooter 1.8 health HUD, upgrade cards and EMP ability
-        run: python3 patch_game_v18.py
-      - name: Apply Neon Shooter 1.9 abilities and PixelFX visual effects
-        run: python3 patch_game_v19.py
-      - name: Apply Neon Shooter 2.0 cleanup, local settings and Google removal
-        run: python3 patch_game_v20.py
-      - name: Apply Tapsell Plus monetization and Neon Shooter 2.1.1 metadata
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/neon-v24"
+          cat build-assets/v24/source.part* > "$RUNNER_TEMP/neon-v24/project.b64"
+          base64 --decode "$RUNNER_TEMP/neon-v24/project.b64" > "$RUNNER_TEMP/neon-v24/project.zip"
+          echo "37349d4a8b0a5743b942cc129c7a1209fb839108ab3f2c16c0215a814d81f310  $RUNNER_TEMP/neon-v24/project.zip" | sha256sum --check -
+          unzip -q "$RUNNER_TEMP/neon-v24/project.zip" -d .
+          test -s NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt
+          test -s NeonShooter/app/build.gradle.kts
+
+      - name: Generate original cinematic background music
+        run: python3 NeonShooter/tools/generate_ambient.py
+
+      - name: Verify requested gameplay features before compiling
+        shell: bash
         run: |
-          xz -dc patch_game_v211.py.xz > patch_game_v211.py
-          python3 patch_game_v211.py
-      - name: Apply Neon Shooter 2.2.0 gameplay and Persian localization
-        run: |
-          xz -dc patch_game_v22.py.xz > patch_game_v22.py
-          python3 patch_game_v22.py
-      - name: Apply complete Neon Shooter 2.3 feature pack (music, pause abilities, coins, bosses, ships and black-hole effects)
-        run: python3 patch_game_v24.py
-      - name: Apply Neon Shooter 2.3.0 gameplay recovery patch
-        run: |
+          set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt")
-          s = p.read_text()
-          def sub(old, new, label):
-              global s
-              if old not in s:
-                  print("Skipped unavailable source anchor:", label)
-                  return
-              s = s.replace(old, new, 1)
-          sub("for (star in stars) {\n            star.phase += dt * (2.4f + star.sp * 0.16f)",
-              "for (star in stars) {\n            star.phase += dt * (2.4f + star.sp * 0.16f); star.y += star.sp * dt; if (star.y > wh) star.y = -1f",
-              "downward starfield")
-          sub("110 + wave * 18", "77 + wave * 13", "first boss health reduction")
-          sub("val hp = when (type) { 1 -> 5 + wave / 8; 3 -> 4 + wave / 10; 4 -> 3 + wave / 12; else -> 2 + wave / 12 }",
-              "val baseHp = when (type) { 1 -> 5 + wave / 8; 3 -> 4 + wave / 10; 4 -> 3 + wave / 12; else -> 2 + wave / 12 }; val hp = if (wave >= 10) (baseHp * 1.5f).toInt() else baseHp",
-              "late-wave enemy scaling")
-          sub("roll < 0.985f -> 9\n                else -> 10",
-              "roll < 0.985f -> 9\n                roll < 0.995f -> 10\n                else -> 11",
-              "coin drops")
-          sub("10 -> 0xFF72F0C0.toInt()\n            else -> 0xFFB68CFF.toInt()",
-              "10 -> 0xFF72F0C0.toInt()\n            11 -> 0xFFFFD34F.toInt()\n            else -> 0xFFB68CFF.toInt()",
-              "coin appearance")
-          sub("10 -> piercingTimer = max(piercingTimer, 8f)\n                else -> activateSquadron()",
-              "10 -> piercingTimer = max(piercingTimer, 8f)\n                11 -> score += 25\n                else -> activateSquadron()",
-              "coin collection")
-          sub("0xFF8C63FF.toInt()", "0xFFFFC247.toInt()", "gold black-hole ring")
-          sub("0xFF35D9F2.toInt()", "0xFFFFE08A.toInt()", "gold black-hole ring highlight")
-          sub("0xFFFF75D8.toInt()", "0xFFFFA51F.toInt()", "gold black-hole arc")
-          sub("0xFFB59BFF.toInt()", "0xFFFFD36A.toInt()", "gold black-hole core")
-          sub("Thread.sleep(8)", "Thread.sleep(11)", "90 FPS frame pacing")
-          p.write_text(s)
-          print("Neon Shooter 2.3 gameplay recovery patch applied.")
+          game = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt").read_text(encoding="utf-8")
+          gradle = Path("NeonShooter/app/build.gradle.kts").read_text(encoding="utf-8")
+          checks = {
+              "maxed level-5 abilities are filtered, not deleted": "abilityRank(id) < 5" in game and "selectedAbilities.toList()" in game,
+              "pause shows the acquired ability list": "قابلیت‌های فعال" in game and "selectedAbilities.toList()" in game,
+              "enemies and bosses drop real coins": "items.add(Item(e.x, e.y, 13," in game and "13 -> { credits += item.amount" in game,
+              "magnet pulls pickups and coins": "magnetTimer > 0f || magnetLevel > 0" in game,
+              "bosses inherit two random owned skills": "return owned.shuffled().take(2)" in game and "bossSkills = chooseBossSkills()" in game,
+              "black hole distorts the star background": "val bend = ((reach - d) / reach)" in game and "hole.spin" in game,
+              "five distinct ships are implemented": "currentShip).coerceIn(0, 4)" in game and '4 -> "ققنوس"' in game,
+              "buttons use icon drawing": "drawButtonIcon(c, b.id" in game and "text(c, b.label" not in game,
+              "about page and Telegram link exist": "درباره نئون شوتر" in game and "https://t.me/gateneon" in game,
+              "background music player is wired": "MediaPlayer.create(act, R.raw.ambient_theme)" in game,
+              "music state is synced when pausing": "st = St.PAUSE\n                            syncMusic()" in game,
+              "release version is 2.4.0": "versionCode = 24" in gradle and 'versionName = "2.4.0"' in gradle,
+          }
+          failed = [name for name, ok in checks.items() if not ok]
+          for name, ok in checks.items():
+              print(("PASS " if ok else "FAIL ") + name)
+          audio = Path("NeonShooter/app/src/main/res/raw/ambient_theme.wav")
+          if not audio.is_file() or audio.stat().st_size < 1_000_000:
+              failed.append("generated background music asset is missing or too small")
+          else:
+              print(f"PASS generated soundtrack ({audio.stat().st_size} bytes)")
+          if failed:
+              raise SystemExit("Feature verification failed: " + "; ".join(failed))
           PY
+
       - name: Package complete Android project
         run: zip -qr NeonShooter-Android-Project-v2.4.0.zip NeonShooter
+
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
@@ -94,35 +75,50 @@ jobs:
           path: NeonShooter-Android-Project-v2.4.0.zip
           if-no-files-found: error
           retention-days: 30
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
+
       - name: Configure persistent release signing
         env:
           KEYSTORE_B64: ${{ secrets.NEON_KEYSTORE_BASE64 }}
+        shell: bash
         run: |
+          set -euo pipefail
           if [ -z "$KEYSTORE_B64" ]; then
             echo "NEON_KEYSTORE_BASE64 secret is missing"
             exit 1
           fi
           echo "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/neon-shooter-release.jks"
           test -s "$RUNNER_TEMP/neon-shooter-release.jks"
+
       - name: Build signed release APK
         env:
           NEON_KEYSTORE_PATH: ${{ runner.temp }}/neon-shooter-release.jks
           NEON_KEYSTORE_PASSWORD: ${{ secrets.NEON_KEYSTORE_PASSWORD }}
           NEON_KEY_ALIAS: ${{ secrets.NEON_KEY_ALIAS }}
           NEON_KEY_PASSWORD: ${{ secrets.NEON_KEY_PASSWORD }}
+        shell: bash
         run: |
+          set -euo pipefail
           cd NeonShooter
           test -f "$NEON_KEYSTORE_PATH"
           gradle assembleRelease --no-daemon
           cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/Neon-Shooter.apk
           test -s app/build/outputs/apk/release/Neon-Shooter.apk
+          APK="$PWD/app/build/outputs/apk/release/Neon-Shooter.apk"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
+          sha256sum "$APK"
+          stat -c 'APK_SIZE_BYTES=%s' "$APK"
+
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -130,10 +126,21 @@ jobs:
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
+
       - name: Publish Neon Shooter 2.4.0
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v2.4.0
-          name: Neon Shooter v2.4.0 (Music, Boss Skills, Ships and Gameplay)
+          name: Neon Shooter v2.4.0
+          body: |
+            Actual gameplay update:
+            - Level-5 abilities remain active and are excluded from future upgrade choices.
+            - Pause screen displays the acquired ability list and ranks.
+            - Enemies and bosses drop collectible coins; magnet and scavenger abilities collect/increase them.
+            - Original 48-second cinematic ambient soundtrack, looped in game.
+            - Bosses randomly inherit two abilities owned by the player.
+            - Black holes bend and pull the starfield and nearby entities.
+            - Five ships with distinct golden abilities.
+            - Icon-only action buttons, Persian About page, and Telegram channel link.
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           fail_on_unmatched_files: true
