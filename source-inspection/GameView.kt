@@ -3196,7 +3196,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val p = Path().apply { addRoundRect(RectF(left, top, right, bottom), radius, radius, Path.Direction.CW) }
             filled.addPath(p); silhouette.addPath(p)
         }
-        fun hex(path: Path, cx: Float, cy: Float, radius: Float, angle: Float = -PI / 2.0) {
+        fun hex(path: Path, cx: Float, cy: Float, radius: Float, angle: Float = -PI.toFloat() / 2f) {
             for (i in 0 until 6) {
                 val a = angle + i * PI / 3.0
                 val px = cx + cos(a).toFloat() * radius
