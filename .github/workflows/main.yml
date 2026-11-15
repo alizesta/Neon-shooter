@@ -49,7 +49,21 @@ jobs:
           python3 patch_game_v22.py
       - name: Apply Neon Shooter 2.3.0 rhythm combat and new ships
         run: |
-          for part in build-assets/v23/patch_game_v23.part*; do base64 -d "$part"; done | xz -dc > patch_game_v23.py
+          python3 - <<'PY'
+          import base64, itertools, lzma, pathlib, sys
+          files = sorted(pathlib.Path("build-assets/v23").glob("patch_game_v23.part*"))
+          chunks = [base64.b64decode(p.read_text().strip()) for p in files]
+          for order in itertools.permutations(range(len(chunks))):
+              try:
+                  payload = lzma.decompress(b"".join(chunks[i] for i in order))
+                  pathlib.Path("patch_game_v23.py").write_bytes(payload)
+                  print("Valid 2.3.0 patch archive order:", order)
+                  break
+              except lzma.LZMAError:
+                  continue
+          else:
+              raise SystemExit("2.3.0 patch archive is corrupt in every segment ordering")
+          PY
           python3 patch_game_v23.py
       - name: Package complete Android project
         run: zip -qr NeonShooter-Android-Project-v2.3.0.zip NeonShooter
