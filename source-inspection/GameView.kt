@@ -601,6 +601,30 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         sfx.play("power")
     }
 
+    private fun legendaryDescription(): String = when (currentShip) {
+        0 -> "فراشتاب: برای چند ثانیه سرعت شلیک و قدرت آتش سفینه به‌شدت افزایش می‌یابد."
+        1 -> "پس‌سوز: سفینه برای چند ثانیه با سرعت بسیار بیشتر در میدان حرکت می‌کند."
+        2 -> "ایجیس: یک سپر کامل فعال می‌شود و برای چند ثانیه تمام آسیب‌ها را خنثی می‌کند."
+        3 -> "مخفی‌سازی: سفینه برای چند ثانیه نامرئی می‌شود و از ضربه‌ها عبور می‌کند."
+        else -> "ققنوس طلایی: یک جان بازیابی می‌شود، تیرهای دشمن پاک می‌شوند و موج دشمنان نابود می‌شود."
+    }
+
+    private fun waveName(level: Int): String {
+        val names = arrayOf(
+            "عطارد", "زهره", "زمین", "ماه", "مریخ", "سرس", "مشتری", "اروپا", "گانیمد", "کالیستو",
+            "زحل", "تیتان", "انسلادوس", "اورانوس", "نپتون", "تریتون", "پلوتو", "شارون", "اریس", "ماکی‌ماکی",
+            "هائومیا", "پروکسیما قنطورس بی", "تراپیست-۱بی", "تراپیست-۱ئی", "کپلر-۲۲بی",
+            "کپلر-۴۵۲بی", "۵۱ پگاسی بی", "واسپ-۱۲بی", "گلیزه ۱۲۱۴بی", "ال‌اچ‌اس ۱۱۴۰بی",
+            "سیریوس", "آلفا قنطورس", "وگا", "دبران", "رجل‌الجبار", "خوشه پروین",
+            "سحابی جبار", "سحابی عقاب", "سحابی خرچنگ", "سحابی مرداب",
+            "کهکشان آندرومدا", "کهکشان مثلث", "ابر ماژلانی بزرگ", "ابر ماژلانی کوچک", "کهکشان گرداب",
+            "کهکشان چرخ‌گاری", "قنطورس آ", "کمان ای*", "کهکشان کلاه‌مکزیکی", "میدان ژرف هابل"
+        )
+        return names.getOrElse(level - 1) { "مرز ناشناخته $level" }
+    }
+
+    private fun waveTitle(level: Int = wave): String = "مرحله $level • " + waveName(level)
+
     private fun eventName(): String = when (eventKind) {
         1 -> "بارش شهاب‌سنگ"
         2 -> "خیزش سیاه‌چاله"
@@ -721,7 +745,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 }
             }
             St.UPGRADE -> {
-                val top = wh * 0.62f
+                val milestone = wave in 10..50 && wave % 10 == 0
+                val top = wh * if (milestone) 0.72f else 0.62f
                 for (i in 0..2) l.add(Btn("upgrade_$i", "انتخاب", RectF(5f + i * 72f, top, 67f + i * 72f, top + 25f)))
             }
             St.SHOP -> {
@@ -2071,7 +2096,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.alpha = 255
         text(c, "امتیاز $score", 6f, 14f, 9f, YEL, Paint.Align.LEFT)
         drawCoinCounter(c, 164f, 14f)
-        if (comboCount >= 3) text(c, "ترکیب x" + (1 + comboCount / 5).coerceAtMost(5), W / 2f, 14f, 8f, 0xFFFFD45C.toInt())
+        if (enemies.none { it.type == 2 && !it.dead }) {
+            drawFittedText(c, waveTitle(wave), W / 2f, 14f, 4.8f, 0xFF9CEBFF.toInt(), 88f)
+        }
+        if (comboCount >= 3) text(c, "ترکیب x" + (1 + comboCount / 5).coerceAtMost(5), W / 2f, 31f, 6f, 0xFFFFD45C.toInt())
         text(c, "جان", 7f, 27f, 6f, 0xFF9CEBFF.toInt(), Paint.Align.LEFT)
         paint.style = Paint.Style.FILL
         paint.color = 0xCC25313D.toInt()
@@ -2143,7 +2171,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (bannerT > 0f && st == St.PLAY) {
             val boss = wave % 5 == 0
             val combo = activeCombo()
-            text(c, if (boss) "!! باس !!" else if (eventKind > 0) eventName() else "مرحله $wave", W / 2, wh * 0.4f, 15f, if (boss) RED else WHT)
+            val bannerTitle = if (boss) "باس " + waveTitle(wave) else if (eventKind > 0) eventName() else waveTitle(wave)
+            drawFittedText(c, bannerTitle, W / 2f, wh * 0.4f, 12.5f, if (boss) RED else WHT, 180f)
             if (combo.isNotEmpty()) text(c, combo, W / 2f, wh * 0.4f + 13f, 7f, 0xFF72F0C0.toInt())
         }
     }
@@ -2422,63 +2451,209 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun abilityColor(id: String): Int = when (id) {
-        "drone", "laser" -> 0xFF38BDF8.toInt()
+        "drone" -> 0xFF38BDF8.toInt()
         "missile" -> 0xFFFF5B4D.toInt()
+        "laser" -> 0xFF48F0E8.toInt()
         "firepower" -> 0xFFFFB020.toInt()
-        "emp" -> 0xFF67E8F9.toInt()
-        "ricochet", "scanner" -> 0xFFFF668F.toInt()
-        "gravity_well" -> 0xFFB18CFF.toInt()
-        "overload" -> 0xFFFFB347.toInt()
-        "nanobots" -> 0xFF63F5C5.toInt()
-        "salvage_drone", "kill_streak" -> 0xFFFFD66B.toInt()
-        "ricochet_shield" -> 0xFF65DFFF.toInt()
         "magnet" -> 0xFF3B82F6.toInt()
         "shield" -> 0xFF22D3EE.toInt()
         "dash" -> 0xFFFFD54A.toInt()
         "chain" -> 0xFFA78BFA.toInt()
-        "hull", "health_regen", "phoenix" -> 0xFF4ADE80.toInt()
-        "armor", "stasis" -> 0xFF22D3EE.toInt()
-        "critical", "explosive" -> 0xFFFF5B4D.toInt()
-        "overdrive" -> 0xFFFFB020.toInt()
-        "piercing", "multishot" -> 0xFFA78BFA.toInt()
-        "scavenger" -> 0xFFFFD45C.toInt()
+        "hull" -> 0xFF4ADE80.toInt()
+        "emp" -> 0xFF67E8F9.toInt()
+        "ricochet" -> 0xFFFF668F.toInt()
+        "gravity_well" -> 0xFFB18CFF.toInt()
+        "overload" -> 0xFFFF8C42.toInt()
+        "nanobots" -> 0xFF63F5C5.toInt()
+        "scanner" -> 0xFFFF5CA8.toInt()
+        "salvage_drone" -> 0xFFFFD66B.toInt()
+        "kill_streak" -> 0xFFFF4F85.toInt()
+        "ricochet_shield" -> 0xFF65DFFF.toInt()
+        "health_regen" -> 0xFF8DFF75.toInt()
+        "armor" -> 0xFFB5C4D6.toInt()
+        "critical" -> 0xFFFFE45C.toInt()
+        "overdrive" -> 0xFFFFA33C.toInt()
+        "explosive" -> 0xFFFF3D3D.toInt()
+        "piercing" -> 0xFFB9A3FF.toInt()
+        "stasis" -> 0xFF8BD3FF.toInt()
+        "scavenger" -> 0xFFFFC247.toInt()
+        "multishot" -> 0xFFBC72FF.toInt()
+        "phoenix" -> 0xFFFF70B5.toInt()
         else -> 0xFFB8E7FF.toInt()
     }
 
     private fun drawAbilityIcon(c: Canvas, id: String, cx: Float, cy: Float) {
         val color = abilityColor(id)
-        paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.35f * s; paint.strokeCap = Paint.Cap.ROUND; paint.strokeJoin = Paint.Join.ROUND; paint.color = color
-        val ox = cx * s; val oy = cy * s
-        when (id) {
-            "drone" -> { c.drawCircle(ox - 7f*s, oy, 3.2f*s, paint); c.drawCircle(ox + 7f*s, oy, 3.2f*s, paint); c.drawLine(ox-3f*s,oy,ox+3f*s,oy,paint); c.drawCircle(ox,oy-1f*s,2f*s,paint) }
-            "missile" -> { val p=Path().apply { moveTo(ox,oy-9f*s); lineTo(ox+4f*s,oy+4f*s); lineTo(ox,oy+2f*s); lineTo(ox-4f*s,oy+4f*s); close() }; c.drawPath(p,paint); c.drawLine(ox-3f*s,oy+5f*s,ox-5f*s,oy+8f*s,paint); c.drawLine(ox+3f*s,oy+5f*s,ox+5f*s,oy+8f*s,paint) }
-            "laser" -> { c.drawLine(ox,oy-9f*s,ox,oy+8f*s,paint); c.drawLine(ox-5f*s,oy-5f*s,ox+5f*s,oy-5f*s,paint); c.drawLine(ox-5f*s,oy+5f*s,ox+5f*s,oy+5f*s,paint) }
-            "firepower" -> for (dx in floatArrayOf(-5f,0f,5f)) { c.drawLine((cx+dx)*s,(cy+6f)*s,(cx+dx)*s,(cy-5f)*s,paint); c.drawLine((cx+dx)*s,(cy-5f)*s,(cx+dx-2f)*s,(cy-2f)*s,paint); c.drawLine((cx+dx)*s,(cy-5f)*s,(cx+dx+2f)*s,(cy-2f)*s,paint) }
-            "magnet" -> {
-                val p=Path().apply { moveTo(ox-7f*s,oy-6f*s); lineTo(ox-7f*s,oy+2f*s); quadTo(ox,oy+12f*s,ox+7f*s,oy+2f*s); lineTo(ox+7f*s,oy-6f*s) }
-                paint.color = 0xFFE6EDF5.toInt(); c.drawPath(p,paint)
-                paint.color = 0xFF3B82F6.toInt(); c.drawLine(ox-7f*s,oy-6f*s,ox-7f*s,oy+1f*s,paint); c.drawLine(ox-7f*s,oy-6f*s,ox-3f*s,oy-6f*s,paint)
-                paint.color = 0xFFEF4444.toInt(); c.drawLine(ox+7f*s,oy-6f*s,ox+7f*s,oy+1f*s,paint); c.drawLine(ox+3f*s,oy-6f*s,ox+7f*s,oy-6f*s,paint)
+        val ox = cx * s
+        val oy = cy * s
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.35f * s
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeJoin = Paint.Join.ROUND
+        paint.color = color
+        fun line(x1: Float, y1: Float, x2: Float, y2: Float, width: Float = 1.35f) {
+            paint.strokeWidth = width * s
+            c.drawLine((cx + x1) * s, (cy + y1) * s, (cx + x2) * s, (cy + y2) * s, paint)
+        }
+        fun circle(x: Float, y: Float, radius: Float, fill: Boolean = false) {
+            paint.style = if (fill) Paint.Style.FILL else Paint.Style.STROKE
+            c.drawCircle((cx + x) * s, (cy + y) * s, radius * s, paint)
+            paint.style = Paint.Style.STROKE
+        }
+        fun poly(vararg points: Float) {
+            if (points.size < 6 || points.size % 2 != 0) return
+            val p = Path()
+            p.moveTo((cx + points[0]) * s, (cy + points[1]) * s)
+            var i = 2
+            while (i < points.size) {
+                p.lineTo((cx + points[i]) * s, (cy + points[i + 1]) * s)
+                i += 2
             }
-            "shield" -> { val p=Path().apply { moveTo(ox,oy-9f*s); lineTo(ox+7f*s,oy-5f*s); lineTo(ox+5f*s,oy+4f*s); lineTo(ox,oy+9f*s); lineTo(ox-5f*s,oy+4f*s); lineTo(ox-7f*s,oy-5f*s); close() }; c.drawPath(p,paint) }
-            "dash" -> { c.drawLine(ox-8f*s,oy+5f*s,ox+5f*s,oy-5f*s,paint); c.drawLine(ox+5f*s,oy-5f*s,ox+1f*s,oy-5f*s,paint); c.drawLine(ox+5f*s,oy-5f*s,ox+4f*s,oy-1f*s,paint) }
-            "chain" -> { c.drawOval(ox-9f*s,oy-5f*s,ox+1f*s,oy+5f*s,paint); c.drawOval(ox-1f*s,oy-5f*s,ox+9f*s,oy+5f*s,paint) }
-            "hull", "health_regen", "phoenix" -> { c.drawLine(ox-7f*s,oy,ox+7f*s,oy,paint); c.drawLine(ox,oy-7f*s,ox,oy+7f*s,paint); c.drawCircle(ox,oy,9f*s,paint) }
-            "emp" -> { c.drawCircle(ox,oy,3f*s,paint); c.drawCircle(ox,oy,7f*s,paint); c.drawCircle(ox,oy,11f*s,paint) }
-            "ricochet" -> { c.drawLine(ox-9f*s,oy+5f*s,ox+6f*s,oy-5f*s,paint); c.drawLine(ox+6f*s,oy-5f*s,ox+2f*s,oy-5f*s,paint); c.drawLine(ox+6f*s,oy-5f*s,ox+6f*s,oy-1f*s,paint) }
-            "gravity_well" -> { c.drawCircle(ox,oy,4f*s,paint); c.drawCircle(ox,oy,9f*s,paint); c.drawArc(RectF(ox-12f*s,oy-7f*s,ox+12f*s,oy+7f*s),20f,260f,false,paint) }
-            "overload" -> { c.drawLine(ox+2f*s,oy-10f*s,ox-4f*s,oy+1f*s,paint); c.drawLine(ox-4f*s,oy+1f*s,ox+3f*s,oy+1f*s,paint); c.drawLine(ox+3f*s,oy+1f*s,ox-2f*s,oy+10f*s,paint) }
-            "nanobots", "salvage_drone" -> { c.drawCircle(ox,oy,3f*s,paint); c.drawCircle(ox-8f*s,oy-4f*s,2f*s,paint); c.drawCircle(ox+8f*s,oy+4f*s,2f*s,paint) }
-            "scanner" -> { c.drawCircle(ox,oy,8f*s,paint); c.drawLine(ox-11f*s,oy,ox-5f*s,oy,paint); c.drawLine(ox+5f*s,oy,ox+11f*s,oy,paint) }
-            "kill_streak" -> { c.drawLine(ox-9f*s,oy+7f*s,ox-2f*s,oy,paint); c.drawLine(ox-2f*s,oy,ox+3f*s,oy+3f*s,paint); c.drawLine(ox+3f*s,oy+3f*s,ox+10f*s,oy-8f*s,paint) }
-            "ricochet_shield" -> { c.drawCircle(ox,oy,9f*s,paint); c.drawArc(RectF(ox-12f*s,oy-12f*s,ox+12f*s,oy+12f*s),-35f,250f,false,paint) }
-            "armor", "stasis" -> { c.drawCircle(ox,oy,8f*s,paint); c.drawLine(ox-6f*s,oy,ox+6f*s,oy,paint); c.drawLine(ox,oy-6f*s,ox,oy+6f*s,paint) }
-            "critical" -> { c.drawCircle(ox,oy,7f*s,paint); c.drawLine(ox-9f*s,oy,ox-3f*s,oy,paint); c.drawLine(ox+3f*s,oy,ox+9f*s,oy,paint); c.drawLine(ox,oy-9f*s,ox,oy-3f*s,paint); c.drawLine(ox,oy+3f*s,ox,oy+9f*s,paint) }
-            "overdrive", "explosive" -> { c.drawCircle(ox,oy,3f*s,paint); c.drawLine(ox,oy-10f*s,ox,oy-5f*s,paint); c.drawLine(ox+10f*s,oy,ox+5f*s,oy,paint); c.drawLine(ox,oy+10f*s,ox,oy+5f*s,paint); c.drawLine(ox-10f*s,oy,ox-5f*s,oy,paint) }
-            "piercing" -> { c.drawLine(ox-8f*s,oy+5f*s,ox+7f*s,oy-5f*s,paint); c.drawLine(ox+7f*s,oy-5f*s,ox+3f*s,oy-5f*s,paint); c.drawLine(ox+7f*s,oy-5f*s,ox+6f*s,oy-1f*s,paint) }
-            "scavenger" -> { c.drawCircle(ox,oy,7f*s,paint); c.drawLine(ox-3f*s,oy,ox+3f*s,oy,paint); c.drawLine(ox,oy-4f*s,ox,oy+4f*s,paint) }
-            "multishot" -> { for (dx in floatArrayOf(-6f,0f,6f)) c.drawLine((cx+dx)*s,(cy+6f)*s,(cx+dx)*s,(cy-7f)*s,paint) }
-            else -> { val p=Path().apply { moveTo(ox+1f*s,oy-9f*s); lineTo(ox-5f*s,oy+1f*s); lineTo(ox-1f*s,oy+1f*s); lineTo(ox-3f*s,oy+8f*s); lineTo(ox+6f*s,oy-3f*s); lineTo(ox+1f*s,oy-3f*s); close() }; c.drawPath(p,paint) }
+            c.drawPath(p, paint)
+        }
+        when (id) {
+            "drone" -> {
+                circle(0f, 0f, 3f)
+                circle(-8f, -5f, 2.5f); circle(8f, -5f, 2.5f)
+                circle(-8f, 6f, 2.5f); circle(8f, 6f, 2.5f)
+                line(-5f, -2f, -8f, -5f); line(5f, -2f, 8f, -5f)
+                line(-5f, 2f, -8f, 6f); line(5f, 2f, 8f, 6f)
+            }
+            "missile" -> {
+                poly(0f, -10f, 4f, 2f, 2f, 6f, 0f, 3f, -2f, 6f, -4f, 2f, 0f, -10f)
+                line(-3f, 4f, -7f, 8f); line(3f, 4f, 7f, 8f)
+                line(-1.5f, 7f, -1.5f, 10f, 0.9f); line(1.5f, 7f, 1.5f, 10f, 0.9f)
+            }
+            "laser" -> {
+                line(0f, -10f, 0f, 10f, 2.4f)
+                poly(-5f, -6f, 0f, -10f, 5f, -6f, 0f, -2f, -5f, -6f)
+                poly(-5f, 6f, 0f, 2f, 5f, 6f, 0f, 10f, -5f, 6f)
+                line(-3f, 0f, 3f, 0f, 0.8f)
+            }
+            "firepower" -> {
+                poly(-9f, 3f, -6f, -2f, -3f, 3f, 0f, -6f, 3f, 3f, 6f, -2f, 9f, 3f)
+                line(-9f, 7f, 9f, 7f); line(-5f, 10f, 5f, 10f)
+            }
+            "magnet" -> {
+                poly(-8f, -8f, -8f, 1f, -6f, 6f, -2f, 9f, 2f, 9f, 6f, 6f, 8f, 1f, 8f, -8f)
+                line(-8f, -7f, -3f, -7f, 2.2f); line(3f, -7f, 8f, -7f, 2.2f)
+                line(-8f, 0f, -4f, 0f); line(4f, 0f, 8f, 0f)
+            }
+            "shield" -> poly(0f, -10f, 8f, -6f, 7f, 3f, 0f, 10f, -7f, 3f, -8f, -6f, 0f, -10f)
+            "dash" -> {
+                poly(-10f, 6f, -2f, -2f, -2f, -7f, 8f, -7f, 8f, -2f, 3f, -2f)
+                line(-8f, 9f, -3f, 9f); line(-10f, 4f, -7f, 4f)
+                line(4f, -9f, 10f, -9f)
+            }
+            "chain" -> {
+                val left = RectF((cx - 10f) * s, (cy - 5f) * s, (cx + 1f) * s, (cy + 5f) * s)
+                val right = RectF((cx - 1f) * s, (cy - 5f) * s, (cx + 10f) * s, (cy + 5f) * s)
+                c.drawOval(left, paint); c.drawOval(right, paint)
+                line(-4f, -4f, 4f, 4f, 1.8f)
+            }
+            "hull" -> {
+                poly(0f, -10f, 8f, -5f, 7f, 6f, 0f, 10f, -7f, 6f, -8f, -5f, 0f, -10f)
+                line(-4f, -1f, 4f, -1f, 2f); line(0f, -5f, 0f, 5f, 2f)
+                line(-5f, 4f, 5f, 4f, 0.8f)
+            }
+            "emp" -> {
+                poly(1f, -10f, -5f, -1f, -1f, -1f, -4f, 9f, 7f, -3f, 2f, -3f, 1f, -10f)
+                line(-10f, -7f, -7f, -4f); line(10f, -7f, 7f, -4f)
+                line(-10f, 7f, -7f, 4f); line(10f, 7f, 7f, 4f)
+            }
+            "ricochet" -> {
+                poly(-9f, 8f, -3f, 1f, 2f, 5f, 8f, -3f, 4f, -3f, 8f, -3f, 8f, 1f)
+                line(-9f, -8f, -9f, -2f, 2f)
+                line(-6f, -8f, -1f, -8f, 2f)
+            }
+            "gravity_well" -> {
+                val p = Path()
+                p.moveTo((cx + 8f) * s, (cy - 6f) * s)
+                p.cubicTo((cx + 14f)*s,(cy + 3f)*s,(cx + 3f)*s,(cy + 12f)*s,(cx - 5f)*s,(cy + 7f)*s)
+                p.cubicTo((cx - 14f)*s,(cy + 1f)*s,(cx - 7f)*s,(cy - 9f)*s,(cx + 1f)*s,(cy - 6f)*s)
+                p.cubicTo((cx + 7f)*s,(cy - 3f)*s,(cx + 3f)*s,(cy + 4f)*s,(cx - 2f)*s,(cy + 2f)*s)
+                c.drawPath(p, paint); circle(0f, 0f, 1.4f, true)
+            }
+            "overload" -> {
+                poly(2f, -11f, -7f, 1f, -1f, 1f, -4f, 11f, 8f, -3f, 2f, -3f, 2f, -11f)
+                line(-10f, -9f, -7f, -9f); line(8f, 8f, 11f, 8f)
+            }
+            "nanobots" -> {
+                poly(0f, -9f, 6f, -6f, 6f, 1f, 0f, 4f, -6f, 1f, -6f, -6f, 0f, -9f)
+                circle(-8f, 7f, 2f); circle(8f, 7f, 2f); circle(0f, 8f, 1.5f, true)
+                line(-6f, 2f, -8f, 5f); line(6f, 2f, 8f, 5f)
+            }
+            "scanner" -> {
+                circle(0f, 0f, 7f); circle(0f, 0f, 2f, true)
+                line(-11f, -11f, -6f, -11f); line(-11f, -11f, -11f, -6f)
+                line(11f, -11f, 6f, -11f); line(11f, -11f, 11f, -6f)
+                line(-11f, 11f, -6f, 11f); line(-11f, 11f, -11f, 6f)
+                line(11f, 11f, 6f, 11f); line(11f, 11f, 11f, 6f)
+            }
+            "salvage_drone" -> {
+                poly(-10f, -3f, -7f, -7f, 7f, -7f, 10f, -3f, 7f, 4f, -7f, 4f, -10f, -3f)
+                line(-6f, 4f, -6f, 8f); line(6f, 4f, 6f, 8f); line(-6f, 8f, 6f, 8f)
+                line(0f, -7f, 0f, -10f); circle(0f, -11f, 1.5f, true)
+                line(-3f, -1f, 3f, -1f)
+            }
+            "kill_streak" -> {
+                poly(-10f, 8f, -10f, 3f, -5f, 3f, -5f, -2f, 0f, -2f, 0f, -7f, 5f, -7f, 5f, -10f, 10f, -10f)
+                line(-10f, 10f, 10f, 10f)
+            }
+            "ricochet_shield" -> {
+                poly(0f, -10f, 8f, -6f, 6f, 4f, 0f, 10f, -6f, 4f, -8f, -6f, 0f, -10f)
+                line(-3f, -2f, 4f, -2f); line(4f, -2f, 1f, -5f); line(4f, -2f, 1f, 1f)
+                line(3f, 4f, -4f, 4f); line(-4f, 4f, -1f, 1f); line(-4f, 4f, -1f, 7f)
+            }
+            "health_regen" -> {
+                poly(-10f, -2f, -7f, -7f, -2f, -7f, 0f, -3f, 2f, -7f, 7f, -7f, 10f, -2f, 0f, 9f, -10f, -2f)
+                line(-8f, 3f, -4f, 3f); line(-4f, 3f, -2f, 0f); line(-2f, 0f, 1f, 5f); line(1f, 5f, 4f, 2f); line(4f, 2f, 8f, 2f, 1.8f)
+            }
+            "armor" -> {
+                poly(-10f, -7f, -4f, -10f, 4f, -10f, 10f, -7f, 8f, 7f, 0f, 10f, -8f, 7f, -10f, -7f)
+                line(-6f, -4f, 6f, -4f, 2f); line(-7f, 0f, 7f, 0f, 2f); line(-5f, 4f, 5f, 4f, 2f)
+            }
+            "critical" -> {
+                circle(0f, 0f, 8f); circle(0f, 0f, 3f)
+                poly(0f, -12f, 2f, -4f, 9f, -7f, 4f, -1f, 12f, 2f, 4f, 4f, 7f, 10f, 1f, 6f, -3f, 12f, -4f, 4f, -11f, 7f, -6f, 1f, -12f, -2f, -4f, -4f, 0f, -12f)
+            }
+            "overdrive" -> {
+                poly(-10f, -5f, -3f, -5f, 2f, 0f, -3f, 5f, -10f, 5f, -5f, 0f, -10f, -5f)
+                poly(-1f, -5f, 6f, -5f, 11f, 0f, 6f, 5f, -1f, 5f, 4f, 0f, -1f, -5f)
+                line(-10f, 9f, 10f, 9f, 0.9f)
+            }
+            "explosive" -> {
+                poly(0f, -11f, 2f, -5f, 7f, -8f, 6f, -2f, 11f, 0f, 6f, 3f, 8f, 9f, 2f, 6f, 0f, 11f, -2f, 6f, -8f, 9f, -6f, 3f, -11f, 0f, -6f, -2f, -8f, -8f, -2f, -5f, 0f, -11f)
+                circle(0f, 0f, 2f, true)
+            }
+            "piercing" -> {
+                poly(-10f, -4f, 4f, -4f, 4f, -8f, 11f, 0f, 4f, 8f, 4f, 4f, -10f, 4f, -10f, -4f)
+                circle(-3f, 0f, 7f); circle(5f, 0f, 7f)
+                line(-3f, -9f, -3f, 9f, 0.8f); line(5f, -9f, 5f, 9f, 0.8f)
+            }
+            "stasis" -> {
+                poly(-8f, -10f, 8f, -10f, 3f, -2f, -3f, -2f, -8f, -10f)
+                poly(-8f, 10f, 8f, 10f, 3f, 2f, -3f, 2f, -8f, 10f)
+                line(-10f, 0f, -5f, 0f); line(5f, 0f, 10f, 0f)
+            }
+            "scavenger" -> {
+                circle(0f, 0f, 8f)
+                circle(0f, 0f, 5f)
+                line(-11f, -8f, -6f, -3f); line(-11f, -8f, -4f, -10f)
+                line(6f, 8f, 11f, 3f); line(11f, 3f, 11f, 9f)
+                line(-3f, 0f, 3f, 0f, 1.8f)
+            }
+            "multishot" -> {
+                poly(-10f, 7f, -7f, -2f, -10f, -1f, -6f, -8f, -2f, -1f, -5f, -2f, -3f, 7f)
+                poly(-3f, 7f, 0f, -6f, -3f, -5f, 0f, -11f, 4f, -5f, 1f, -6f, 3f, 7f)
+                poly(4f, 7f, 6f, -2f, 3f, -1f, 7f, -8f, 11f, -1f, 8f, -2f, 10f, 7f)
+            }
+            "phoenix" -> {
+                poly(0f, 10f, -6f, 4f, -10f, -4f, -3f, -1f, 0f, -10f, 3f, -1f, 10f, -4f, 6f, 4f, 0f, 10f)
+                line(-6f, 4f, 0f, 1f); line(6f, 4f, 0f, 1f)
+                line(0f, -1f, 0f, -7f, 1.8f)
+            }
+            else -> poly(-8f, 0f, 0f, -8f, 8f, 0f, 0f, 8f, -8f, 0f)
         }
         paint.style = Paint.Style.FILL
     }
@@ -2522,6 +2697,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             drawFittedText(c, upgradeTitle(id), cx, wh * 0.512f, 4.8f, WHT, 54f)
             drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.5f, 0xFFFFD45C.toInt(), 42f)
             drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 3.9f, 0xFF9CEBFF.toInt(), 52f)
+        }
+        if (wave in 10..50 && wave % 10 == 0) {
+            drawGlassPanel(c, 18f, wh * 0.615f, 202f, wh * 0.695f, 0xFFFFD45C.toInt(), 205)
+            drawFittedText(c, "قدرت لجندری باز شد: " + legendaryName(), W / 2f, wh * 0.638f, 5.8f, 0xFFFFD45C.toInt(), 176f)
+            drawWrappedCardText(c, legendaryDescription(), W / 2f, wh * 0.665f, 4.6f, 0xFFFFEBC1.toInt(), 180f)
         }
         drawButtons(c)
         drawAdSlot(c, wh * 0.84f)
