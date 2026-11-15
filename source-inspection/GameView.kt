@@ -2536,7 +2536,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun upgradeInfo(id: String): String = when (id) {
         "firepower" -> "آسیب و سرعت شلیک بیشتر"
-        "missile" -> "موشک‌های بیشتر با رهگیری سریع‌تر"
+        "missile" -> "موشک‌های بیشتر، سریع‌تر و دقیق‌تر"
         "laser" -> "لیزر قدرتمندتر"
         "drone" -> "چرخش و رهگیری گلوله‌ها"
         "magnet" -> "جذب خودکار آیتم‌ها"
@@ -2879,7 +2879,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 drawAbilityIcon(c, id, cellX + 8f, centerY)
                 c.restore()
                 paint.style = Paint.Style.FILL
-                drawFittedText(c, upgradeTitle(id) + " " + rank + "/۶", cellX + 30f, centerY + 1.6f, 3.65f, if(rank >= 5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), 34f)
+                drawFittedText(c, upgradeTitle(id) + " " + rank + "/۶", cellX + 30f, centerY + 1.6f, 3.65f, if(rank >= 6) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), 34f)
             }
         }
         drawAdSlot(c, wh * 0.93f, 132f, 14f)
