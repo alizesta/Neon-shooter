@@ -97,8 +97,8 @@ jobs:
           game = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt").read_text(encoding="utf-8")
           gradle = Path("NeonShooter/app/build.gradle.kts").read_text(encoding="utf-8")
           checks = {
-              "maxed level-5 abilities remain in pause inventory and are filtered from offers": "abilityRank(it) < 5" in game and "selectedAbilities.toList()" in game,
-              "pause shows the acquired ability list": "قابلیت‌های فعال" in game and "selectedAbilities.toList()" in game,
+              "maxed level-5 abilities remain in pause inventory and are filtered from offers": "abilityRank(it) < 5" in game and "ownedAbilityIds()" in game,
+              "pause shows the acquired ability list": "قابلیت‌های فعال" in game and "drawOwnedAbilityList" in game,
               "enemies and bosses drop real coins": "val coinPieces = 3" in game and "repeat(10)" in game and "13 -> { credits += item.amount" in game,
               "magnet pulls pickups and coins": "val magnetRange = when" in game and "itemDistance < magnetRange" in game and "magnetTimer > 0f" in game,
               "bosses inherit two random owned skills": "return owned.shuffled().take(2)" in game and "bossSkills = chooseBossSkills()" in game,
