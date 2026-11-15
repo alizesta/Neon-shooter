@@ -795,7 +795,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun waveName(level: Int): String =
         stageNames.getOrElse(level - 1) { "مرز ناشناخته $level" }
 
-    private fun waveTitle(level: Int = wave): String = "مرحله $level • " + waveName(level)
+    private fun persianNumber(value: Int): String = value.toString().map { ch ->
+        if (ch in '0'..'9') ('۰'.code + (ch - '0')).toChar() else ch
+    }.joinToString("")
+
+    private fun waveTitle(level: Int = wave): String =
+        "مرحله\u00A0\u200E" + persianNumber(level) + "\u200E\u00A0• " + waveName(level)
 
     private fun stageDescription(level: Int = wave): String =
         stageDescriptions.getOrElse(level - 1) { "در این مرحله با یکی از صورت‌های فلکی آسمان روبه‌رو می‌شوی" }
@@ -2072,8 +2077,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             c.drawText(t, x * s, y * s, tp)
             return
         }
-        val width = (tp.measureText(t) * 1.22f + 10f * s).roundToInt().coerceIn(1, max(1, sw))
-        val layout = StaticLayout.Builder.obtain(t, 0, t.length, tp, width)
+
+        // Keep numeric runs left-to-right inside the surrounding Persian RTL sentence.
+        val bidiText = t.replace(Regex("([0-9۰-۹٠-٩]+)")) { "\u200E${it.value}\u200E" }
+        tp.textAlign = Paint.Align.LEFT
+        val width = (tp.measureText(bidiText) + 8f * s).roundToInt().coerceIn(1, max(1, sw))
+        val layout = StaticLayout.Builder.obtain(bidiText, 0, bidiText.length, tp, width)
             .setAlignment(Layout.Alignment.ALIGN_CENTER)
             .setTextDirection(TextDirectionHeuristics.RTL)
             .setIncludePad(false)
@@ -2086,6 +2095,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             else -> x * s - width / 2f
         }
         c.save()
+        c.clipRect(0f, 0f, sw.toFloat(), sh.toFloat())
         c.translate(left, y * s - layout.getLineBaseline(0))
         layout.draw(c)
         c.restore()
@@ -2960,13 +2970,24 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun drawFittedText(c: Canvas, value: String, x: Float, y: Float, size: Float, color: Int, maxWidth: Float, align: Paint.Align = Paint.Align.CENTER) {
-        tp.textSize = size * s
+        val safeWidth = max(2f, maxWidth - 2f)
+        val widthPx = safeWidth * s
         var fitted = size
-        while (tp.measureText(value) * 1.22f > maxWidth * s && fitted > 2.8f) {
-            fitted -= 0.2f
+        tp.textSize = fitted * s
+        while (tp.measureText(value) > widthPx * 0.90f && fitted > 1.75f) {
+            fitted = max(1.75f, fitted - 0.15f)
             tp.textSize = fitted * s
         }
-        text(c, value, x, y, fitted, color, align)
+        val visibleText = TextUtils.ellipsize(value, tp, widthPx * 0.94f, TextUtils.TruncateAt.END).toString()
+        val left = when (align) {
+            Paint.Align.LEFT -> x
+            Paint.Align.RIGHT -> x - safeWidth
+            else -> x - safeWidth / 2f
+        }
+        c.save()
+        c.clipRect(left * s, 0f, (left + safeWidth) * s, sh.toFloat())
+        text(c, visibleText, x, y, fitted, color, align)
+        c.restore()
     }
 
     private fun drawWrappedCardText(c: Canvas, value: String, x: Float, y: Float, size: Float, color: Int, maxWidth: Float) {
@@ -2976,12 +2997,17 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         var line = ""
         for (word in words) {
             val candidate = if (line.isEmpty()) word else "$line $word"
-            if (line.isNotEmpty() && tp.measureText(candidate) > maxWidth * s) {
+            if (line.isNotEmpty() && tp.measureText(candidate) > maxWidth * s * 0.88f) {
                 lines.add(line); line = word
             } else line = candidate
         }
         if (line.isNotEmpty()) lines.add(line)
-        lines.take(2).forEachIndexed { index, part -> drawFittedText(c, part, x, y + index * 5.0f, size, color, maxWidth) }
+        lines.take(2).forEachIndexed { index, part ->
+            c.save()
+            c.clipRect((x - maxWidth / 2f) * s, (y - 1.5f + index * 5.0f) * s, (x + maxWidth / 2f) * s, (y + 3.5f + index * 5.0f) * s)
+            drawFittedText(c, part, x, y + index * 5.0f, size, color, maxWidth)
+            c.restore()
+        }
     }
 
     private fun ownedAbilityIds(): List<String> {
@@ -3009,7 +3035,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val col = index % columns
             val row = index / columns
             val cellX = left + col * cellWidth
-            val centerY = top + row * cellHeight + cellHeight / 2f
+            val cellTop = top + row * cellHeight
+            val cellBottom = min(bottom, cellTop + cellHeight)
+            val centerY = cellTop + cellHeight / 2f
+            c.save()
+            c.clipRect(cellX * s, cellTop * s, (cellX + cellWidth - 1f) * s, cellBottom * s)
             val accent = abilityColor(id)
             paint.style = Paint.Style.FILL
             paint.color = Color.argb(42, Color.red(accent), Color.green(accent), Color.blue(accent))
@@ -3025,6 +3055,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             paint.style = Paint.Style.FILL
             val label = upgradeTitle(id) + " " + abilityRank(id).coerceIn(0,5) + "/۵"
             drawFittedText(c, label, cellX + 11f + (cellWidth - 11f)/2f, centerY + 1.25f, fontSize, if (abilityRank(id)>=5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), cellWidth-13f)
+            c.restore()
         }
     }
 
@@ -3047,7 +3078,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawFittedText(c, "قابلیت‌های گرفته‌شده  •  " + ownedAbilityIds().size, W / 2f, wh * 0.637f, 4.7f, 0xFFFFD45C.toInt(), 180f)
         drawFittedText(c, "توان ویژه: " + legendaryName(), W / 2f, wh * 0.653f, 3.7f, 0xFFFFEBC1.toInt(), 180f)
         drawWrappedCardText(c, legendaryDescription(), W / 2f, wh * 0.667f, 2.85f, 0xFFB9D9E8.toInt(), 180f)
-        drawOwnedAbilityList(c, wh * 0.685f, wh * 0.815f, 4, 3.0f)
+        drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 3, 2.85f)
         drawButtons(c)
     }
 
@@ -3285,7 +3316,15 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 line(details, -7f,1.5f, -4f,1.5f); line(details, 4f,1.5f, 7f,1.5f)
                 for (px in listOf(-18f,-14f,-10f,10f,14f,18f)) line(details,px,-2f,px,5f)
                 line(details,-20f,1.5f,-8f,1.5f); line(details,8f,1.5f,20f,1.5f)
-                line(details,-3f,-7f,3f,-7f); line(details,-3f,7f,3f,7f)
+                line(details,-3f,-7f,3f,-7f); line(details,-3f,-1f,3f,-1f); line(details,-3f,7f,3f,7f)
+                // Hubble optical baffle rings, antenna dish, star tracker and array cell grid.
+                line(details,-4.4f,-9f,4.4f,-9f); line(details,-4.4f,-5.5f,4.4f,-5.5f)
+                line(details,-4.2f,4f,4.2f,4f)
+                line(silhouette,4.5f,-6f,10f,-10f); circle(silhouette,11f,-11f,2.4f)
+                line(details,8.5f,-10f,11.8f,-12.2f)
+                line(silhouette,-4f,5f,-9f,11f); circle(silhouette,-10f,12f,1.5f)
+                for (py in listOf(-1f,2f,4.5f)) { line(details,-20f,py,-8f,py); line(details,8f,py,20f,py) }
+                line(details,-1.5f,-13f,-1.5f,-15f); line(details,1.5f,-13f,1.5f,-15f)
             }
             1 -> { // James Webb: segmented hexagonal mirror above its layered sunshield.
                 polygon(filled,-13f,-3f, -9f,-7f, 0f,-10f, 9f,-7f, 13f,-3f, 9f,10f, 0f,15f, -9f,10f)
@@ -3297,6 +3336,18 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 line(details,-10f,-3f,10f,-3f); line(details,-9f,0f,9f,0f)
                 line(details,-8f,4f,8f,4f); line(details,-6f,8f,6f,8f)
                 line(details,-2f,9f,2f,9f)
+                // Six visible primary-mirror segments, secondary mirror struts and sunshield spars.
+                for (segment in 0 until 6) {
+                    val angle = -PI / 2.0 + segment * PI / 3.0
+                    val sx = cos(angle).toFloat() * 4.5f
+                    val sy = -12f + sin(angle).toFloat() * 4.5f
+                    hex(details, sx, sy, 1.85f, -PI.toFloat()/2f)
+                }
+                line(details,-1f,-19f,0f,-16f); line(details,1f,-19f,0f,-16f)
+                line(silhouette,-1f,-19f,1f,-19f); circle(silhouette,0f,-20f,1.4f)
+                line(details,-13f,-1f,-17f,-7f); line(details,13f,-1f,17f,-7f)
+                line(details,-17f,-7f,-14f,-6f); line(details,17f,-7f,14f,-6f)
+                line(details,-6f,11f,-9f,14f); line(details,6f,11f,9f,14f)
             }
             2 -> { // Voyager 1: high-gain dish, instrument booms and RTG boom.
                 panel(-3.8f,-5f,3.8f,6f,1.1f)
@@ -3307,6 +3358,17 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 line(silhouette,-3f,5f,10f,14f); panel(8f,11f,12f,16f,0.8f); panel(13f,14f,17f,18f,0.8f)
                 line(silhouette,-4f,0f,-17f,5f); circle(silhouette,-18f,5.5f,2.1f)
                 line(details,-3f,-2f,3f,-2f); line(details,-3f,2f,3f,2f)
+                // High-gain dish ribs, equipment deck, science boom and radioisotope generators.
+                circle(details,0f,-10.2f,6.6f)
+                for (angle in 0 until 8) {
+                    val a = angle * PI / 4.0
+                    line(details,0f,-10.2f,cos(a).toFloat()*8.7f,-10.2f+sin(a).toFloat()*8.7f)
+                }
+                line(details,-2f,-4f,-2f,5f); line(details,2f,-4f,2f,5f)
+                line(details,-3.8f,0f,3.8f,0f); line(details,-3.8f,4f,3.8f,4f)
+                line(details,10f,14f,14f,17f); line(details,14f,17f,18f,17f)
+                line(details,-17f,5.5f,-21f,7f); circle(silhouette,-22f,7.5f,1.5f)
+                panel(16f,15f,20f,19f,0.7f); line(details,16f,16f,20f,16f)
             }
             3 -> { // Voyager 2: same spacecraft family, with a distinct dish and boom orientation.
                 panel(-3.8f,-4f,3.8f,7f,1.1f)
@@ -3317,6 +3379,16 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 line(silhouette,3f,5f,-11f,15f); panel(-14f,13f,-10f,18f,0.8f); panel(-19f,15f,-15f,19f,0.8f)
                 line(silhouette,4f,0f,18f,4f); circle(silhouette,19f,4.5f,2.1f)
                 line(details,0f,-1f,5f,-1f); line(details,0f,3f,5f,3f)
+                // Separate dish ribs, instrument housing bands and the angled RTG boom.
+                circle(details,-2.8f,-9.4f,6.2f)
+                for (angle in 0 until 8) {
+                    val a = angle * PI / 4.0
+                    line(details,-2.8f,-9.4f,-2.8f+cos(a).toFloat()*8.4f,-9.4f+sin(a).toFloat()*8.4f)
+                }
+                line(details,-3.8f,-1f,3.8f,-1f); line(details,-3.8f,3f,3.8f,3f)
+                line(details,3f,5f,-8f,12f); line(details,-8f,12f,-12f,16f)
+                line(details,-14f,14f,-14f,18f); line(details,-19f,16f,-19f,19f)
+                line(details,4f,0f,14f,3f); circle(silhouette,15.5f,3.5f,1.5f)
             }
             else -> { // Phoenix Mars lander: hexagonal deck, side solar panels and three legs.
                 val deck = Path(); hex(deck,0f,-1f,8.3f)
@@ -3328,6 +3400,17 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 line(details,-18f,-3f,-18f,1f); line(details,-14f,-3f,-14f,1f)
                 line(details,14f,-3f,14f,1f); line(details,18f,-3f,18f,1f)
                 line(details,-8f,-1f,-12f,-8f); circle(silhouette,-12f,-9f,1.8f)
+                // Phoenix weather mast, robotic sampling arm, scoop and solar-cell rows.
+                line(silhouette,0f,-8f,0f,-16f); circle(silhouette,0f,-17f,1.8f)
+                line(details,-2f,-8f,2f,-8f); line(details,-1.5f,-12f,1.5f,-12f)
+                line(silhouette,6f,-2f,13f,-10f); circle(silhouette,14f,-11f,1.7f)
+                line(silhouette,14f,-11f,18f,-15f); line(silhouette,18f,-15f,20f,-14f)
+                line(details,-17f,-5f,-17f,3f); line(details,-13f,-5f,-13f,3f)
+                line(details,13f,-5f,13f,3f); line(details,17f,-5f,17f,3f)
+                line(details,-18f,-1f,-10f,-1f); line(details,10f,-1f,18f,-1f)
+                line(details,-7f,-7f,7f,-7f); line(details,-6f,5f,6f,5f)
+                line(silhouette,-15f,12f,-18f,15f); line(silhouette,15f,12f,18f,15f)
+                line(details,-19f,15f,-16f,15f); line(details,16f,15f,19f,15f)
             }
         }
 
