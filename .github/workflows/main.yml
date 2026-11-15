@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.6.0 • ship progression
+name: Build Neon Shooter 2.6.1 • ship progression
 
 on:
   push:
@@ -73,11 +73,11 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.6.0")
-          s = s.replace("versionCode = 25", "versionCode = 27", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.0"', 1)
+              raise SystemExit("Unexpected base version before v2.6.1")
+          s = s.replace("versionCode = 25", "versionCode = 28", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.1"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.6.0")
+          print("PATCH full gameplay source and version 2.6.1")
           PY
 
       - name: Generate original cinematic background music
@@ -120,7 +120,15 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.6.0": "versionCode = 27" in gradle and 'versionName = "2.6.0"' in gradle,
+              "release version is 2.6.1": "versionCode = 28" in gradle and 'versionName = "2.6.1"' in gradle,
+              "music uses game audio attributes and starts the media player": "AudioAttributes.CONTENT_TYPE_MUSIC" in game and "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game and "player.start()" in game,
+              "music initialization can retry after a failed resource load": "musicPrepared = false" in game and "Background music resource could not be opened" in game,
+              "sound toggle is available in pause and persists": '"sound" to if (sfx.enabled)' in game and 'putBoolean("sound_enabled", sfx.enabled)' in game,
+              "coin balance appears in menu and gameplay HUD": "drawCoinCounter(c, 177f" in game and "drawCoinCounter(c, 164f" in game,
+              "ship glow follows the silhouette instead of a circular disk": "BlurMaskFilter(7.5f" in game and "silhouette.addPath(body)" in game and "c.drawCircle(0f, 1f, 17f, paint)" not in game,
+              "hangar ship icons are scaled to fit their tabs": "c.scale(0.42f, 0.42f, x, y)" in game,
+              "upgrade headline and card labels are centered and separated from level text": 'text(c, "یک قابلیت را انتخاب کن"' in game and "drawFittedText(c, upgradeTitle(id), cx" in game and 'drawFittedText(c, "LVL "' in game,
+              "wave progress resets for every new wave": "private fun spawnWave() {\n        wave++\n        waveKills = 0" in game,
           }
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
@@ -135,13 +143,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.6.0.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.6.1.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.6.0
-          path: NeonShooter-Android-Project-v2.6.0.zip
+          name: NeonShooter-Android-Project-v2.6.1
+          path: NeonShooter-Android-Project-v2.6.1.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -188,37 +196,37 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.6.0 APK build
+      - name: Record verified v2.6.1 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
-          cat > release-proof-v2.6.0.txt <<EOF
+          cat > release-proof-v2.6.1.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.6.0
+          app_version=2.6.1
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add release-proof-v2.6.0.txt
-          git commit -m "build: record verified v2.6.0 APK metadata"
+          git add release-proof-v2.6.1.txt
+          git commit -m "build: record verified v2.6.1 APK metadata"
           git push origin HEAD:main
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.6.0-APK
+          name: Neon-Shooter-v2.6.1-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.6.0
+      - name: Publish Neon Shooter 2.6.1
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.6.0
-          name: Neon Shooter v2.6.0
+          tag_name: v2.6.1
+          name: Neon Shooter v2.6.1
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
@@ -234,6 +242,9 @@ jobs:
             - Five ships with distinct golden abilities.
             - Six real ability synergies: missile-drone swarm, prism laser, magnetic shield, gravity EMP, explosive chain lightning, and scanner laser.
             - Boss phase three calls in elite reinforcements; phase transitions gain distinct neon rings and intensified attack patterns.
+            - Pause now includes a persistent sound toggle; the ambient soundtrack retries failed initialization and uses game-music audio attributes.
+            - Upgrade text is centered with separate level labels; ship aura follows its silhouette and hangar icons are resized.
+            - Coin balance is visible in both the main menu and gameplay HUD; wave progress resets at every new wave.
             - Icon-only action buttons, Persian About page, and Telegram channel link.
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           fail_on_unmatched_files: true
