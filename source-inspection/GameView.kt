@@ -555,17 +555,17 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         "scavenger" -> scavengerRank
         "multishot" -> multishotRank
         "phoenix" -> phoenixRank
-        else -> 5
+        else -> 6
     }
 
     private fun prepareUpgradeChoices() {
         val all = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield",
             "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix")
-        if (!extraAbilitiesUnlocked && wave >= 25 && selectedAbilities.size >= 5 && selectedAbilities.all { abilityRank(it) >= 5 }) {
+        if (!extraAbilitiesUnlocked && wave >= 25 && selectedAbilities.size >= 5 && selectedAbilities.all { abilityRank(it) >= 6 }) {
             extraAbilitiesUnlocked = true
         }
         val eligible = all.filter { id ->
-            abilityRank(id) < 5 && (id in selectedAbilities || selectedAbilities.size < 5 || extraAbilitiesUnlocked)
+            abilityRank(id) < 6 && (id in selectedAbilities || selectedAbilities.size < 5 || extraAbilitiesUnlocked)
         }
         upgradeChoices = eligible.shuffled().take(3)
         if (upgradeChoices.isEmpty()) { st = St.PLAY; waiting = true; waveT = 0.75f }
@@ -573,37 +573,37 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun applyUpgrade(id: String) {
         when (id) {
-            "firepower" -> { weaponLevel = min(5, weaponLevel + 1); bonusDamage++ ; fireRateBonus = min(0.28f, fireRateBonus + 0.035f) }
-            "missile" -> missileLevel = min(5, missileLevel + 1)
-            "laser" -> laserLevel = min(5, laserLevel + 1)
-            "drone" -> droneLevel = min(5, droneLevel + 1)
+            "firepower" -> { weaponLevel = min(6, weaponLevel + 1); bonusDamage++ ; fireRateBonus = min(0.28f, fireRateBonus + 0.035f) }
+            "missile" -> missileLevel = min(6, missileLevel + 1)
+            "laser" -> laserLevel = min(6, laserLevel + 1)
+            "drone" -> droneLevel = min(6, droneLevel + 1)
             "magnet" -> {
-                magnetLevel = min(5, magnetLevel + 1)
+                magnetLevel = min(6, magnetLevel + 1)
                 if (shieldLevel > 0) { shieldMaxHp += 4; shieldHp = min(shieldMaxHp, shieldHp + 4) }
             }
-            "shield" -> { shieldRank = min(5, shieldRank + 1); shieldLevel = shieldRank; shieldMaxHp = 10 + shieldRank * 6 + if (magnetLevel > 0) 4 else 0; shieldHp = min(shieldMaxHp, if (shieldHp <= 0) shieldMaxHp else shieldHp + 8); reflectiveShield = shieldHp > 0 }
-            "dash" -> { dashRank = min(5, dashRank + 1); dashCharges = min(5, dashCharges + 1) }
-            "chain" -> chainLevel = min(5, chainLevel + 1)
-            "hull" -> { hullRank = min(5, hullRank + 1); lives = min(10, lives + 1) }
-            "emp" -> { empRank = min(5, empRank + 1); empPulseTimer = min(empPulseTimer, 0.5f) }
-            "ricochet" -> ricochetRank = min(5, ricochetRank + 1)
-            "gravity_well" -> { gravityWellRank = min(5, gravityWellRank + 1); gravityPulseTimer = min(gravityPulseTimer, 0.5f) }
-            "overload" -> { overloadRank = min(5, overloadRank + 1); overloadTimer = max(overloadTimer, 2.5f) }
-            "nanobots" -> { nanobotsRank = min(5, nanobotsRank + 1); nanobotTimer = min(nanobotTimer, 1f) }
-            "scanner" -> { scannerRank = min(5, scannerRank + 1); scannerPulseTimer = min(scannerPulseTimer, 0.5f) }
-            "salvage_drone" -> { salvageDroneRank = min(5, salvageDroneRank + 1); salvageTimer = min(salvageTimer, 1f) }
-            "kill_streak" -> killStreakRank = min(5, killStreakRank + 1)
-            "ricochet_shield" -> ricochetShieldRank = min(5, ricochetShieldRank + 1)
-            "health_regen" -> { healthRegenRank = min(5, healthRegenRank + 1); healthRegenTimer = min(healthRegenTimer, 5f) }
-            "armor" -> armorRank = min(5, armorRank + 1)
-            "critical" -> criticalRank = min(5, criticalRank + 1)
-            "overdrive" -> { overdriveRank = min(5, overdriveRank + 1); fireRateBonus = min(0.58f, fireRateBonus + 0.075f) }
-            "explosive" -> explosiveRank = min(5, explosiveRank + 1)
-            "piercing" -> piercingRank = min(5, piercingRank + 1)
-            "stasis" -> stasisRank = min(5, stasisRank + 1)
-            "scavenger" -> scavengerRank = min(5, scavengerRank + 1)
-            "multishot" -> multishotRank = min(5, multishotRank + 1)
-            "phoenix" -> phoenixRank = min(5, phoenixRank + 1)
+            "shield" -> { shieldRank = min(6, shieldRank + 1); shieldLevel = shieldRank; shieldMaxHp = 10 + shieldRank * 6 + if (magnetLevel > 0) 4 else 0; shieldHp = min(shieldMaxHp, if (shieldHp <= 0) shieldMaxHp else shieldHp + 8); reflectiveShield = shieldHp > 0 }
+            "dash" -> { dashRank = min(6, dashRank + 1); dashCharges = min(6, dashCharges + 1) }
+            "chain" -> chainLevel = min(6, chainLevel + 1)
+            "hull" -> { hullRank = min(6, hullRank + 1); lives = min(10, lives + 1) }
+            "emp" -> { empRank = min(6, empRank + 1); empPulseTimer = min(empPulseTimer, 0.5f) }
+            "ricochet" -> ricochetRank = min(6, ricochetRank + 1)
+            "gravity_well" -> { gravityWellRank = min(6, gravityWellRank + 1); gravityPulseTimer = min(gravityPulseTimer, 0.5f) }
+            "overload" -> { overloadRank = min(6, overloadRank + 1); overloadTimer = max(overloadTimer, 2.5f) }
+            "nanobots" -> { nanobotsRank = min(6, nanobotsRank + 1); nanobotTimer = min(nanobotTimer, 1f) }
+            "scanner" -> { scannerRank = min(6, scannerRank + 1); scannerPulseTimer = min(scannerPulseTimer, 0.5f) }
+            "salvage_drone" -> { salvageDroneRank = min(6, salvageDroneRank + 1); salvageTimer = min(salvageTimer, 1f) }
+            "kill_streak" -> killStreakRank = min(6, killStreakRank + 1)
+            "ricochet_shield" -> ricochetShieldRank = min(6, ricochetShieldRank + 1)
+            "health_regen" -> { healthRegenRank = min(6, healthRegenRank + 1); healthRegenTimer = min(healthRegenTimer, 5f) }
+            "armor" -> armorRank = min(6, armorRank + 1)
+            "critical" -> criticalRank = min(6, criticalRank + 1)
+            "overdrive" -> { overdriveRank = min(6, overdriveRank + 1); fireRateBonus = min(0.58f, fireRateBonus + 0.075f) }
+            "explosive" -> explosiveRank = min(6, explosiveRank + 1)
+            "piercing" -> piercingRank = min(6, piercingRank + 1)
+            "stasis" -> stasisRank = min(6, stasisRank + 1)
+            "scavenger" -> scavengerRank = min(6, scavengerRank + 1)
+            "multishot" -> multishotRank = min(6, multishotRank + 1)
+            "phoenix" -> phoenixRank = min(6, phoenixRank + 1)
         }
         if (activeCombo().isNotEmpty()) bannerT = 2.8f
         sfx.play("power")
@@ -633,7 +633,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun buyShop(id: String) {
         when (id) {
             "shop_repair" -> if (credits >= 180 && lives < 5) { credits -= 180; lives = min(5, lives + 1) }
-            "shop_weapon" -> if (credits >= 320) { credits -= 320; weaponLevel = min(5, weaponLevel + 1); bonusDamage++ }
+            "shop_weapon" -> if (credits >= 320) { credits -= 320; weaponLevel = min(6, weaponLevel + 1); bonusDamage++ }
             "shop_shield" -> if (credits >= 260) { credits -= 260; shieldRank = min(5, shieldRank + 1); shieldLevel = shieldRank; shieldMaxHp = 10 + shieldRank * 6; shieldHp = min(shieldMaxHp, shieldHp + 10); reflectiveShield = shieldHp > 0 }
             "shop_dash" -> if (credits >= 220) { credits -= 220; dashCharges = min(4, dashCharges + 1) }
             "shop_continue" -> { st = St.PLAY; waiting = true; waveT = 0.8f }
@@ -1599,10 +1599,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             if (target != null) {
                 val dx = target.x - missile.x; val dy = target.y - missile.y
                 val d = max(1f, hypot(dx, dy))
-                val homingSpeed = if (droneLevel > 0 && missileLevel > 0) 215f else 175f
+                val homingSpeed = 175f + missileLevel * 8f + if (droneLevel > 0 && missileLevel > 0) 40f else 0f
+                val steering = 320f + missileLevel * 24f
                 val desiredX = dx / d * homingSpeed; val desiredY = dy / d * homingSpeed
-                missile.vx += (desiredX - missile.vx).coerceIn(-320f * dt, 320f * dt)
-                missile.vy += (desiredY - missile.vy).coerceIn(-320f * dt, 320f * dt)
+                missile.vx += (desiredX - missile.vx).coerceIn(-steering * dt, steering * dt)
+                missile.vy += (desiredY - missile.vy).coerceIn(-steering * dt, steering * dt)
             } else { missile.vy = -175f; missile.vx *= 0.96f }
             missile.x += missile.vx * dt; missile.y += missile.vy * dt
             val hitTarget = target?.takeIf { !it.dead && hypot(it.x - missile.x, it.y - missile.y) < it.hw + 7f }
@@ -1711,7 +1712,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         for (item in items) if (hypot(item.x - px, item.y - py) < 15f) {
             when (item.type) {
                 0 -> { lives = min(10, lives + 1); score += 100 }
-                1 -> { weaponLevel = min(5, weaponLevel + 1); prefs.edit().putInt("upgrade_weapon", weaponLevel).apply(); score += 60 }
+                1 -> { weaponLevel = min(6, weaponLevel + 1); prefs.edit().putInt("upgrade_weapon", weaponLevel).apply(); score += 60 }
                 2 -> rapidTimer = max(rapidTimer, 10f)
                 3 -> shieldTimer = max(shieldTimer, 10f)
                 4 -> {
@@ -1719,7 +1720,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                     bullets.removeAll { !it.mine }; enemyLasers.clear()
                     boom(W / 2f, wh * 0.42f, 110, 150f)
                 }
-                5 -> { missileLevel = min(3, missileLevel + 1); prefs.edit().putInt("upgrade_missile", missileLevel).apply(); score += 60 }
+                5 -> { missileLevel = min(6, missileLevel + 1); prefs.edit().putInt("upgrade_missile", missileLevel).apply(); score += 60 }
                 6 -> { laserLevel = min(3, laserLevel + 1); prefs.edit().putInt("upgrade_laser", laserLevel).apply(); score += 60 }
                 7 -> { droneLevel = min(2, droneLevel + 1); prefs.edit().putInt("upgrade_drone", droneLevel).apply(); score += 80 }
                 8 -> magnetTimer = max(magnetTimer, 9f)
@@ -2535,7 +2536,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun upgradeInfo(id: String): String = when (id) {
         "firepower" -> "آسیب و سرعت شلیک بیشتر"
-        "missile" -> "موشک‌های هدف‌گیر بیشتر"
+        "missile" -> "موشک‌های بیشتر با رهگیری سریع‌تر"
         "laser" -> "لیزر قدرتمندتر"
         "drone" -> "چرخش و رهگیری گلوله‌ها"
         "magnet" -> "جذب خودکار آیتم‌ها"
@@ -2815,7 +2816,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             drawAbilityIcon(c, id, cx, wh * 0.462f)
             val rank = abilityRank(id)
             drawFittedText(c, upgradeTitle(id), cx, wh * 0.512f, 4.8f, WHT, 54f)
-            drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.5f, 0xFFFFD45C.toInt(), 42f)
+            drawFittedText(c, "LVL " + (rank + 1) + "/6", cx, wh * 0.531f, 3.5f, 0xFFFFD45C.toInt(), 42f)
             drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 3.9f, 0xFF9CEBFF.toInt(), 52f)
         }
         if (wave in 10..50 && wave % 10 == 0) {
@@ -2862,7 +2863,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 val cellX = left + col * 50f
                 val cellY = gridTop + row * cellH
                 val centerY = cellY + cellH / 2f
-                val rank = abilityRank(id).coerceIn(0, 5)
+                val rank = abilityRank(id).coerceIn(0, 6)
                 val accent = abilityColor(id)
                 paint.style = Paint.Style.FILL
                 paint.color = 0x552BDAEF.toInt()
@@ -2878,7 +2879,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 drawAbilityIcon(c, id, cellX + 8f, centerY)
                 c.restore()
                 paint.style = Paint.Style.FILL
-                drawFittedText(c, upgradeTitle(id) + " " + rank + "/۵", cellX + 30f, centerY + 1.6f, 3.65f, if(rank >= 5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), 34f)
+                drawFittedText(c, upgradeTitle(id) + " " + rank + "/۶", cellX + 30f, centerY + 1.6f, 3.65f, if(rank >= 5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), 34f)
             }
         }
         drawAdSlot(c, wh * 0.93f, 132f, 14f)
