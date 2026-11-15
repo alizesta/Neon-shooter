@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.7.5 • ship progression
+name: Build Neon Shooter 2.7.6 • ship progression
 
 on:
   push:
@@ -77,11 +77,11 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.7.5")
-          s = s.replace("versionCode = 25", "versionCode = 42", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.5"', 1)
+              raise SystemExit("Unexpected base version before v2.7.6")
+          s = s.replace("versionCode = 25", "versionCode = 43", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.6"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.7.5")
+          print("PATCH full gameplay source and version 2.7.6")
           PY
 
       - name: Generate original cinematic background music
@@ -105,6 +105,12 @@ jobs:
               "black hole distorts the star background": "val bend = ((reach - d) / reach)" in game and "hole.spin" in game,
               "five real spacecraft probes are implemented": all(name in game for name in ["کاوشگر هابل", "کاوشگر جیمز وب", "کاوشگر ویجر ۱", "کاوشگر ویجر ۲", "کاوشگر فونیکس"]) and "private fun drawPlayerShip" in game,
               "buttons use icon drawing": "drawButtonIcon(c, b.id" in game and "text(c, b.label" not in game,
+              "intermission shop buttons show names and real effects": all(x in game for x in ["افزایش قدرت سلاح و آسیب شلیک", "ارتقای سپر و بازیابی مقاومت آن", "دریافت یک شارژ جهش اضافه", "ادامه نبرد و ورود به موج بعد"]) and "st == St.SHOP" in game and "drawFittedText(c, shopButtonDescription(b.id)" in game,
+              "weapon and dash shop icons are visually distinct": "c.drawCircle(x,y,5.5f*s,paint)" in game and "val bolt = Path().apply" in game and "shop_weapon" in game and "shop_dash" in game,
+              "hangar cards draw the ship title, description and price inside each card": "st == St.SHIPS && b.id.startsWith(\"ship_\")" in game and "shipDescription(shipId)" in game and "drawFittedText(c, state" in game,
+              "hangar prices are progressively higher": "intArrayOf(0, 1200, 2800, 5600, 9800)" in game,
+              "hangar cards have five-unit gaps and a separated back button": "i * 27f" in game and "top + 22f" in game and 'add("shipBack", "بازگشت", wh * 0.79f)' in game,
+              "hangar does not draw duplicate ship labels behind the buttons": "private fun drawShipHangar(c: Canvas)" in game and "for (i in 0..4)" not in game[game.index("private fun drawShipHangar(c: Canvas)"):game.index("private fun shipUpgradeDescription")]
               "about page and Telegram link exist": "درباره نئون شوتر" in game and "https://t.me/gateneon" in game,
               "background music player is wired": "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game,
               "five ships have coin-purchased ownership": "private fun shipPrice(id: Int)" in game and "private fun buyOrSelectShip" in game and "ship_buy_4" in game,
@@ -125,7 +131,7 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.7.5": "versionCode = 42" in gradle and 'versionName = "2.7.5"' in gradle,
+              "release version is 2.7.6": "versionCode = 43" in gradle and 'versionName = "2.7.6"' in gradle,
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
@@ -267,6 +273,17 @@ jobs:
                           assert top <= cell_top < cell_bottom <= bottom
               assert 0.30 * logical_height < 0.975 * logical_height <= logical_height
               assert 0.85 * logical_height + 25.0 < 0.975 * logical_height
+          # Hangar rows use identical drawing and touch bounds, with 5 logical units between cards.
+          hangar_row_step, hangar_card_height = 27.0, 22.0
+          for logical_height in (320.0, 360.0, 390.0, 430.0, 480.0, 560.0):
+              hangar_top = logical_height * 0.37
+              hangar_cards = [(hangar_top + i * hangar_row_step,
+                               hangar_top + i * hangar_row_step + hangar_card_height) for i in range(5)]
+              assert all(hangar_cards[i + 1][0] - hangar_cards[i][1] == 5.0 for i in range(4))
+              back_top = logical_height * 0.79
+              assert hangar_cards[-1][1] <= back_top
+              assert back_top + 22.0 <= logical_height * 0.86
+          print("PASS hangar cards and back button have non-overlapping geometry across six portrait sizes")
           print("PASS zero-overflow geometry across six portrait sizes and five ability counts")
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
@@ -281,13 +298,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.7.5.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.7.6.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.7.5
-          path: NeonShooter-Android-Project-v2.7.5.zip
+          name: NeonShooter-Android-Project-v2.7.6
+          path: NeonShooter-Android-Project-v2.7.6.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -350,16 +367,16 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.7.5 APK build
+      - name: Record verified v2.7.6 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
           test -s "$APK"
-          cat > release-proof-v2.7.5.txt <<EOF
+          cat > release-proof-v2.7.6.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.7.5
+          app_version=2.7.6
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
@@ -368,28 +385,30 @@ jobs:
       - name: Upload APK verification proof
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Release-Proof-v2.7.5
-          path: release-proof-v2.7.5.txt
+          name: NeonShooter-Release-Proof-v2.7.6
+          path: release-proof-v2.7.6.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.7.5-APK
+          name: Neon-Shooter-v2.7.6-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.7.5
+      - name: Publish Neon Shooter 2.7.6
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.7.5
-          name: Neon Shooter v2.7.5
+          tag_name: v2.7.6
+          name: Neon Shooter v2.7.6
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
-            - Ship prices: 450, 900, 1,550 and 2,400 coins; the starter ship is free.
+            - Ship prices: 1,200, 2,800, 5,600 and 9,800 coins; the starter ship is free.
+            - Intermission shop actions show their Persian names and effect descriptions; weapon and dash icons are no longer identical.
+            - Hangar rows use separated non-overlapping cards with the ship name, description, unlock price and active state inside each card.
             - Bosses award a separate permanent-upgrade currency: 2 points per boss, 4 at waves 25, 50, etc.
             - Each ship has its own persistent upgrade tree: weapon power, armor, mobility, hull and golden ability.
             - Level-5 abilities remain active and are excluded from future upgrade choices.
@@ -429,6 +448,8 @@ jobs:
             - Automated layout checks cover six portrait heights and up to 28 owned abilities to catch card, icon and label overflow.
             - Ability inventories remain inside the lower upgrade card and Pause panel, with no text crossing neighboring cells.
             - Probe artwork has more telescope, mirror, antenna, boom, solar-array and lander hardware detail; original neon colors and bloom remain unchanged.
-            - Icon-only action buttons, Persian About page, and Telegram channel link.
+            - Shop options now display clear names, prices and concise effects instead of unexplained symbols.
+            - Hangar ship cards have distinct spacing and higher progressive unlock prices.
+            - Persian About page and Telegram channel link.
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           fail_on_unmatched_files: true
