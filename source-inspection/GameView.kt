@@ -2984,8 +2984,18 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         lines.take(2).forEachIndexed { index, part -> drawFittedText(c, part, x, y + index * 5.0f, size, color, maxWidth) }
     }
 
+    private fun ownedAbilityIds(): List<String> {
+        val all = listOf(
+            "firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull",
+            "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone",
+            "kill_streak", "ricochet_shield", "health_regen", "armor", "critical", "overdrive",
+            "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix"
+        )
+        return all.filter { abilityRank(it) > 0 || it in selectedAbilities }.distinct()
+    }
+
     private fun drawOwnedAbilityList(c: Canvas, top: Float, bottom: Float, columns: Int, fontSize: Float) {
-        val owned = selectedAbilities.toList()
+        val owned = ownedAbilityIds()
         if (owned.isEmpty()) {
             drawFittedText(c, "هنوز قابلیتی نگرفته‌ای", W / 2f, (top + bottom) / 2f + 1f, 4.0f, 0xFF9BAABC.toInt(), W - 24f)
             return
@@ -3034,7 +3044,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 3.9f, 0xFF9CEBFF.toInt(), 52f)
         }
         drawGlassPanel(c, 7f, wh * 0.615f, W - 7f, wh * 0.825f, 0xFFFFD45C.toInt(), 220)
-        drawFittedText(c, "قابلیت‌های گرفته‌شده  •  " + selectedAbilities.size, W / 2f, wh * 0.637f, 4.7f, 0xFFFFD45C.toInt(), 180f)
+        drawFittedText(c, "قابلیت‌های گرفته‌شده  •  " + ownedAbilityIds().size, W / 2f, wh * 0.637f, 4.7f, 0xFFFFD45C.toInt(), 180f)
         drawFittedText(c, "توان ویژه: " + legendaryName(), W / 2f, wh * 0.653f, 3.7f, 0xFFFFEBC1.toInt(), 180f)
         drawWrappedCardText(c, legendaryDescription(), W / 2f, wh * 0.667f, 2.85f, 0xFFB9D9E8.toInt(), 180f)
         drawOwnedAbilityList(c, wh * 0.685f, wh * 0.815f, 4, 3.0f)
@@ -3058,7 +3068,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         text(c, "بازی متوقف شد", W / 2f, wh * 0.335f, 13f, 0xFF9CEBFF.toInt())
         drawCoinCounter(c, 176f, wh * 0.335f)
         drawButtons(c)
-        drawFittedText(c, "قابلیت‌های فعال  •  " + selectedAbilities.size, W / 2f, wh * 0.675f, 5.9f, 0xFFFFD45C.toInt(), 180f)
+        drawFittedText(c, "قابلیت‌های فعال  •  " + ownedAbilityIds().size, W / 2f, wh * 0.675f, 5.9f, 0xFFFFD45C.toInt(), 180f)
         drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3, 3.25f)
     }
 
