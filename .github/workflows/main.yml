@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.5.0
+name: Build Neon Shooter 2.5.0 • ship progression
 
 on:
   push:
@@ -28,16 +28,7 @@ jobs:
           unzip -q "$RUNNER_TEMP/neon-v24/project.zip" -d .
           test -s NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt
           test -s NeonShooter/app/build.gradle.kts
-          mkdir -p source-inspection
-          cp NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt source-inspection/GameView.kt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add source-inspection/GameView.kt
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: snapshot restored game source for ship progression work"
-            git push origin HEAD:main
-          fi
-          test -s source-inspection/GameView.kt
+          test -s NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt
 
 
 
