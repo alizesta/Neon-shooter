@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.6.1 • ship progression
+name: Build Neon Shooter 2.6.2 • ship progression
 
 on:
   push:
@@ -73,11 +73,11 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.6.1")
-          s = s.replace("versionCode = 25", "versionCode = 28", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.1"', 1)
+              raise SystemExit("Unexpected base version before v2.6.2")
+          s = s.replace("versionCode = 25", "versionCode = 29", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.6.2"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.6.1")
+          print("PATCH full gameplay source and version 2.6.2")
           PY
 
       - name: Generate original cinematic background music
@@ -120,7 +120,11 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.6.1": "versionCode = 28" in gradle and 'versionName = "2.6.1"' in gradle,
+              "release version is 2.6.2": "versionCode = 29" in gradle and 'versionName = "2.6.2"' in gradle,
+              "legendary ship abilities include descriptions after boss milestone rewards": "private fun legendaryDescription()" in game and "drawWrappedCardText(c, legendaryDescription()" in game and "wave in 10..50 && wave % 10 == 0" in game,
+              "first 50 waves have distinct astronomical stage names": "private val stageNames = arrayOf(" in game and "private fun waveTitle(level: Int = wave)" in game and "stageNames.getOrElse(level - 1)" in game,
+              "every upgrade ability has its own icon case": "private fun drawAbilityIcon" in game,
+
               "music uses game audio attributes and starts the media player": "AudioAttributes.CONTENT_TYPE_MUSIC" in game and "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game and "player.start()" in game,
               "music initialization can retry after a failed resource load": "musicPrepared = false" in game and "Background music resource could not be opened" in game,
               "sound toggle is available in pause and persists": '"sound" to if (sfx.enabled)' in game and 'putBoolean("sound_enabled", sfx.enabled)' in game,
@@ -130,6 +134,21 @@ jobs:
               "upgrade headline and card labels are centered and separated from level text": 'text(c, "یک قابلیت را انتخاب کن"' in game and "drawFittedText(c, upgradeTitle(id), cx" in game and 'drawFittedText(c, "LVL "' in game,
               "wave progress resets for every new wave": "private fun spawnWave() {\n        wave++\n        waveKills = 0" in game,
           }
+          ability_ids = ["drone", "missile", "laser", "firepower", "magnet", "shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield", "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix"]
+          icon_start = game.index("private fun drawAbilityIcon")
+          icon_end = game.index("private fun drawFittedText", icon_start)
+          icon_source = game[icon_start:icon_end]
+          icon_counts = {item: icon_source.count('"' + item + '" ->') for item in ability_ids}
+          if any(count != 1 for count in icon_counts.values()):
+              failed_icon_ids = [item for item, count in icon_counts.items() if count != 1]
+              raise SystemExit("Ability icon cases missing or duplicated: " + ", ".join(failed_icon_ids))
+          print(f"PASS {len(ability_ids)} abilities each have a dedicated icon case")
+          stage_start = game.index("private val stageNames = arrayOf(")
+          stage_end = game.index(")", stage_start)
+          stage_names = re.findall(r'"([^"]+)"', game[stage_start:stage_end])
+          if len(stage_names) != 50 or len(set(stage_names)) != 50:
+              raise SystemExit(f"Expected 50 unique stage names, found {len(stage_names)}")
+          print("PASS 50 distinct astronomical stage names")
           failed = [name for name, ok in checks.items() if not ok]
           for name, ok in checks.items():
               print(("PASS " if ok else "FAIL ") + name)
@@ -143,13 +162,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.6.1.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.6.2.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.6.1
-          path: NeonShooter-Android-Project-v2.6.1.zip
+          name: NeonShooter-Android-Project-v2.6.2
+          path: NeonShooter-Android-Project-v2.6.2.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -196,37 +215,37 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.6.1 APK build
+      - name: Record verified v2.6.2 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
-          cat > release-proof-v2.6.1.txt <<EOF
+          cat > release-proof-v2.6.2.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.6.1
+          app_version=2.6.2
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
           EOF
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add release-proof-v2.6.1.txt
-          git commit -m "build: record verified v2.6.1 APK metadata"
+          git add release-proof-v2.6.2.txt
+          git commit -m "build: record verified v2.6.2 APK metadata"
           git push origin HEAD:main
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.6.1-APK
+          name: Neon-Shooter-v2.6.2-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.6.1
+      - name: Publish Neon Shooter 2.6.2
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.6.1
-          name: Neon Shooter v2.6.1
+          tag_name: v2.6.2
+          name: Neon Shooter v2.6.2
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
@@ -245,6 +264,9 @@ jobs:
             - Pause now includes a persistent sound toggle; the ambient soundtrack retries failed initialization and uses game-music audio attributes.
             - Upgrade text is centered with separate level labels; ship aura follows its silhouette and hangar icons are resized.
             - Coin balance is visible in both the main menu and gameplay HUD; wave progress resets at every new wave.
+            - Twenty-eight ability upgrades now have separate custom icons and distinct colors.
+            - The first 50 waves use unique planetary, stellar, nebula and galaxy names.
+            - Golden ship abilities show their effect descriptions after milestone boss rewards.
             - Icon-only action buttons, Persian About page, and Telegram channel link.
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           fail_on_unmatched_files: true
