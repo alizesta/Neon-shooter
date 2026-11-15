@@ -9,6 +9,7 @@ import android.graphics.*
 import android.content.Intent
 import android.net.Uri
 import android.media.MediaPlayer
+import android.media.AudioAttributes
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.Surface
@@ -202,31 +203,68 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private var musicPlayer: MediaPlayer? = null
     private var musicPrepared = false
 
-    init { for (i in 1..currentShip) prefs.edit().putBoolean("ship_unlocked_" + i, true).apply(); refreshDaily(); holder.addCallback(this); TapsellAds.preloadAll(); prepareMusic() }
+    init {
+        sfx.enabled = prefs.getBoolean("sound_enabled", true)
+        for (i in 1..currentShip) prefs.edit().putBoolean("ship_unlocked_" + i, true).apply()
+        refreshDaily()
+        holder.addCallback(this)
+        TapsellAds.preloadAll()
+        prepareMusic()
+    }
 
     private fun prepareMusic() {
-        if (musicPrepared) return
-        musicPrepared = true
+        if (musicPlayer != null) return
         try {
-            musicPlayer = MediaPlayer.create(act, R.raw.ambient_theme)?.apply {
-                isLooping = true
-                setVolume(0.28f, 0.28f)
+            val attributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+            val player = MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)
+            if (player == null) {
+                musicPrepared = false
+                Log.e("NeonShooter", "Background music resource could not be opened")
+                return
             }
+            player.isLooping = true
+            player.setVolume(0.48f, 0.48f)
+            player.setOnErrorListener { failedPlayer, what, extra ->
+                Log.e("NeonShooter", "Background music playback failed: $what/$extra")
+                try { failedPlayer.release() } catch (_: Exception) {}
+                if (musicPlayer === failedPlayer) musicPlayer = null
+                musicPrepared = false
+                true
+            }
+            musicPlayer = player
+            musicPrepared = true
             syncMusic()
         } catch (e: Exception) {
+            musicPrepared = false
+            musicPlayer = null
             Log.e("NeonShooter", "Background music unavailable", e)
         }
     }
 
     private fun syncMusic() {
+        val player = musicPlayer
+        if (player == null) {
+            musicPrepared = false
+            prepareMusic()
+            return
+        }
         try {
-            val player = musicPlayer ?: return
-            player.setVolume(if (st == St.PAUSE) 0.14f else 0.28f, if (st == St.PAUSE) 0.14f else 0.28f)
+            val volume = if (st == St.PAUSE) 0.24f else 0.48f
+            player.setVolume(volume, volume)
             if (sfx.enabled) {
                 if (!player.isPlaying) player.start()
-            } else if (player.isPlaying) player.pause()
+            } else if (player.isPlaying) {
+                player.pause()
+            }
+            musicPrepared = true
         } catch (e: Exception) {
             Log.e("NeonShooter", "Background music state error", e)
+            try { player.release() } catch (_: Exception) {}
+            if (musicPlayer === player) musicPlayer = null
+            musicPrepared = false
         }
     }
 
@@ -238,6 +276,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         synchronized(lock) { if (w != sw || hh != sh || !::bPlayer.isInitialized) setup(w, hh) }
         if (thread == null) { running = true; thread = Thread(this).also { it.start() } }
+        prepareMusic()
         syncMusic()
     }
     override fun surfaceDestroyed(h: SurfaceHolder) {
@@ -602,7 +641,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "upgrade_1" -> chooseUpgrade(1)
             "upgrade_2" -> chooseUpgrade(2)
             "shop_weapon", "shop_shield", "shop_dash", "shop_continue" -> buyShop(id)
-            "sound" -> { sfx.enabled = !sfx.enabled; syncMusic() }
+            "sound" -> {
+                sfx.enabled = !sfx.enabled
+                prefs.edit().putBoolean("sound_enabled", sfx.enabled).apply()
+                syncMusic()
+            }
             "extraLife" -> {
                 if (st == St.OVER && !rewardedContinueUsed && !rewardedContinuePending) {
                     rewardedContinuePending = true
@@ -652,10 +695,16 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 add("aboutBack", "بازگشت", y + 30f)
             }
             St.PAUSE -> {
-                val y = wh * 0.38f
-                add("resume", "ادامه", y)
-                add("pauseRestart", "شروع مجدد", y + 30f)
-                add("menu", "منوی اصلی", y + 60f)
+                val y = wh * 0.365f
+                val rows = listOf(
+                    "resume" to "ادامه",
+                    "pauseRestart" to "شروع مجدد",
+                    "sound" to if (sfx.enabled) "صدا: روشن" else "صدا: خاموش",
+                    "menu" to "منوی اصلی"
+                )
+                rows.forEachIndexed { index, pair ->
+                    l.add(Btn(pair.first, pair.second, RectF(54f, y + index * 22f, 166f, y + index * 22f + 18f)))
+                }
             }
             St.OVER -> {
                 if (rewardedContinuePending) {
@@ -770,6 +819,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun spawnWave() {
         wave++
+        waveKills = 0
         if (wave > bestWave) { bestWave = wave; prefs.edit().putInt("best_wave", bestWave).apply() }
         eventKind = 0; eventTimer = 0f; meteorTimer = 0f; goldenCrateSpawned = false
         if (wave >= 4 && (wave % 4 == 0 || Random.nextFloat() < 0.24f)) activateRandomEvent()
@@ -2020,6 +2070,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         paint.alpha = 255
         text(c, "امتیاز $score", 6f, 14f, 9f, YEL, Paint.Align.LEFT)
+        drawCoinCounter(c, 164f, 14f)
         if (comboCount >= 3) text(c, "ترکیب x" + (1 + comboCount / 5).coerceAtMost(5), W / 2f, 14f, 8f, 0xFFFFD45C.toInt())
         text(c, "جان", 7f, 27f, 6f, 0xFF9CEBFF.toInt(), Paint.Align.LEFT)
         paint.style = Paint.Style.FILL
@@ -2460,18 +2511,17 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun drawUpgrade(c: Canvas) {
         paint.color = 0xB807101D.toInt(); c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint)
         drawGlassPanel(c, 5f, wh * 0.30f, W - 5f, wh * 0.76f, 0xFF47DFFF.toInt(), 232)
-        text(c, if (extraAbilitiesUnlocked) "یکی را انتخاب کن • " + selectedAbilities.size + " بازشده" else "یکی را انتخاب کن • " + selectedAbilities.size + "/۵ جایگاه", W / 2f, wh * 0.37f, 11f, 0xFF9CEBFF.toInt())
-        text(c, if (extraAbilitiesUnlocked) "توانایی‌های تازه باز شدند" else "تا مرحله ۵۰ حداکثر ۵ توانایی", W / 2f, wh * 0.405f, 6f, 0xFFFFD45C.toInt())
+        text(c, "یک قابلیت را انتخاب کن", W / 2f, wh * 0.365f, 8.4f, 0xFF9CEBFF.toInt())
+        text(c, if (extraAbilitiesUnlocked) "قابلیت‌های تازه باز شده‌اند" else "قابلیت‌های انتخاب‌شده", W / 2f, wh * 0.402f, 5.0f, 0xFFFFD45C.toInt())
         for (i in 0..2) {
             val id = upgradeChoices.getOrNull(i) ?: continue
             val cx = 36f + i * 74f
-            paint.color = abilityColor(id)
             drawGlassPanel(c, cx - 30f, wh * 0.43f, cx + 30f, wh * 0.60f, abilityColor(id), 190)
-            paint.style = Paint.Style.FILL
             drawAbilityIcon(c, id, cx, wh * 0.462f)
             val rank = abilityRank(id)
-            drawFittedText(c, upgradeTitle(id) + "  " + (rank + 1) + "/۵", cx, wh * 0.515f, 5.8f, WHT, 54f)
-            drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.548f, 4.1f, 0xFF9CEBFF.toInt(), 52f)
+            drawFittedText(c, upgradeTitle(id), cx, wh * 0.512f, 4.8f, WHT, 54f)
+            drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.5f, 0xFFFFD45C.toInt(), 42f)
+            drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 3.9f, 0xFF9CEBFF.toInt(), 52f)
         }
         drawButtons(c)
         drawAdSlot(c, wh * 0.84f)
@@ -2492,9 +2542,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint)
         // High-opacity glass card hides ships directly behind the pause controls.
         drawGlassPanel(c, 18f, wh * 0.29f, 202f, wh * 0.91f, 0xFF47DFFF.toInt(), 248)
-        text(c, "بازی متوقف شد", W / 2f, wh * 0.345f, 17f, 0xFF9CEBFF.toInt())
+        text(c, "بازی متوقف شد", W / 2f, wh * 0.335f, 15f, 0xFF9CEBFF.toInt())
+        drawCoinCounter(c, 176f, wh * 0.335f)
         drawButtons(c)
-        text(c, "قابلیت‌های فعال", W / 2f, wh * 0.645f, 8f, 0xFFFFD45C.toInt())
+        text(c, "قابلیت‌های فعال", W / 2f, wh * 0.685f, 7.5f, 0xFFFFD45C.toInt())
         if (selectedAbilities.isEmpty()) {
             text(c, "هنوز قابلیتی انتخاب نشده", W / 2f, wh * 0.70f, 6f, 0xFF9BAABC.toInt())
         } else {
@@ -2552,7 +2603,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         if (id.startsWith("ship_")) {
             val shipId = id.substringAfterLast("_").toIntOrNull() ?: 0
+            c.save()
+            c.scale(0.42f, 0.42f, x, y)
             drawPlayerShip(c, cx, cy, shipId)
+            c.restore()
             return
         }
         when (id) {
@@ -2596,9 +2650,26 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 drawFittedText(c, b.label, (r.left + r.right) / 2f + 10f, cy + 2.1f, 6.1f, 0xFFEAFBFF.toInt(), 82f)
             } else if ((st == St.SHIPS || st == St.SHIP_UPGRADE) && (b.id.startsWith("ship_") || b.id.startsWith("shipup_") || b.id == "shipBack" || b.id == "shipUpgradeBack")) {
                 val cy = (r.top + r.bottom) / 2f
+                c.save()
+                c.scale(0.82f, 0.82f, (r.left + 18f) * s, cy * s)
                 drawButtonIcon(c, b.id, r.left + 18f, cy)
-                drawFittedText(c, b.label, (r.left + r.right) / 2f + 13f, cy + 2f, 4.8f, 0xFFEAFBFF.toInt(), 142f)
-            } else drawButtonIcon(c, b.id, (r.left+r.right)/2f, r.top + 11f)
+                c.restore()
+                drawFittedText(c, b.label, (r.left + r.right) / 2f + 13f, cy + 2f, 4.5f, 0xFFEAFBFF.toInt(), 136f)
+            } else if (st == St.PAUSE) {
+                val cy = (r.top + r.bottom) / 2f
+                c.save()
+                c.scale(0.82f, 0.82f, (r.left + 18f) * s, cy * s)
+                drawButtonIcon(c, b.id, r.left + 18f, cy)
+                c.restore()
+                drawFittedText(c, b.label, (r.left + r.right) / 2f + 8f, cy + 2f, 5.2f, 0xFFEAFBFF.toInt(), 76f)
+            } else {
+                val cx = (r.left + r.right) / 2f
+                val cy = r.top + 11f
+                c.save()
+                c.scale(0.82f, 0.82f, cx * s, cy * s)
+                drawButtonIcon(c, b.id, cx, cy)
+                c.restore()
+            }
         }
     }
 
@@ -2611,36 +2682,53 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         c.translate(x * s, y * s)
         c.scale(s, s)
         paint.style = Paint.Style.FILL
-        paint.color = Color.argb(65, Color.red(color), Color.green(color), Color.blue(color))
-        c.drawCircle(0f, 1f, 17f, paint)
         val body = Path()
+        val silhouette = Path()
         when (id) {
             0 -> {
                 body.moveTo(0f,-17f); body.lineTo(7f,7f); body.lineTo(0f,3f); body.lineTo(-7f,7f); body.close()
                 val wings = Path().apply { moveTo(-5f,1f); lineTo(-17f,10f); lineTo(-8f,9f); lineTo(0f,5f); lineTo(8f,9f); lineTo(17f,10f); lineTo(5f,1f); close() }
+                silhouette.addPath(wings)
                 paint.color = color; c.drawPath(wings, paint)
             }
             1 -> {
                 body.moveTo(0f,-19f); body.cubicTo(9f,-5f,5f,8f,0f,12f); body.cubicTo(-5f,8f,-9f,-5f,0f,-19f); body.close()
                 val fins = Path().apply { moveTo(-4f,0f); lineTo(-18f,13f); lineTo(-7f,10f); lineTo(0f,6f); lineTo(7f,10f); lineTo(18f,13f); lineTo(4f,0f); close() }
+                silhouette.addPath(fins)
                 paint.color = color; c.drawPath(fins, paint)
             }
             2 -> {
                 body.moveTo(-6f,-15f); body.lineTo(6f,-15f); body.lineTo(11f,7f); body.lineTo(0f,12f); body.lineTo(-11f,7f); body.close()
                 val armor = Path().apply { moveTo(-7f,-1f); lineTo(-20f,8f); lineTo(-15f,14f); lineTo(-3f,8f); lineTo(3f,8f); lineTo(15f,14f); lineTo(20f,8f); lineTo(7f,-1f); close() }
+                silhouette.addPath(armor)
                 paint.color = color; c.drawPath(armor, paint)
             }
             3 -> {
                 body.moveTo(0f,-19f); body.lineTo(5f,8f); body.lineTo(0f,5f); body.lineTo(-5f,8f); body.close()
                 val ghost = Path().apply { moveTo(-4f,-2f); lineTo(-17f,15f); lineTo(-12f,5f); lineTo(-4f,3f); lineTo(4f,3f); lineTo(12f,5f); lineTo(17f,15f); lineTo(4f,-2f); close() }
+                silhouette.addPath(ghost)
                 paint.color = color; c.drawPath(ghost, paint)
             }
             else -> {
                 body.moveTo(0f,-20f); body.cubicTo(13f,-4f,9f,10f,0f,13f); body.cubicTo(-9f,10f,-13f,-4f,0f,-20f); body.close()
                 val flames = Path().apply { moveTo(-4f,2f); lineTo(-20f,15f); lineTo(-12f,3f); lineTo(-5f,6f); lineTo(0f,2f); lineTo(5f,6f); lineTo(12f,3f); lineTo(20f,15f); lineTo(4f,2f); close() }
+                silhouette.addPath(flames)
                 paint.color = color; c.drawPath(flames, paint)
             }
         }
+        silhouette.addPath(body)
+        paint.style = Paint.Style.STROKE
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeJoin = Paint.Join.ROUND
+        paint.strokeWidth = 7f
+        paint.color = Color.argb(68, Color.red(color), Color.green(color), Color.blue(color))
+        paint.maskFilter = BlurMaskFilter(7.5f, BlurMaskFilter.Blur.NORMAL)
+        c.drawPath(silhouette, paint)
+        paint.maskFilter = null
+        paint.strokeWidth = 2.2f
+        paint.color = Color.argb(115, Color.red(glows[id]), Color.green(glows[id]), Color.blue(glows[id]))
+        c.drawPath(silhouette, paint)
+        paint.style = Paint.Style.FILL
         paint.color = color; c.drawPath(body, paint)
         paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.2f; paint.color = glows[id]; c.drawPath(body, paint)
         paint.style = Paint.Style.FILL; paint.color = glows[id]
@@ -2683,12 +2771,34 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawButtons(c)
     }
 
+    private fun drawCoinCounter(c: Canvas, centerX: Float, centerY: Float) {
+        val left = centerX - 23f
+        val top = centerY - 7.5f
+        paint.style = Paint.Style.FILL
+        paint.color = 0xCC101B2A.toInt()
+        c.drawRoundRect(left * s, top * s, (left + 46f) * s, (top + 15f) * s, 5f * s, 5f * s, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 0.9f * s
+        paint.color = 0xFFFFD45C.toInt()
+        c.drawRoundRect(left * s, top * s, (left + 46f) * s, (top + 15f) * s, 5f * s, 5f * s, paint)
+        paint.style = Paint.Style.FILL
+        paint.color = 0xFFFFD45C.toInt()
+        c.drawCircle((left + 8f) * s, centerY * s, 3.7f * s, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 0.65f * s
+        paint.color = 0xFFFFF0A6.toInt()
+        c.drawCircle((left + 8f) * s, centerY * s, 2.4f * s, paint)
+        paint.style = Paint.Style.FILL
+        drawFittedText(c, credits.toString(), left + 29f, centerY + 2f, 5.4f, 0xFFFFE8A6.toInt(), 25f)
+    }
+
     private fun drawMenu(c: Canvas) {
         drawGlassPanel(c, 18f, wh * 0.35f, 202f, wh * 0.80f, 0xFF47DFFF.toInt(), 224)
         text(c, "نئون", W / 2, wh * 0.16f, 34f, YEL)
         text(c, "شوتر", W / 2, wh * 0.16f + 26f, 24f, RED)
         drawPlayerShip(c, W / 2, wh * 0.33f + sin(System.nanoTime() / 4e8f) * 3f)
-        text(c, "سفینه: " + shipName() + "   سکه: " + credits, W / 2f, wh * 0.375f, 6.5f, 0xFF80E7FF.toInt())
+        text(c, "سفینه: " + shipName(), W / 2f, wh * 0.375f, 6.2f, 0xFF80E7FF.toInt())
+        drawCoinCounter(c, 177f, wh * 0.375f)
         text(c, if (dailyDone) "ماموریت روزانه کامل شد: +۵۰۰" else "ماموریت روزانه: ۲۵ نابودی " + dailyKills + "/۲۵", W / 2f, wh * 0.397f, 6f, 0xFFFFD45C.toInt())
         text(c, "بهترین امتیاز: $best   رکورد مرحله: $bestWave", W / 2, wh * 0.419f, 7f, WHT)
         drawButtons(c)
