@@ -103,7 +103,7 @@ jobs:
               "magnet pulls pickups and coins": "val magnetRange = when" in game and "itemDistance < magnetRange" in game and "magnetTimer > 0f" in game,
               "bosses inherit two random owned skills": "return owned.shuffled().take(2)" in game and "bossSkills = chooseBossSkills()" in game,
               "black hole distorts the star background": "val bend = ((reach - d) / reach)" in game and "hole.spin" in game,
-              "five real spacecraft probes are implemented": all(name in game for name in ["تلسکوپ هابل", "کاوشگر جیمز وب", "کاوشگر ویجر ۱", "کاوشگر ویجر ۲", "کاوشگر فونیکس"]) and "private fun drawPlayerShip" in game,
+              "five real spacecraft probes are implemented": all(name in game for name in ["کاوشگر هابل", "کاوشگر جیمز وب", "کاوشگر ویجر ۱", "کاوشگر ویجر ۲", "کاوشگر فونیکس"]) and "private fun drawPlayerShip" in game,
               "buttons use icon drawing": "drawButtonIcon(c, b.id" in game and "text(c, b.label" not in game,
               "about page and Telegram link exist": "درباره نئون شوتر" in game and "https://t.me/gateneon" in game,
               "background music player is wired": "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game,
@@ -129,7 +129,7 @@ jobs:
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
-              "pause panel renders acquired ability glyphs with visible backgrounds": "drawAbilityIcon(c, id, cellX + 8f, centerY)" in game and "c.drawCircle((cellX+8f)*s, centerY*s, 6.2f*s, paint)" in game,
+              "pause panel renders acquired abilities in a compact three-column roster": "drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3" in game and "drawAbilityIcon(c, id, cellX+5.5f, centerY)" in game and "c.drawCircle((cellX+5.5f)*s, centerY*s, 4.4f*s, paint)" in game,
               "new ability pool unlocks after all five core abilities reach rank five at wave 25": 'coreAbilities = listOf("firepower", "missile", "laser", "drone", "magnet")' in game and "wave >= 25 && coreAbilities.all { abilityRank(it) >= 5 }" in game and "val pool = if (extraAbilitiesUnlocked) allAbilities else coreAbilities" in game,
               "regular enemy health doubles after wave 25": "val hp = ceil(baseHp * difficulty * if (wave > 25) 2f else 1f).toInt()" in game,
               "boss health doubles after wave 25": "val bossHp = if (wave > 25) earlyBossAdjustedHp * 2 else earlyBossAdjustedHp" in game,
@@ -162,7 +162,7 @@ jobs:
               "score, stage, boss health and progress marker avoid HUD collisions": 'drawFittedText(c, "امتیاز $score", 6f, 14f, 6.2f, YEL, 58f' in game and "96f*s, 21f*s, 184f*s, 25f*s" in game and "val top = 56f * s" in game,
               "boss banner avoids repeating the stage number": '"نبرد با " + bossName' in game and "drawFittedText(c, combo" in game,
               "Persian UI text is constrained to one line unless explicitly wrapped": ".setMaxLines(1)" in game and ".setEllipsize(TextUtils.TruncateAt.END)" in game and "tp.measureText(value) * 1.22f" in game,
-              "ability choice panel lists previously collected abilities in its lower card": "قابلیت‌های گرفته‌شده" in game and "drawOwnedAbilityList(c, wh * 0.668f" in game and "drawOwnedAbilityList(c, wh * 0.70f" in game,
+              "ability choice panel lists previously collected abilities in its lower card": "قابلیت‌های گرفته‌شده" in game and "drawOwnedAbilityList(c, wh * 0.685f" in game and "drawOwnedAbilityList(c, wh * 0.70f" in game,
               "pause ability roster uses a three-column non-overlapping layout": "drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 3" in game and "val cellHeight = (bottom - top) / rows" in game,
               "all 50 stages have short constellation descriptions": "private val stageDescriptions = arrayOf(" in game and "stageDescriptions.getOrElse(level - 1)" in game and "drawFittedText(c, stageDescription(wave)" in game,
               "game-facing fleet labels call them probes, not ships": "کاوشگرها" in game and "کاوشگر ویجر ۱" in game and "کاوشگر فونیکس" in game,
@@ -183,6 +183,12 @@ jobs:
           if len(stage_names) != 50 or len(set(stage_names)) != 50:
               raise SystemExit(f"Expected 50 unique stage names, found {len(stage_names)}")
           print("PASS 50 distinct astronomical stage names")
+          description_start = game.index("private val stageDescriptions = arrayOf(")
+          description_end = game.index(")", description_start)
+          stage_descriptions = re.findall(r'"([^"]+)"', game[description_start:description_end])
+          if len(stage_descriptions) != 50 or any(not item.strip() for item in stage_descriptions):
+              raise SystemExit(f"Expected 50 non-empty constellation descriptions, found {len(stage_descriptions)}")
+          print("PASS 50 short constellation descriptions")
           constellation_start = game.index("private val bossConstellationNames = arrayOf(")
           constellation_end = game.index(")", constellation_start)
           constellation_names = re.findall(r'"([^"]+)"', game[constellation_start:constellation_end])
