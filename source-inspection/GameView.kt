@@ -286,7 +286,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
 private var rocketTimer = 0f; private var magnetTimer = 0f
     private var laserCooldown = 0f; private var missileCooldown = 0f
     private var controlTouch = false
-    private var waiting = false; private var waveT = 0f; private var bannerT = 0f; private var overT = 0f
+    private var waiting = false; private var waveT = 0f; private var bannerT = 0f; private var stageIntroTimer = 0f; private var overT = 0f
     private var kills = 0
     private var credits = prefs.getInt("credits", 0)
     private var bestWave = prefs.getInt("best_wave", 0)
@@ -1097,7 +1097,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val side = if (Random.nextBoolean()) 1f else -1f
             blackHoles.add(BlackHole(Random.nextFloat() * (W - 76f) + 38f, -18f, 48f + Random.nextFloat() * 12f, 72000f, side * (5f + Random.nextFloat() * 8f)))
         }
-        bannerT = 5.0f
+        stageIntroTimer = 5.0f
         if (wave % 5 == 0) {
             waveTarget = enemies.count { !it.dead } + 1 + if (eventKind == 5) 3 else 0
             val bossBaseHp = 300 + wave * 44
@@ -1379,6 +1379,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (st != St.PLAY) return
 
         time += dt; invul -= dt; fireT -= dt; bannerT -= dt
+        stageIntroTimer = max(0f, stageIntroTimer - dt)
         if (healthRegenRank > 0) {
             healthRegenTimer -= dt
             if (healthRegenTimer <= 0f) {
@@ -2460,14 +2461,18 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             paint.color = 0xFF72E8FF.toInt(); c.drawRoundRect(x, bottom - (bottom - top) * progress, x + 2.6f * s, bottom, 1.3f * s, 1.3f * s, paint)
             paint.color = 0xFFD2D8E0.toInt(); c.drawCircle(x + 1.3f * s, top, 1.8f * s, paint)
         }
-        if (bannerT > 0f && st == St.PLAY) {
+        if (stageIntroTimer > 0f && st == St.PLAY) {
             val boss = wave % 5 == 0
-            val combo = activeCombo()
             val bossName = enemies.firstOrNull { it.type == 2 && !it.dead }?.let { bossConstellationName(it.t0.toInt()) }
             val bannerTitle = if (boss && bossName != null) "نبرد با " + bossName else waveTitle(wave)
             drawFittedText(c, bannerTitle, W / 2f, wh * 0.4f, 10.2f, if (boss) RED else WHT, 180f)
             drawFittedText(c, stageDescription(wave), W / 2f, wh * 0.4f + 11f, 4.25f, 0xFF72F0C0.toInt(), 190f)
-            if (combo.isNotEmpty()) drawFittedText(c, combo, W / 2f, wh * 0.4f + 19f, 5.2f, 0xFFFFD45C.toInt(), 160f)
+        } else if (bannerT > 0f && st == St.PLAY) {
+            val combo = activeCombo()
+            val notice = if (eventKind > 0) eventName() else combo
+            if (notice.isNotEmpty()) {
+                drawFittedText(c, notice, W / 2f, wh * 0.4f, 7f, 0xFFFFD45C.toInt(), 170f)
+            }
         }
     }
 
