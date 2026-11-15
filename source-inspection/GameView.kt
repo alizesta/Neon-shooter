@@ -133,6 +133,35 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var scavengerRank = 0
     private var multishotRank = 0
     private var phoenixRank = 0
+    private val bossConstellationNames = arrayOf("جبار", "اسد", "عقرب", "ذات‌الکرسی", "دب‌اکبر", "دجاجه", "شلیاق", "اسب‌بالدار", "آندرومدا", "اژدها")
+    private val bossConstellationColors = intArrayOf(
+        0xFF8BE9FF.toInt(), 0xFFFFC76A.toInt(), 0xFFFF8A9D.toInt(), 0xFFC5A1FF.toInt(), 0xFF70E5C2.toInt(),
+        0xFF83C8FF.toInt(), 0xFFFFD97A.toInt(), 0xFFFFA7D8.toInt(), 0xFF9DEBFF.toInt(), 0xFFB6F28D.toInt()
+    )
+    private val bossConstellationPoints: Array<Array<Pair<Float, Float>>> = arrayOf(
+        arrayOf(-10f to -7f, -4f to -2f, 0f to 0f, 5f to -2f, 10f to -7f, -6f to 8f, 0f to 4f, 7f to 8f),
+        arrayOf(-10f to -2f, -5f to -8f, 2f to -6f, 9f to -8f, 6f to 0f, 0f to 7f, -8f to 5f),
+        arrayOf(-10f to -9f, -5f to -5f, 0f to -1f, 6f to 1f, 10f to 7f, 3f to 9f, -3f to 6f, -8f to 9f),
+        arrayOf(-10f to 6f, -5f to -6f, 0f to 4f, 5f to -6f, 10f to 6f),
+        arrayOf(-10f to -6f, -5f to -2f, 0f to -7f, 5f to -3f, 10f to 2f, 5f to 8f, -4f to 5f),
+        arrayOf(-10f to -8f, -4f to -2f, 0f to 5f, 5f to -3f, 10f to -8f, 0f to -10f, 0f to 10f),
+        arrayOf(-8f to -5f, -2f to -9f, 4f to -5f, 10f to -8f, 1f to 0f, 1f to 8f),
+        arrayOf(-10f to -7f, 7f to -7f, 10f to 3f, -7f to 3f, 0f to -1f, 7f to 8f, -7f to 8f),
+        arrayOf(-10f to -8f, -3f to -2f, 4f to 5f, 10f to 9f, -9f to 9f, -2f to 3f, 6f to -4f),
+        arrayOf(-10f to 8f, -6f to 1f, -1f to -5f, 5f to -8f, 10f to -2f, 6f to 5f, 0f to 9f, -7f to 5f)
+    )
+    private val bossConstellationEdges: Array<Array<Pair<Int, Int>>> = arrayOf(
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 2 to 6, 6 to 5, 6 to 7),
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 2 to 4, 4 to 5, 5 to 6, 6 to 0),
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 6, 6 to 7),
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 3 to 4),
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 6, 6 to 1),
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 1 to 5, 3 to 6),
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 2 to 4, 4 to 5),
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 3 to 0, 0 to 4, 4 to 5, 4 to 6),
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 6),
+        arrayOf(0 to 1, 1 to 2, 2 to 3, 3 to 4, 4 to 5, 5 to 6, 6 to 7, 7 to 0)
+    )
     private val stageNames = arrayOf(
         "عطارد",
         "زهره",
@@ -532,7 +561,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun prepareUpgradeChoices() {
         val all = listOf("firepower", "missile", "laser", "drone", "magnet", "shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield",
             "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix")
-        if (!extraAbilitiesUnlocked && wave > 50 && selectedAbilities.size >= 5 && selectedAbilities.all { abilityRank(it) >= 5 }) {
+        if (!extraAbilitiesUnlocked && wave > 25 && selectedAbilities.size >= 5 && selectedAbilities.all { abilityRank(it) >= 5 }) {
             extraAbilitiesUnlocked = true
         }
         val eligible = all.filter { id ->
@@ -665,6 +694,33 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         stageNames.getOrElse(level - 1) { "مرز ناشناخته $level" }
 
     private fun waveTitle(level: Int = wave): String = "مرحله $level • " + waveName(level)
+
+    private fun bossConstellationName(index: Int): String =
+        bossConstellationNames[index.coerceIn(0, bossConstellationNames.lastIndex)]
+
+    private fun drawBossConstellation(c: Canvas, index: Int, centerX: Float, centerY: Float, size: Float = 1f, alpha: Int = 160) {
+        val safeIndex = index.coerceIn(0, bossConstellationPoints.lastIndex)
+        val points = bossConstellationPoints[safeIndex]
+        val color = bossConstellationColors[safeIndex]
+        paint.style = Paint.Style.STROKE
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeWidth = max(0.65f, 0.95f * size) * s
+        paint.color = Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
+        for ((from, to) in bossConstellationEdges[safeIndex]) {
+            val a = points[from]
+            val b = points[to]
+            c.drawLine(
+                (centerX + a.first * size) * s, (centerY + a.second * size) * s,
+                (centerX + b.first * size) * s, (centerY + b.second * size) * s, paint
+            )
+        }
+        paint.style = Paint.Style.FILL
+        for ((starIndex, point) in points.withIndex()) {
+            val radius = (if (starIndex == 0 || starIndex == points.lastIndex) 1.55f else 1.05f) * size * s
+            paint.color = Color.argb(alpha, 242, 250, 255)
+            c.drawCircle((centerX + point.first * size) * s, (centerY + point.second * size) * s, radius, paint)
+        }
+    }
 
     private fun eventName(): String = when (eventKind) {
         1 -> "بارش شهاب‌سنگ"
@@ -897,7 +953,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (wave % 5 == 0) {
             waveTarget = enemies.count { !it.dead } + 1 + if (eventKind == 5) 3 else 0
             val bossBaseHp = 300 + wave * 44
-            val bossHp = if (wave == 5) (bossBaseHp * 0.70f).roundToInt() else bossBaseHp
+            val earlyBossAdjustedHp = if (wave == 5) (bossBaseHp * 0.70f).roundToInt() else bossBaseHp
+            val bossHp = if (wave > 25) earlyBossAdjustedHp * 2 else earlyBossAdjustedHp
             enemies.add(E(W / 2, -20f, 2, bossHp, W / 2, 0f, ((wave / 5 - 1).coerceIn(0, 9)).toFloat()).also { it.fire = 1.35f; it.bossSkills = chooseBossSkills() })
             if (eventKind == 5) repeat(3) { val x = 25f + it * (W - 50f) / 2f; enemies.add(E(x, -42f - it * 20f, 6, 6 + wave / 8, x, 18f, it.toFloat())) }
             return
@@ -910,7 +967,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val type = when { wave >= 10 && roll < 0.13f -> 6; wave >= 8 && roll < 0.21f -> 5; wave >= 6 && roll < 0.32f -> 4; wave >= 4 && roll < 0.48f -> 3; strong -> 1; else -> 0 }
             val baseHp = when (type) { 1 -> 5 + wave / 8; 3 -> 4 + wave / 10; 4 -> 3 + wave / 12; 5 -> 5 + wave / 10; 6 -> 4 + wave / 10; else -> 2 + wave / 12 }
             val difficulty = if (wave >= 10) 1.25f + min(wave - 10, 25) * 0.018f else 1f
-            val hp = ceil(baseHp * difficulty).toInt()
+            val hp = ceil(baseHp * difficulty * if (wave > 25) 2f else 1f).toInt()
             if (enemies.size + pendingWaveEnemies.size < waveTarget) {
                 pendingWaveEnemies.add(E(x, y, type, hp, x, amp, t0))
             }
@@ -970,9 +1027,16 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             prefs.edit().putInt("ship_upgrade_points", upgradePoints).apply()
             adStatusText = "پاداش باس: $earned امتیاز ارتقا"
             adStatusTimer = 2.0f
-            repeat(5) { i -> items.add(Item(e.x + (i - 2) * 5.5f, e.y + abs(i - 2) * 2f, 13, 20 + scavengerRank * 4)) }
-        } else if (Random.nextFloat() < 0.48f) {
-            items.add(Item(e.x, e.y, 13, 5 + scavengerRank * 2))
+            repeat(10) { i ->
+                val offset = (i - 4.5f) * 3.0f
+                items.add(Item(e.x + offset, e.y + abs(i - 4.5f) * 0.7f, 13, 10 + scavengerRank * 2))
+            }
+        } else if (Random.nextFloat() < 0.82f) {
+            val coinPieces = 3 + if (scavengerRank >= 4) 1 else 0
+            repeat(coinPieces) { i ->
+                val offset = (i - (coinPieces - 1) / 2f) * 3.8f
+                items.add(Item(e.x + offset, e.y + Random.nextFloat() * 5f, 13, 2 + scavengerRank))
+            }
         }
         val dropChance = if (e.type == 2) 0.55f else 0.08f
         if (Random.nextFloat() < dropChance) {
@@ -1620,7 +1684,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         // floating pickups
         for (item in items) {
             item.age += dt
-            if (magnetTimer > 0f || magnetLevel > 0) {
+            val magnetRange = when {
+                magnetLevel > 0 && shieldLevel > 0 -> 104f
+                magnetLevel > 0 -> 88f
+                magnetTimer > 0f -> 72f
+                else -> 0f
+            }
+            val itemDistance = hypot(item.x - px, item.y - py)
+            if (magnetRange > 0f && itemDistance < magnetRange) {
                 val pullRate = if (magnetLevel > 0 && shieldLevel > 0) 5.2f else if (magnetLevel > 0) 3.8f else 3.0f
                 item.x += (px - item.x) * min(1f, pullRate * dt)
                 item.y += (py - item.y) * min(1f, pullRate * dt)
@@ -1746,7 +1817,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private fun drawItem(c: Canvas, item: Item) {
         val cx = item.x * s
         val cy = item.y * s
-        val coinScale = if (item.type == 13) 0.66f else 1f
+        val coinScale = if (item.type == 13) 0.48f else 1f
         val scale = s * coinScale * (1f + sin(item.age * 5f) * 0.06f)
         val color = when (item.type) {
             13 -> 0xFFFFD34F.toInt()
@@ -2029,6 +2100,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawNeonAbilityVfx(c)
         for (e in enemies) {
             val sprite = when (e.type) { 2 -> bossSprites[e.t0.toInt().coerceIn(0, 9)]; 1 -> bE1; 3 -> bE2; 4 -> bE3; 5 -> bossSprites[5]; 6 -> bossSprites[6]; else -> bE0 }
+            if (e.type == 2) drawBossConstellation(c, e.t0.toInt(), e.x, e.y, 1.45f, 76)
             spr(c, sprite, e.x, e.y)
             if (e.type == 2 && e.phase >= 2) {
                 paint.style = Paint.Style.STROKE
@@ -2195,12 +2267,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             drawPauseControl(c)
         }
         enemies.firstOrNull { it.type == 2 }?.let { bs ->
-            text(c, "غول " + (bs.t0.toInt() + 1) + "/۱۰  فاز " + bs.phase, W / 2f, 17f, 7f, WHT)
-            bs.bossSkills.take(2).forEachIndexed { index, skill -> drawAbilityIcon(c, skill, W / 2f - 13f + index * 26f, 31f) }
+            val bossId = bs.t0.toInt().coerceIn(0, 9)
+            drawBossConstellation(c, bossId, 16f, 13f, 0.44f, 235)
+            drawFittedText(c, bossConstellationName(bossId) + " • فاز " + bs.phase, W / 2f, 14f, 6.2f, WHT, 128f)
+            bs.bossSkills.take(2).forEachIndexed { index, skill -> drawAbilityIcon(c, skill, W / 2f - 13f + index * 26f, 34f) }
             val frac = bs.hp.toFloat() / bs.maxHp
-            paint.color = DRED; c.drawRect(20f * s, 20f * s, (20f + 140f * frac) * s, 23f * s, paint)
+            paint.color = DRED; c.drawRect(20f * s, 22f * s, (20f + 140f * frac) * s, 25f * s, paint)
             paint.style = Paint.Style.STROKE; paint.strokeWidth = s * 0.6f; paint.color = RED
-            c.drawRect(20f * s, 20f * s, 160f * s, 23f * s, paint); paint.style = Paint.Style.FILL
+            c.drawRect(20f * s, 22f * s, 160f * s, 25f * s, paint); paint.style = Paint.Style.FILL
         }
         if (waveTarget > 0 && (st == St.PLAY || st == St.PAUSE)) {
             val x = (W - 5f) * s; val top = 42f * s; val bottom = (wh - 48f) * s
@@ -2775,21 +2849,36 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (selectedAbilities.isEmpty()) {
             text(c, "هنوز قابلیتی انتخاب نشده", W / 2f, wh * 0.70f, 6f, 0xFF9BAABC.toInt())
         } else {
-            val list = selectedAbilities.toList()
+                val list = selectedAbilities.toList().take(28)
             val cols = 4
             val cellW = 49f
-            val left = 12f
-            list.take(28).forEachIndexed { index, id ->
+            val left = 8f
+            val gridTop = wh * 0.705f
+            val rowCount = ((list.size + cols - 1) / cols).coerceAtLeast(1)
+            val cellH = ((wh * 0.905f - gridTop - 3f) / rowCount).coerceIn(10.5f, 16f)
+            list.forEachIndexed { index, id ->
                 val col = index % cols
                 val row = index / cols
-                val cellX = left + col * cellW
-                val cellY = wh * 0.685f + row * 10.1f
+                val cellX = left + col * 50f
+                val cellY = gridTop + row * cellH
+                val centerY = cellY + cellH / 2f
                 val rank = abilityRank(id).coerceIn(0, 5)
+                val accent = abilityColor(id)
                 paint.style = Paint.Style.FILL
-                paint.color = 0x332BDAEF.toInt()
-                c.drawRoundRect(cellX*s, (cellY-5f)*s, (cellX+cellW-2f)*s, (cellY+4.2f)*s, 2.5f*s, 2.5f*s, paint)
-                drawAbilityIcon(c, id, cellX + 7f, cellY - 0.3f)
-                drawFittedText(c, upgradeTitle(id) + " " + rank + "/۵", cellX + 29f, cellY + 1.7f, 4.2f, if(rank >= 5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), 36f)
+                paint.color = 0x552BDAEF.toInt()
+                c.drawRoundRect(cellX*s, cellY*s, (cellX+cellW-2f)*s, (cellY+cellH-1f)*s, 3f*s, 3f*s, paint)
+                paint.color = Color.argb(76, Color.red(accent), Color.green(accent), Color.blue(accent))
+                c.drawCircle((cellX+8f)*s, centerY*s, 6.2f*s, paint)
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 0.8f*s
+                paint.color = accent
+                c.drawCircle((cellX+8f)*s, centerY*s, 6.2f*s, paint)
+                c.save()
+                c.scale(0.54f, 0.54f, (cellX+8f)*s, centerY*s)
+                drawAbilityIcon(c, id, cellX + 8f, centerY)
+                c.restore()
+                paint.style = Paint.Style.FILL
+                drawFittedText(c, upgradeTitle(id) + " " + rank + "/۵", cellX + 30f, centerY + 1.6f, 3.65f, if(rank >= 5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(), 34f)
             }
         }
         drawAdSlot(c, wh * 0.93f, 132f, 14f)
