@@ -15,14 +15,15 @@ PARTS = [Path(f"build-assets/v23/patch_game_v23.part{i:02d}") for i in range(1, 
 if not all(p.is_file() for p in PARTS):
     raise SystemExit("Missing one or more v2.3 patch segments")
 
-segments = ["".join(p.read_text(encoding="ascii").split()) for p in PARTS]
+segments = []
+for p in PARTS:
+    encoded = "".join(p.read_text(encoding="ascii").split())
+    segments.append(base64.b64decode(encoded + "=" * ((-len(encoded)) % 4)))
 recovered = None
 recovered_order = None
 for order in itertools.permutations(range(len(segments))):
-    encoded = "".join(segments[i] for i in order)
     try:
-        packed = base64.b64decode(encoded, validate=True)
-        source = lzma.decompress(packed)
+        source = lzma.decompress(b"".join(segments[i] for i in order))
         decoded = source.decode("utf-8-sig")
         compile(decoded, "patch_game_v23.py", "exec")
     except (ValueError, UnicodeDecodeError, lzma.LZMAError, EOFError, SyntaxError):
