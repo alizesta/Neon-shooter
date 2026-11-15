@@ -153,7 +153,7 @@ jobs:
               "music initialization can retry after a failed resource load": "musicPrepared = false" in game and "Background music resource could not be opened" in game,
               "sound toggle is available in pause and persists": '"sound" to if (sfx.enabled)' in game and 'putBoolean("sound_enabled", sfx.enabled)' in game,
               "coin balance appears in menu and gameplay HUD": "drawCoinCounter(c, 177f" in game and "drawCoinCounter(c, 164f" in game,
-              "ship glow follows the silhouette instead of a circular disk": "BlurMaskFilter(7.5f" in game and "silhouette.addPath(body)" in game and "c.drawCircle(0f, 1f, 17f, paint)" not in game,
+              "ship glow follows the silhouette instead of a circular disk": "BlurMaskFilter(7.5f" in game and "silhouette.addPath(filled)" in game and "c.drawCircle(0f, 1f, 17f, paint)" not in game,
               "hangar ship icons are scaled to fit their tabs": "c.scale(0.42f, 0.42f, x, y)" in game,
               "upgrade headline and card labels are centered and separated from level text": 'text(c, "یک قابلیت را انتخاب کن"' in game and "drawFittedText(c, upgradeTitle(id), cx" in game and 'drawFittedText(c, "LVL "' in game,
               "wave progress resets for every new wave": "private fun spawnWave() {\n        wave++\n        waveKills = 0" in game,
