@@ -3271,7 +3271,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val labelLeft = cellX + 7.2f
             val labelWidth = max(2f, cellWidth - 8.4f)
             val labelX = labelLeft + labelWidth / 2f
-            val labelSize = min(fontSize, min(2.65f, cellHeight * 0.34f)).coerceAtLeast(1.65f)
+            val labelSize = min(fontSize, min(4.0f, cellHeight * 0.40f)).coerceAtLeast(2.1f)
             drawFittedText(
                 c, label, labelX, centerY + 0.9f, labelSize,
                 if (abilityRank(id) >= 5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(),
@@ -3349,7 +3349,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawCoinCounter(c, 176f, wh * 0.335f)
         drawButtons(c)
         drawFittedText(c, "قابلیت‌های فعال  •  " + ownedAbilityIds().size, W / 2f, wh * 0.675f, 5.9f, 0xFFFFD45C.toInt(), 180f)
-        drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 4, 2.8f, 23f, 197f)
+        drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 4, 4.0f, 23f, 197f)
     }
 
     private fun drawWeaponControls(c: Canvas) {
@@ -3566,8 +3566,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             } else if (st == St.PAUSE) {
                 val cy = (r.top + r.bottom) / 2f
                 c.save()
-                c.scale(0.82f, 0.82f, (r.left + 18f) * s, cy * s)
-                drawButtonIcon(c, b.id, r.left + 18f, cy)
+                c.scale(0.62f, 0.62f, (r.left + 16f) * s, cy * s)
+                drawButtonIcon(c, b.id, r.left + 16f, cy)
                 c.restore()
                 drawFittedText(c, b.label, (r.left + r.right) / 2f + 8f, cy + 2f, 5.2f, 0xFFEAFBFF.toInt(), 76f)
             } else {
