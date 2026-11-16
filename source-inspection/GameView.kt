@@ -147,6 +147,7 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var scavengerRank = 0
     private var multishotRank = 0
     private var phoenixRank = 0
+    private var projectileSpeedRank = 0
     private val bossConstellationNames = arrayOf("جبار", "دب‌اکبر", "عقرب", "اسد", "کمان", "ثور", "سگ بزرگ", "غراب", "مار آبی", "مار")
     private val bossConstellationColors = intArrayOf(
         0xFF8BE9FF.toInt(), 0xFFFFC76A.toInt(), 0xFFFF8A9D.toInt(), 0xFFC5A1FF.toInt(), 0xFF70E5C2.toInt(),
@@ -462,8 +463,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         bPB = Sprites.bullet(WHT, WGL, ps, true)
         bEB = Sprites.bullet(ORG, 0xFFFFD28C.toInt(), ps, false)
         if (stars.isEmpty()) repeat(90) {
-            val l = Random.nextInt(3)
-            stars.add(Star(Random.nextFloat() * W, Random.nextFloat() * wh, floatArrayOf(8f, 16f, 28f)[l], if (l == 2) 1.6f else 1f))
+            val speed = Random.nextFloat() * 27f + 5f
+            stars.add(Star(Random.nextFloat() * W, Random.nextFloat() * wh, speed, if (speed > 25f) 1.6f else 0.8f + Random.nextFloat() * 0.5f))
         }
         if (st != St.PLAY) { px = W / 2; py = wh - 45f }
     }
@@ -727,13 +728,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         "scavenger" -> scavengerRank
         "multishot" -> multishotRank
         "phoenix" -> phoenixRank
+        "projectile_speed" -> projectileSpeedRank
         else -> 5
     }
 
     private fun upgradeAbilityPool(): List<String> =
         listOf("firepower", "missile", "laser", "drone", "magnet",
             "shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield",
-            "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix")
+            "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix", "projectile_speed")
 
     // Every ability is visible from the start. Upgrade capacity grows by five
     // whenever the current five-ability block has been fully maxed.
@@ -757,12 +759,20 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         return eligibleUpgradeChoices().count { it !in upgradeChoices } >= 3
     }
     private fun refreshUpgradeChoices() {
-        if (!canRefreshUpgradeChoices()) {
-            adStatusText = if (upgradeRefreshUsed) "رفرش این مرحله قبلاً استفاده شده" else "سه گزینه متفاوت و مجاز باقی نمانده است"
+        if (upgradeRefreshUsed) {
+            adStatusText = "رفرش این مرحله قبلاً استفاده شده"
             adStatusTimer = 1.8f
             return
         }
-        upgradeChoices = eligibleUpgradeChoices().filter { it !in upgradeChoices }.shuffled().take(3)
+        val eligible = eligibleUpgradeChoices()
+        val alternatives = eligible.filter { it !in upgradeChoices }.shuffled()
+        val refreshed = (alternatives + upgradeChoices.filter { it in eligible }.shuffled()).distinct().take(3)
+        if (refreshed.isEmpty()) {
+            adStatusText = "قابلیت قابل ارتقای دیگری باقی نمانده است"
+            adStatusTimer = 1.8f
+            return
+        }
+        upgradeChoices = refreshed
         upgradeRefreshUsed = true
         sfx.play("power")
     }
@@ -800,6 +810,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "scavenger" -> scavengerRank = min(5, scavengerRank + 1)
             "multishot" -> multishotRank = min(5, multishotRank + 1)
             "phoenix" -> phoenixRank = min(5, phoenixRank + 1)
+            "projectile_speed" -> projectileSpeedRank = min(5, projectileSpeedRank + 1)
         }
         if (activeCombo().isNotEmpty()) bannerT = 2.8f
         sfx.play("power")
@@ -1123,7 +1134,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                     val left = 9f + i * (width + gap)
                     l.add(Btn("upgrade_$i", "انتخاب قابلیت", RectF(left, top, left + width, top + 19f)))
                 }
-                val label = if (upgradeRefreshUsed) "استفاده شد" else if (canRefreshUpgradeChoices()) "تازه‌سازی ۳ قابلیت" else "۳ گزینه تازه نیست"
+                val label = if (upgradeRefreshUsed) "استفاده شد" else "تازه‌سازی ۳ قابلیت"
                 l.add(Btn("upgrade_refresh", label, RectF(60f, wh * 0.832f, 160f, wh * 0.832f + 17f)))
             }
             St.SHOP -> {
@@ -1179,7 +1190,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         pendingWaveEnemies.clear(); waveKills = 0; waveTarget = 1
         shieldReflectCooldown = 0f; dashCooldown = 0f; chainCooldown = 0f
         upgradesTaken = 0; selectedAbilities.clear(); extraAbilitiesUnlocked = false; intermissionHandledWave = -1; shopHandledWave = -1; upgradeHandledWave = -1; upgradeChoices = emptyList()
-        selectedAbilities.clear(); extraAbilitiesUnlocked = false; hullRank = 0; healthRegenRank = 0; armorRank = 0; criticalRank = 0; overdriveRank = 0
+        selectedAbilities.clear(); extraAbilitiesUnlocked = false; projectileSpeedRank = 0; hullRank = 0; healthRegenRank = 0; armorRank = 0; criticalRank = 0; overdriveRank = 0
         explosiveRank = 0; piercingRank = 0; stasisRank = 0; scavengerRank = 0; multishotRank = 0; phoenixRank = 0
         healthRegenTimer = 0f; empPulseTimer = 0f; empRank = 0; phoenixUsed = false; legendaryTime = 0f; legendaryCharge = 0; legendaryChargeSuppressed = false
         ricochetRank = 0; gravityWellRank = 0; overloadRank = 0; nanobotsRank = 0; scannerRank = 0; salvageDroneRank = 0; killStreakRank = 0; ricochetShieldRank = 0
@@ -1405,20 +1416,20 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         val count = min(1 + (weaponLevel - 1), 5)
         for (i in 0 until count) {
             val offset = i - (count - 1) / 2
-            bullets.add(B(px + offset * 3.6f, py - 9f, offset * 13f, -178f, true))
+            bullets.add(B(px + offset * 3.6f, py - 9f, offset * 13f, -(178f + projectileSpeedRank * 24f), true))
         }
         repeat(multishotRank) { rank ->
             val spread = 12f + rank * 2.2f
-            bullets.add(B(px - spread, py - 7f, -18f - rank * 2f, -170f, true))
-            bullets.add(B(px + spread, py - 7f, 18f + rank * 2f, -170f, true))
+            bullets.add(B(px - spread, py - 7f, -18f - rank * 2f, -(170f + projectileSpeedRank * 24f), true))
+            bullets.add(B(px + spread, py - 7f, 18f + rank * 2f, -(170f + projectileSpeedRank * 24f), true))
         }
         if (droneLevel >= 1) {
-            bullets.add(B(px - 17f, py - 5f, -8f, -165f, true))
-            bullets.add(B(px + 17f, py - 5f, 8f, -165f, true))
+            bullets.add(B(px - 17f, py - 5f, -8f, -(165f + projectileSpeedRank * 24f), true))
+            bullets.add(B(px + 17f, py - 5f, 8f, -(165f + projectileSpeedRank * 24f), true))
         }
         if (droneLevel >= 2) {
-            bullets.add(B(px - 27f, py - 1f, -17f, -155f, true))
-            bullets.add(B(px + 27f, py - 1f, 17f, -155f, true))
+            bullets.add(B(px - 27f, py - 1f, -17f, -(155f + projectileSpeedRank * 24f), true))
+            bullets.add(B(px + 27f, py - 1f, 17f, -(155f + projectileSpeedRank * 24f), true))
         }
         shotPulse = 0.09f
         repeat(3) { i -> val spread = (i - 1) * 3.5f; parts.add(Pt(px + spread, py - 11f, spread * 1.8f, -24f - i * 3f, 0.16f, 0.16f)) }
@@ -1481,9 +1492,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                     star.y += dy / d * pull
                 }
             }
-            if (star.y > wh) star.y = -1f
-            if (star.y > wh + 2f) {
-                star.y = -2f
+            if (star.y > wh) {
+                star.y = -Random.nextFloat() * 8f
                 star.x = Random.nextFloat() * W
             }
         }
@@ -2477,9 +2487,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             if (b.mine) {
                 paint.style = Paint.Style.STROKE; paint.strokeCap = Paint.Cap.ROUND
                 paint.strokeWidth = 2.1f * s; paint.color = 0x8855EFFF.toInt()
-                c.drawLine(b.x * s, (b.y + 5f) * s, (b.x - b.vx * 0.025f) * s, (b.y + 13f) * s, paint)
+                c.drawLine(b.x * s, (b.y + 2.5f) * s, (b.x - b.vx * 0.012f) * s, (b.y + 7f) * s, paint)
                 paint.strokeWidth = 0.9f * s; paint.color = 0xFFFFF2A6.toInt()
-                c.drawLine(b.x * s, (b.y + 2f) * s, (b.x - b.vx * 0.015f) * s, (b.y + 8f) * s, paint)
+                c.drawLine(b.x * s, (b.y + 1f) * s, (b.x - b.vx * 0.007f) * s, (b.y + 4.5f) * s, paint)
                 paint.style = Paint.Style.FILL; paint.color = 0x7755EFFF.toInt()
                 c.drawCircle(b.x * s, b.y * s, 3.1f * s, paint)
             }
@@ -2595,13 +2605,13 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val frac = (activeBoss.hp.toFloat() / activeBoss.maxHp).coerceIn(0f, 1f)
             paint.style = Paint.Style.FILL
             paint.color = 0xAA222A35.toInt()
-            c.drawRoundRect(96f*s, 21f*s, 184f*s, 25f*s, 1.5f*s, 1.5f*s, paint)
+            c.drawRoundRect(96f*s, 27f*s, 184f*s, 31f*s, 1.5f*s, 1.5f*s, paint)
             paint.color = DRED
-            c.drawRoundRect(96f*s, 21f*s, (96f + 88f*frac)*s, 25f*s, 1.5f*s, 1.5f*s, paint)
+            c.drawRoundRect(96f*s, 27f*s, (96f + 88f*frac)*s, 31f*s, 1.5f*s, 1.5f*s, paint)
             paint.style = Paint.Style.STROKE; paint.strokeWidth = 0.65f*s; paint.color = RED
             c.drawRoundRect(96f*s, 21f*s, 184f*s, 25f*s, 1.5f*s, 1.5f*s, paint)
             paint.style = Paint.Style.FILL
-            activeBoss.bossSkills.take(2).forEachIndexed { index, skill -> drawAbilityIcon(c, skill, 105f + index * 18f, 37f) }
+            activeBoss.bossSkills.take(2).forEachIndexed { index, skill -> drawAbilityIcon(c, skill, 105f + index * 18f, 43f) }
         }
         if (comboCount >= 3) drawFittedText(c, "ترکیب x" + (1 + comboCount / 5).coerceAtMost(5), 105f, 48f, 5.2f, 0xFFFFD45C.toInt(), 70f)
         val powerLabel = when {
@@ -2925,6 +2935,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         "scavenger" -> "غارتگر"
         "multishot" -> "شلیک چندگانه"
         "phoenix" -> "هسته ققنوس"
+        "projectile_speed" -> "شتاب پرتابه"
         else -> "شلیک سریع"
     }
 
@@ -2957,6 +2968,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         "scavenger" -> "سکه بیشتر با هر نابودی"
         "multishot" -> "افزودن مسیرهای شلیک جانبی"
         "phoenix" -> "یک بار احیای خودکار"
+        "projectile_speed" -> "گلوله‌ها سریع‌تر به هدف می‌رسند"
         else -> "شلیک سریع برای مدت محدود"
     }
 
@@ -2989,6 +3001,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         "scavenger" -> 0xFFFFC247.toInt()
         "multishot" -> 0xFFBC72FF.toInt()
         "phoenix" -> 0xFFFF70B5.toInt()
+        "projectile_speed" -> 0xFF65E7FF.toInt()
         else -> 0xFFB8E7FF.toInt()
     }
 
@@ -3022,6 +3035,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             c.drawPath(p, paint)
         }
         when (id) {
+            "projectile_speed" -> {
+                poly(-2f, 8f, 2f, 8f, 2f, -2f, 6f, -2f, 0f, -10f, -6f, -2f, -2f, -2f, -2f, 8f)
+                line(-8f, 4f, -5f, 4f); line(5f, 4f, 8f, 4f)
+            }
             "drone" -> {
                 circle(0f, 0f, 3f)
                 circle(-8f, -5f, 2.5f); circle(8f, -5f, 2.5f)
