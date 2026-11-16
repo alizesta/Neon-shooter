@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.7.9 • ship progression
+name: Build Neon Shooter 2.7.10 • ship progression
 
 on:
   push:
@@ -89,15 +89,15 @@ jobs:
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.7.9")
-          s = s.replace("versionCode = 25", "versionCode = 46", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.9"', 1)
+              raise SystemExit("Unexpected base version before v2.7.10")
+          s = s.replace("versionCode = 25", "versionCode = 47", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.10"', 1)
           import re
           sdk_matches = re.findall(r"\bcompileSdk\s*=\s*\d+", s)
           if len(sdk_matches) != 1:
               raise SystemExit("Expected exactly one Android compileSdk declaration")
           s = re.sub(r"\bcompileSdk\s*=\s*\d+", "compileSdk = 35", s, count=1)
-          s = s.replace('versionName = "2.7.9"', 'versionName = "2.7.9"\n        manifestPlaceholders["TapsellMediationAppKey"] = System.getenv("TAPSELL_APP_ID")\n        resValue("string", "tapsell_rewarded_zone_id", System.getenv("TAPSELL_REWARDED_ZONE_ID"))\n        resValue("string", "tapsell_interstitial_zone_id", System.getenv("TAPSELL_INTERSTITIAL_ZONE_ID"))', 1)
+          s = s.replace('versionName = "2.7.10"', 'versionName = "2.7.10"\n        manifestPlaceholders["TapsellMediationAppKey"] = System.getenv("TAPSELL_APP_ID")\n        resValue("string", "tapsell_rewarded_zone_id", System.getenv("TAPSELL_REWARDED_ZONE_ID"))\n        resValue("string", "tapsell_interstitial_zone_id", System.getenv("TAPSELL_INTERSTITIAL_ZONE_ID"))', 1)
           dependency_marker = re.search(r"(?m)^dependencies\s*\{", s)
           if not dependency_marker:
               raise SystemExit("Could not locate app dependencies block")
@@ -147,7 +147,7 @@ jobs:
               raise SystemExit("Unexpected Android INTERNET permission marker")
           manifest_path.write_text(manifest.replace(internet, internet + '\n    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />', 1), encoding="utf-8")
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.7.9")
+          print("PATCH full gameplay source and version 2.7.10")
           PY
 
       - name: Generate original cinematic background music
@@ -202,7 +202,7 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.7.9": "versionCode = 46" in gradle and 'versionName = "2.7.9"' in gradle,
+              "release version is 2.7.10": "versionCode = 47" in gradle and 'versionName = "2.7.10"' in gradle,
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
@@ -210,6 +210,8 @@ jobs:
               "ability slots expand by five after each five selected abilities reach rank five": "private fun upgradeCapacity()" in game and "5 + (selectedAbilities.count { abilityRank(it) >= 5 } / 5) * 5" in game and "id in selectedAbilities || selectedAbilities.size < capacity" in game,
               "regular enemy health doubles after wave 25": "val hp = ceil(baseHp * difficulty * if (wave > 25) 2f else 1f).toInt()" in game,
               "boss health doubles after wave 25": "val bossHp = if (wave > 25) earlyBossAdjustedHp * 2 else earlyBossAdjustedHp" in game,
+              "first boss at wave five has 30 percent less health": "wave == 5" in game and "bossBaseHp * 0.70f" in game,
+              "boss HUD is drawn once with no duplicate overlapping label or health bar": game.count('drawFittedText(c, "باس " + bossConstellationName(bossId)') == 1 and "enemies.firstOrNull { it.type == 2 }?.let { bs ->" not in game,
               "all upgradeable abilities stop at rank five": "abilityRank(id) < 5" in game and "min(5, missileLevel + 1)" in game and "min(5, weaponLevel + 1)" in game and "min(5, phoenixRank + 1)" in game and '"/5"' in game and '"/۵"' in game and "min(6," not in game[game.index("private fun applyUpgrade(id: String) {"):game.index("private fun activeCombo()")],
               "guided missiles gain stronger tracking at higher levels": "val homingSpeed = 175f + missileLevel * 8f" in game and "val steering = 320f + missileLevel * 24f" in game,
               "enemy kills charge the legendary meter and bosses charge faster": "legendaryCharge + if (e.type == 2) 5 else 1" in game and "legendaryChargeSuppressed" in game and "legendaryCharge >= legendaryChargeNeeded" in game,
@@ -379,13 +381,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.7.9.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.7.10.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.7.9
-          path: NeonShooter-Android-Project-v2.7.9.zip
+          name: NeonShooter-Android-Project-v2.7.10
+          path: NeonShooter-Android-Project-v2.7.10.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -448,16 +450,16 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.7.9 APK build
+      - name: Record verified v2.7.10 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
           test -s "$APK"
-          cat > release-proof-v2.7.9.txt <<EOF
+          cat > release-proof-v2.7.10.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.7.9
+          app_version=2.7.10
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
@@ -466,24 +468,24 @@ jobs:
       - name: Upload APK verification proof
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Release-Proof-v2.7.9
-          path: release-proof-v2.7.9.txt
+          name: NeonShooter-Release-Proof-v2.7.10
+          path: release-proof-v2.7.10.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.7.9-APK
+          name: Neon-Shooter-v2.7.10-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.7.9
+      - name: Publish Neon Shooter 2.7.10
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.7.9
-          name: Neon Shooter v2.7.9
+          tag_name: v2.7.10
+          name: Neon Shooter v2.7.10
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
