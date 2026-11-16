@@ -105,6 +105,10 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var damageFlash = 0f
     private var pressedButtonId = ""
     private var buttonPulse = 0f
+    private var shotPulse = 0f
+    private var levelUpPulse = 0f
+    private var pendingUpgradeIndex = -1
+    private var upgradeSelectionTimer = 0f
     private lateinit var bossSprites: Array<Bitmap>
     private var px = 90f; private var py = 270f
     private var lives = 3; private var score = 0; private var wave = 0
@@ -509,7 +513,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                         if (activeAudioSlider > 0) updateAudioSliderFromX(x)
                         else buttons().firstOrNull { it.r.contains(x,y) }?.let { pressedButtonId=it.id; buttonPulse=0.18f; onBtn(it.id) }
                     } else if (st == St.PLAY) {
-                        if (y >= wh-34f && x in 48f..108f) { activateLegendary(); controlTouch=true }
+                        if (y >= wh-34f && x in (if (dashCharges > 0) 52f..112f else 8f..68f)) { activateLegendary(); controlTouch=true }
                         else if (x >= W-32f && y <= 30f) {
                             st = St.PAUSE
                             syncMusic()
@@ -803,11 +807,28 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun chooseUpgrade(index: Int) {
+        if (index !in upgradeChoices.indices || pendingUpgradeIndex >= 0) return
+        pendingUpgradeIndex = index
+        upgradeSelectionTimer = 0.24f
+        pressedButtonId = "upgrade_$index"
+        buttonPulse = 0.24f
+    }
+
+    private fun applyPendingUpgrade() {
+        val index = pendingUpgradeIndex
+        pendingUpgradeIndex = -1
+        upgradeSelectionTimer = 0f
         if (index !in upgradeChoices.indices) return
         val chosen = upgradeChoices[index]
         selectedAbilities.add(chosen)
         applyUpgrade(chosen)
         upgradeChoices = emptyList()
+        levelUpPulse = 1.35f
+        screenShake = max(screenShake, 0.10f)
+        shakePower = max(shakePower, 1.4f)
+        boom(px, py, 24, 68f)
+        impactRings.add(ImpactRing(px, py, 0.52f, 0.52f))
+        sfx.play("power")
         st = St.PLAY
         waiting = true
         waveT = 0.75f
@@ -1389,6 +1410,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             bullets.add(B(px - 27f, py - 1f, -17f, -155f, true))
             bullets.add(B(px + 27f, py - 1f, 17f, -155f, true))
         }
+        shotPulse = 0.09f
+        repeat(3) { i -> val spread = (i - 1) * 3.5f; parts.add(Pt(px + spread, py - 11f, spread * 1.8f, -24f - i * 3f, 0.16f, 0.16f)) }
         sfx.play("shoot")
     }
 
@@ -1430,6 +1453,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun update(frameDt: Float) {
         val dt = frameDt * 0.85f
+        shotPulse = max(0f, shotPulse - dt)
+        levelUpPulse = max(0f, levelUpPulse - dt)
+        if (st == St.UPGRADE && pendingUpgradeIndex >= 0) {
+            upgradeSelectionTimer -= dt
+            if (upgradeSelectionTimer <= 0f) applyPendingUpgrade()
+        }
         for (star in stars) {
             star.phase += dt * (2.4f + star.sp * 0.16f)
             star.y += (3.5f + star.sp * 0.28f) * dt
@@ -2287,6 +2316,33 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
 
+    private fun drawShipCombatFx(c: Canvas) {
+        val x = px * s; val y = py * s
+        val flame = 0.72f + 0.28f * sin(time * 34f)
+        paint.style = Paint.Style.FILL
+        paint.color = 0x6655DFFF.toInt(); c.drawOval(x - 5.5f*s, y + 7f*s, x + 5.5f*s, y + (17f + flame*4f)*s, paint)
+        paint.color = 0xCC5DEBFF.toInt()
+        val exhaust = Path().apply { moveTo(x - 3.4f*s, y + 7f*s); lineTo(x, y + (13f + flame*5f)*s); lineTo(x + 3.4f*s, y + 7f*s); close() }
+        c.drawPath(exhaust, paint)
+        paint.color = 0xFFFFD66E.toInt(); c.drawOval(x - 1.2f*s, y + 8f*s, x + 1.2f*s, y + (12f + flame*3f)*s, paint)
+        if (shotPulse > 0f) {
+            val k = (shotPulse / 0.09f).coerceIn(0f, 1f)
+            paint.color = Color.argb((190f*k).toInt(), 255, 245, 170); c.drawCircle(x, y - 12f*s, (2.5f + (1f-k)*3f)*s, paint)
+            paint.style = Paint.Style.STROKE; paint.strokeWidth = 1.4f*s
+            paint.color = Color.argb((210f*k).toInt(), 76, 232, 255); c.drawCircle(x, y - 12f*s, (5f + (1f-k)*5f)*s, paint)
+            paint.style = Paint.Style.FILL
+        }
+        if (levelUpPulse > 0f) {
+            val k = (levelUpPulse / 1.35f).coerceIn(0f, 1f); val radius = (18f + (1f-k)*30f)*s
+            paint.style = Paint.Style.STROKE; paint.strokeWidth = (2.2f*k + 0.5f)*s
+            paint.color = Color.argb((220f*k).toInt(), 255, 210, 88); c.drawCircle(x, y, radius, paint)
+            paint.color = Color.argb((170f*k).toInt(), 75, 226, 255); c.drawCircle(x, y, radius*0.72f, paint)
+            paint.style = Paint.Style.FILL; paint.color = Color.argb((235f*k).toInt(), 255, 222, 126)
+            drawFittedText(c, "ارتقا!", px, py - 25f, 7.0f, paint.color, 48f)
+            for (i in 0..5) { val a = time*4f + i*1.0472f; c.drawCircle(x + cos(a)*radius*0.82f, y + sin(a)*radius*0.82f, 1.5f*s, paint) }
+        }
+    }
+
     private fun drawNeonAbilityVfx(c: Canvas) {
         val cx = px * s
         val cy = py * s
@@ -2407,7 +2463,18 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         for (ring in impactRings) drawPixelfxImpact(c, ring)
         for (item in items) drawItem(c, item)
-        for (b in bullets) { c.save(); c.scale(0.72f, 0.72f, b.x * s, b.y * s); spr(c, if (b.mine) bPB else bEB, b.x, b.y); c.restore() }
+        for (b in bullets) {
+            if (b.mine) {
+                paint.style = Paint.Style.STROKE; paint.strokeCap = Paint.Cap.ROUND
+                paint.strokeWidth = 2.1f * s; paint.color = 0x8855EFFF.toInt()
+                c.drawLine(b.x * s, (b.y + 5f) * s, (b.x - b.vx * 0.025f) * s, (b.y + 13f) * s, paint)
+                paint.strokeWidth = 0.9f * s; paint.color = 0xFFFFF2A6.toInt()
+                c.drawLine(b.x * s, (b.y + 2f) * s, (b.x - b.vx * 0.015f) * s, (b.y + 8f) * s, paint)
+                paint.style = Paint.Style.FILL; paint.color = 0x7755EFFF.toInt()
+                c.drawCircle(b.x * s, b.y * s, 3.1f * s, paint)
+            }
+            c.save(); c.scale(0.72f, 0.72f, b.x * s, b.y * s); spr(c, if (b.mine) bPB else bEB, b.x, b.y); c.restore()
+        }
         for (arc in chainArcs) {
             paint.style = Paint.Style.STROKE; paint.strokeWidth = (1f + arc.life * 4f) * s
             paint.color = 0xFF73F5FF.toInt(); paint.alpha = (255f * (arc.life / 0.24f)).toInt().coerceIn(0, 255)
@@ -2470,6 +2537,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             paint.clearShadowLayer(); paint.style = Paint.Style.FILL
         }
         if ((st == St.PLAY || st == St.PAUSE) && (invul <= 0f || (time * 12).toInt() % 2 == 0)) {
+            drawShipCombatFx(c)
             val oldAlpha = spritePaint.alpha
             if (legendaryTime > 0f && currentShip == 3) spritePaint.alpha = 92
             drawPlayerShip(c, px, py)
@@ -2746,7 +2814,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun drawLegendaryControl(c: Canvas) {
-        val left = 48f; val top = wh - 32f; val right = 108f; val bottom = wh - 7f
+        val left = if (dashCharges > 0) 52f else 8f
+        val top = wh - 32f
+        val right = if (dashCharges > 0) 112f else 68f
+        val bottom = wh - 7f
         val ready = legendaryCharge >= legendaryChargeNeeded && legendaryTime <= 0f
         val accent = if (ready) 0xFFFFD45C.toInt() else 0xFF718294.toInt()
         paint.style = Paint.Style.FILL
@@ -3125,10 +3196,13 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             } else line = candidate
         }
         if (line.isNotEmpty()) lines.add(line)
+        val lineStep = max(size * 1.12f, 5.4f)
         lines.take(2).forEachIndexed { index, part ->
+            val baseline = y + index * lineStep
             c.save()
-            c.clipRect((x - maxWidth / 2f) * s, (y - 1.5f + index * 5.0f) * s, (x + maxWidth / 2f) * s, (y + 3.5f + index * 5.0f) * s)
-            drawFittedText(c, part, x, y + index * 5.0f, size, color, maxWidth)
+            c.clipRect((x - maxWidth / 2f) * s, (baseline - size * 0.98f) * s,
+                (x + maxWidth / 2f) * s, (baseline + size * 0.36f) * s)
+            drawFittedText(c, part, x, baseline, size, color, maxWidth)
             c.restore()
         }
     }
@@ -3197,7 +3271,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val labelLeft = cellX + 7.2f
             val labelWidth = max(2f, cellWidth - 8.4f)
             val labelX = labelLeft + labelWidth / 2f
-            val labelSize = min(fontSize, min(2.65f, cellHeight * 0.34f)).coerceAtLeast(1.65f)
+            val labelSize = min(fontSize, min(4.0f, cellHeight * 0.40f)).coerceAtLeast(2.1f)
             drawFittedText(
                 c, label, labelX, centerY + 0.9f, labelSize,
                 if (abilityRank(id) >= 5) 0xFFFFD45C.toInt() else 0xFFE7F8FF.toInt(),
@@ -3222,12 +3296,23 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             val cx = (left + right) / 2f
             c.save()
             c.clipRect(left * s, (wh * 0.425f) * s, right * s, (wh * 0.605f) * s)
-            drawGlassPanel(c, left, wh * 0.43f, right, wh * 0.60f, abilityColor(id), 190)
+            val chosen = pendingUpgradeIndex == i
+            val accent = abilityColor(id)
+            drawGlassPanel(c, left, wh * 0.43f, right, wh * 0.60f, accent, if (chosen) 255 else 205)
+            if (chosen) {
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 1.8f * s
+                paint.color = 0xFFFFE28A.toInt()
+                c.drawRoundRect((left + 0.8f) * s, (wh * 0.432f) * s, (right - 0.8f) * s, (wh * 0.598f) * s, 4f * s, 4f * s, paint)
+                paint.style = Paint.Style.FILL
+                paint.color = 0x44FFE28A.toInt()
+                c.drawRoundRect(left * s, (wh * 0.43f) * s, right * s, (wh * 0.60f) * s, 4f * s, 4f * s, paint)
+            }
             drawAbilityIcon(c, id, cx, wh * 0.462f)
             val rank = abilityRank(id)
-            drawFittedText(c, upgradeTitle(id), cx, wh * 0.512f, 4.9f, WHT, optionWidth - 6f)
-            drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.7f, 0xFFFFD45C.toInt(), optionWidth - 8f)
-            drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 4.0f, 0xFF9CEBFF.toInt(), optionWidth - 8f)
+            drawFittedText(c, upgradeTitle(id), cx, wh * 0.512f, 5.8f, WHT, optionWidth - 6f)
+            drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.533f, 4.5f, 0xFFFFD45C.toInt(), optionWidth - 8f)
+            drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.559f, 4.8f, 0xFFB9F4FF.toInt(), optionWidth - 8f)
             c.restore()
         }
         drawGlassPanel(c, 9f, wh * 0.615f, W - 9f, wh * 0.825f, 0xFFFFD45C.toInt(), 220)
@@ -3264,7 +3349,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         drawCoinCounter(c, 176f, wh * 0.335f)
         drawButtons(c)
         drawFittedText(c, "قابلیت‌های فعال  •  " + ownedAbilityIds().size, W / 2f, wh * 0.675f, 5.9f, 0xFFFFD45C.toInt(), 180f)
-        drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 4, 2.8f, 23f, 197f)
+        drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 4, 4.0f, 23f, 197f)
     }
 
     private fun drawWeaponControls(c: Canvas) {
@@ -3342,12 +3427,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         val x = cx * s; val y = cy * s
         if (id == "upgrade_refresh") {
             val rect = RectF(x-8f*s,y-8f*s,x+8f*s,y+8f*s)
-            c.drawArc(rect,205f,245f,false,paint)
-            c.drawLine(x-7f*s,y-4f*s,x-7f*s,y+1f*s,paint)
-            c.drawLine(x-7f*s,y-4f*s,x-2f*s,y-4f*s,paint)
-            c.drawLine(x+7f*s,y+4f*s,x+7f*s,y-1f*s,paint)
-            c.drawLine(x+7f*s,y+4f*s,x+2f*s,y+4f*s,paint)
-            paint.style=Paint.Style.FILL
+            c.drawArc(rect, 42f, 282f, false, paint)
+            val angle = Math.toRadians(324.0)
+            val ax = x + cos(angle).toFloat() * 8f * s
+            val ay = y + sin(angle).toFloat() * 8f * s
+            val head = Path().apply { moveTo(ax + 1.2f*s, ay - 4.2f*s); lineTo(ax + 4.7f*s, ay + 1.0f*s); lineTo(ax - 1.2f*s, ay + 0.6f*s); close() }
+            paint.style = Paint.Style.FILL; c.drawPath(head, paint); paint.style = Paint.Style.STROKE
             return
         }
         if (id.startsWith("upgrade_")) {
@@ -3376,7 +3461,12 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "ship" -> { val p=Path().apply { moveTo(x,y-11f*s); lineTo(x+8f*s,y+9f*s); lineTo(x,y+5f*s); lineTo(x-8f*s,y+9f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawLine(x-11f*s,y+3f*s,x-6f*s,y+5f*s,paint); c.drawLine(x+11f*s,y+3f*s,x+6f*s,y+5f*s,paint) }
             "about" -> { c.drawCircle(x,y,9f*s,paint); paint.style=Paint.Style.FILL; c.drawCircle(x,y-5f*s,1.4f*s,paint); c.drawRoundRect(x-1.5f*s,y-1f*s,x+1.5f*s,y+6f*s,1f*s,1f*s,paint) }
             "aboutBack", "audioBack", "menu", "shipBack", "shipUpgradeBack" -> { if(id=="menu") { for(row in -1..1) for(col in -1..1) c.drawCircle(x+col*6f*s,y+row*6f*s,1.9f*s,paint) } else { c.drawLine(x+9f*s,y,x-8f*s,y,paint); c.drawLine(x-8f*s,y,x-1f*s,y-7f*s,paint); c.drawLine(x-8f*s,y,x-1f*s,y+7f*s,paint) } }
-            "pauseRestart" -> { c.drawArc(x-9f*s,y-9f*s,x+9f*s,y+9f*s,35f,285f,false,paint); c.drawLine(x+7f*s,y-8f*s,x+10f*s,y-1f*s,paint); c.drawLine(x+7f*s,y-8f*s,x,y-8f*s,paint) }
+            "pauseRestart" -> {
+                c.drawArc(RectF(x-9f*s,y-9f*s,x+9f*s,y+9f*s), 42f, 282f, false, paint)
+                val ax = x + 8.2f*s; val ay = y - 5.1f*s
+                val head = Path().apply { moveTo(ax - 4.8f*s, ay - 0.6f*s); lineTo(ax + 1.8f*s, ay - 1.8f*s); lineTo(ax + 0.1f*s, ay + 4.5f*s); close() }
+                paint.style = Paint.Style.FILL; c.drawPath(head, paint); paint.style = Paint.Style.STROKE
+            }
             "telegram" -> { val p=Path().apply { moveTo(x-11f*s,y-2f*s); lineTo(x+11f*s,y-8f*s); lineTo(x+4f*s,y+10f*s); lineTo(x,y+3f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawLine(x,y+3f*s,x+7f*s,y-4f*s,paint) }
             "dailyAd" -> { c.drawCircle(x,y,8f*s,paint); c.drawCircle(x,y,5f*s,paint); c.drawLine(x,y-3f*s,x,y+3f*s,paint) }
             "extraLife", "shop_repair" -> { val p=Path().apply { moveTo(x,y+9f*s); cubicTo(x-17f*s,y-2f*s,x-8f*s,y-13f*s,x,y-6f*s); cubicTo(x+8f*s,y-13f*s,x+17f*s,y-2f*s,x,y+9f*s) }; c.drawPath(p,paint) }
@@ -3417,15 +3507,19 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             c.drawRoundRect(r.left*s,r.top*s,r.right*s,r.bottom*s,5f*s,5f*s,paint)
             paint.style = Paint.Style.STROKE; paint.strokeWidth = 3.2f * s; paint.color = Color.argb(52, Color.red(col), Color.green(col), Color.blue(col))
             c.drawRoundRect(r.left*s,r.top*s,r.right*s,r.bottom*s,5f*s,5f*s,paint)
-            paint.strokeWidth = (if (pressed) 1.9f else 1.2f) * s; paint.color = col
+            paint.strokeWidth = (if (pressed) 2.4f else 1.2f) * s; paint.color = if (pressed) 0xFFFFE28A.toInt() else col
             c.drawRoundRect(r.left*s,r.top*s,r.right*s,r.bottom*s,5f*s,5f*s,paint)
+            if (pressed) { paint.style = Paint.Style.FILL; paint.color = 0x33FFFFFF.toInt(); c.drawRoundRect((r.left+1.5f)*s,(r.top+1.5f)*s,(r.right-1.5f)*s,(r.bottom-1.5f)*s,4f*s,4f*s,paint) }
             if (st == St.MENU) {
                 val cy = (r.top + r.bottom) / 2f
                 drawButtonIcon(c, b.id, r.left + 18f, cy)
                 drawFittedText(c, b.label, (r.left + r.right) / 2f + 10f, cy + 2.1f, 6.1f, 0xFFEAFBFF.toInt(), 82f)
             } else if (st == St.AUDIO_SETTINGS) {
                 val cy = (r.top + r.bottom) / 2f
-                drawButtonIcon(c, b.id, r.left + 18f, cy)
+                c.save()
+                c.scale(0.58f, 0.58f, (r.left + 17f) * s, cy * s)
+                drawButtonIcon(c, b.id, r.left + 17f, cy)
+                c.restore()
                 drawFittedText(c, b.label, (r.left+r.right)/2f + 8f, cy+2f, 5.8f, 0xFFEAFBFF.toInt(), 80f)
             } else if (st == St.UPGRADE) {
                 val cy = (r.top + r.bottom) / 2f
@@ -3472,8 +3566,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             } else if (st == St.PAUSE) {
                 val cy = (r.top + r.bottom) / 2f
                 c.save()
-                c.scale(0.82f, 0.82f, (r.left + 18f) * s, cy * s)
-                drawButtonIcon(c, b.id, r.left + 18f, cy)
+                c.scale(0.62f, 0.62f, (r.left + 16f) * s, cy * s)
+                drawButtonIcon(c, b.id, r.left + 16f, cy)
                 c.restore()
                 drawFittedText(c, b.label, (r.left + r.right) / 2f + 8f, cy + 2f, 5.2f, 0xFFEAFBFF.toInt(), 76f)
             } else {
