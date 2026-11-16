@@ -97,8 +97,12 @@ jobs:
           s = re.sub(r"\bcompileSdk\s*=\s*\d+", "compileSdk = 35", s, count=1)
           s = s.replace('versionName = "2.7.8"', 'versionName = "2.7.8"\n        manifestPlaceholders["TapsellMediationAppKey"] = System.getenv("TAPSELL_APP_ID")\n        resValue("string", "tapsell_rewarded_zone_id", System.getenv("TAPSELL_REWARDED_ZONE_ID"))\n        resValue("string", "tapsell_interstitial_zone_id", System.getenv("TAPSELL_INTERSTITIAL_ZONE_ID"))', 1)
           if 'implementation("ir.tapsell:tapsell:1.4.0-alpha04")' not in s:
-              s = s.replace('    implementation("com.google.android.gms:play-services-games-v2:19.0.0")',
-                  '    implementation("com.google.android.gms:play-services-games-v2:19.0.0")\n    implementation("ir.tapsell:tapsell:1.4.0-alpha04")\n    implementation("ir.tapsell.mediation.adapter:legacy:1.4.0-alpha04")', 1)
+              dependency_marker = re.search(r"(?m)^dependencies\s*\{", s)
+              if not dependency_marker:
+                  raise SystemExit("Could not locate app dependencies block for Tapsell SDK")
+              insert_at = dependency_marker.end()
+              sdk_dependencies = '\n    implementation("ir.tapsell:tapsell:1.4.0-alpha04")\n    implementation("ir.tapsell.mediation.adapter:legacy:1.4.0-alpha04")'
+              s = s[:insert_at] + sdk_dependencies + s[insert_at:]
           p.write_text(s, encoding="utf-8")
           settings_path = Path("NeonShooter/settings.gradle.kts")
           settings = settings_path.read_text(encoding="utf-8")
@@ -199,7 +203,8 @@ jobs:
               "music uses game audio attributes and starts the media player": "AudioAttributes.CONTENT_TYPE_MUSIC" in game and "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game and "player.start()" in game,
               "music initialization can retry after a failed resource load": "musicPrepared = false" in game and "Background music resource could not be opened" in game,
               "music and SFX have separate persistent controls": all(x in game for x in ["music_volume", "sfx_volume", "St.AUDIO_SETTINGS", "drawAudioSettings", "updateAudioSliderFromX"]) and "sfx.volume = sfxVolume" in game and "var volume = 0.23f" in Path("source-inspection/Sfx.kt").read_text(encoding="utf-8"),
-              "Tapsell SDK dependency and Maven repository are configured": 'implementation("ir.tapsell:tapsell:1.4.0-alpha04")' in gradle and "maven.tapsell.ir" in Path("NeonShooter/settings.gradle.kts").read_text(encoding="utf-8"),
+              "Tapsell SDK dependencies are present in the app module": 'implementation("ir.tapsell:tapsell:1.4.0-alpha04")' in gradle and 'implementation("ir.tapsell.mediation.adapter:legacy:1.4.0-alpha04")' in gradle,
+              "Tapsell Maven repository is present": "maven.tapsell.ir" in Path("NeonShooter/settings.gradle.kts").read_text(encoding="utf-8"),
               "rewarded and interstitial use current SDK callbacks": "Tapsell.requestRewardedAd" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8") and "override fun onRewarded()" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8") and "Tapsell.requestInterstitialAd" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8"),
               "App key and two ad zones are provided by workflow environment": all(x in gradle for x in ['manifestPlaceholders["TapsellMediationAppKey"]','resValue("string", "tapsell_rewarded_zone_id"','resValue("string", "tapsell_interstitial_zone_id"']) and all(os.environ.get(x) for x in ["TAPSELL_APP_ID","TAPSELL_REWARDED_ZONE_ID","TAPSELL_INTERSTITIAL_ZONE_ID"]),
               "coin balance appears in menu and gameplay HUD": "drawCoinCounter(c, 177f" in game and "drawCoinCounter(c, 159f" in game,
