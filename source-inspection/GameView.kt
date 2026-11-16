@@ -517,6 +517,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                         }
                         else if (y >= wh-34f && x <= 42f) { performDash(); controlTouch=true }
                         else if (y >= wh-34f && x >= W-96f) { if (x >= W-52f) fireLaser() else launchMissiles(); controlTouch=true }
+                        else {
+                            Unit
+                        }
                     } else if (!(st == St.OVER && overT < 0.7f)) {
                         buttons().firstOrNull { it.r.contains(x,y) }?.let { pressedButtonId=it.id; buttonPulse=0.18f; onBtn(it.id) }
                     } else {
