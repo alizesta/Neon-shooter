@@ -102,10 +102,14 @@ jobs:
           p.write_text(s, encoding="utf-8")
           settings_path = Path("NeonShooter/settings.gradle.kts")
           settings = settings_path.read_text(encoding="utf-8")
-          repos = "repositories { google(); mavenCentral() }"
-          if settings.count(repos) != 1:
-              raise SystemExit("Unexpected settings.gradle.kts repository marker")
-          settings_path.write_text(settings.replace(repos, 'repositories { google(); mavenCentral(); maven("https://maven.tapsell.ir") }', 1), encoding="utf-8")
+          if "https://maven.tapsell.ir" not in settings:
+              marker = "mavenCentral()"
+              repo_index = settings.rfind(marker)
+              if repo_index < 0:
+                  raise SystemExit("Could not locate dependency repositories in settings.gradle.kts")
+              insert_at = repo_index + len(marker)
+              settings = settings[:insert_at] + '; maven("https://maven.tapsell.ir")' + settings[insert_at:]
+          settings_path.write_text(settings, encoding="utf-8")
           manifest_path = Path("NeonShooter/app/src/main/AndroidManifest.xml")
           manifest = manifest_path.read_text(encoding="utf-8")
           internet = '    <uses-permission android:name="android.permission.INTERNET" />'
