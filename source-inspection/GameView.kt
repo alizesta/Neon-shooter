@@ -42,9 +42,9 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     }
     private class Pt(var x: Float, var y: Float, val vx: Float, val vy: Float, var life: Float, val max: Float)
     private class Item(var x: Float, var y: Float, val type: Int, val amount: Int = 0) { var age = 0f }
-    private class PlayerBeam(val x: Float, val bottom: Float, val width: Float, var life: Float)
+    private class PlayerBeam(var x: Float, var bottom: Float, val width: Float, var life: Float, val offsetX: Float = 0f)
     private class Missile(var x: Float, var y: Float, var vx: Float, var vy: Float, val damage: Int, var age: Float = 0f)
-    private class EnemyLaser(var x: Float, var warning: Float, var active: Float, val width: Float, val drift: Float, val originY: Float = 40f)
+    private class EnemyLaser(var x: Float, var warning: Float, var active: Float, val width: Float, val drift: Float, var originY: Float = 40f, val owner: E? = null, val offset: Float = 0f)
     private class SweepShip(var x: Float, var y: Float)
     private class Btn(val id: String, val label: String, val r: RectF)
     private class Star(var x: Float, val y0: Float, val sp: Float, val sz: Float) {
@@ -1444,7 +1444,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         val damage = 2 + laserLevel * 3 + bonusDamage + (if (prismCombo) 2 else 0) + (if (scannerTimer > 0f && scannerRank > 0) scannerRank * 2 else 0)
         for (offset in offsets) {
             val beamX = (px + offset).coerceIn(5f, W - 5f)
-            playerBeams.add(PlayerBeam(beamX, py, width, 0.52f))
+            playerBeams.add(PlayerBeam(beamX, py, width, 0.52f, beamX - px))
             for (enemy in enemies) {
                 if (!enemy.dead && enemy.y < py && abs(enemy.x - beamX) < width + enemy.hw * 0.35f) {
                     enemy.hp -= damage
@@ -1656,7 +1656,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (squadTimer > 0f && squadSpawnTimer <= 0f) { spawnSupportShips(); squadSpawnTimer = 2.4f }
         if (laserLevel > 0 && laserCooldown <= 0f) fireLaser()
         if (missileCooldown <= 0f) launchMissiles()
-        for (beam in playerBeams) beam.life -= dt
+        for (beam in playerBeams) { beam.x = px + beam.offsetX; beam.bottom = py; beam.life -= dt }
         playerBeams.removeAll { it.life <= 0f }
         if (fireT <= 0f) { fireT = (if (rapidTimer > 0f) 0.075f else 0.19f) * shipFireDelay() * (1f - fireRateBonus) * (if (legendaryTime > 0f && currentShip == 0) 0.52f else 1f); shoot() }
 
@@ -1786,7 +1786,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                     val speed = (74f + min(wave.toFloat(), 50f) * 1.1f) * (1f + (e.phase - 1) * 0.2f)
                     when (bossId) {
                         0 -> for (i in -2..2) { val a = base + i * 0.16f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed, sin(a) * speed, false)) }
-                        1 -> enemyLasers.add(EnemyLaser(e.x, 0.62f, 0.72f, 7f, if (sin(e.age) >= 0f) 24f else -24f, e.y))
+                        1 -> enemyLasers.add(EnemyLaser(e.x, 0.62f, 0.72f, 7f, 0f, e.y, e))
                         2 -> {
                             for (side in -1..1 step 2) summonedEnemies.add(E((e.x + side * 16f).coerceIn(12f, W - 12f), e.y + 8f, 3, 2 + wave / 16, e.x + side * 16f, 18f, e.age + side))
                             for (i in -1..1) { val a = base + i * 0.22f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed, sin(a) * speed, false)) }
@@ -1796,15 +1796,15 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                         5 -> repeat(7) { val x = Random.nextFloat() * W; bullets.add(B(x, e.y + 8f, (px - x) * 0.08f, speed * 0.9f, false)) }
                         6 -> for (i in -3..3) { val a = base + i * 0.12f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed, sin(a) * speed, false)) }
                         7 -> {
-                            enemyLasers.add(EnemyLaser(e.x - 26f, 0.55f, 0.7f, 6f, 18f, e.y))
-                            enemyLasers.add(EnemyLaser(e.x + 26f, 0.55f, 0.7f, 6f, -18f, e.y))
+                            enemyLasers.add(EnemyLaser(e.x - 26f, 0.55f, 0.7f, 6f, 0f, e.y, e, -26f))
+                            enemyLasers.add(EnemyLaser(e.x + 26f, 0.55f, 0.7f, 6f, 0f, e.y, e, 26f))
                         }
                         8 -> {
                             for (i in 0 until 12) { val a = i * (2f * PI.toFloat() / 12f) + e.age * 0.24f; bullets.add(B(e.x, e.y, cos(a) * speed, sin(a) * speed, false)) }
                             for (i in -1..1) { val a = base + i * 0.2f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed * 1.12f, sin(a) * speed * 1.12f, false)) }
                         }
                         else -> {
-                            enemyLasers.add(EnemyLaser(e.x, 0.48f, 0.58f, 8f, if (px > e.x) 20f else -20f, e.y))
+                            enemyLasers.add(EnemyLaser(e.x, 0.48f, 0.58f, 8f, 0f, e.y, e))
                             for (i in -2..2) { val a = base + i * 0.18f; bullets.add(B(e.x, e.y + 8f, cos(a) * speed, sin(a) * speed, false)) }
                         }
                     }
@@ -1818,8 +1818,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                         }
                     }
                     if (e.phase >= 3) {
-                        enemyLasers.add(EnemyLaser(e.x - 34f, 0.42f, 0.58f, 7f, 20f, e.y))
-                        enemyLasers.add(EnemyLaser(e.x + 34f, 0.42f, 0.58f, 7f, -20f, e.y))
+                        enemyLasers.add(EnemyLaser(e.x - 34f, 0.42f, 0.58f, 7f, 0f, e.y, e, -34f))
+                        enemyLasers.add(EnemyLaser(e.x + 34f, 0.42f, 0.58f, 7f, 0f, e.y, e, 34f))
                     }
                 } else if (e.type == 5) {
                     e.fire = 2.5f
@@ -1865,7 +1865,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         enemies.addAll(summonedEnemies)
         for (laser in enemyLasers) {
-            laser.x += laser.drift * enemyDt
+            if (laser.owner != null && !laser.owner.dead) { laser.x = laser.owner.x + laser.offset; laser.originY = laser.owner.y + 8f }
+            else if (laser.owner == null) laser.x += laser.drift * enemyDt
             if (laser.warning > 0f) laser.warning = max(0f, laser.warning - enemyDt)
             else if (laser.active > 0f) {
                 laser.active = max(0f, laser.active - enemyDt)
