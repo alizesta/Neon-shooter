@@ -9,6 +9,7 @@ on:
       - 'source-inspection/Sfx.kt'
       - 'source-inspection/TapsellAds.kt'
       - 'source-inspection/MainActivity.kt'
+      - 'source-inspection/Play.kt'
   workflow_dispatch:
 
 permissions:
@@ -82,6 +83,7 @@ jobs:
           cp source-inspection/Sfx.kt NeonShooter/app/src/main/java/com/claude/neonshooter/Sfx.kt
           cp source-inspection/TapsellAds.kt NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt
           cp source-inspection/MainActivity.kt NeonShooter/app/src/main/java/com/claude/neonshooter/MainActivity.kt
+          cp source-inspection/Play.kt NeonShooter/app/src/main/java/com/claude/neonshooter/Play.kt
           python3 - <<'PY'
           from pathlib import Path
           p = Path("NeonShooter/app/build.gradle.kts")
