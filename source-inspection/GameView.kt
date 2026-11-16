@@ -2486,14 +2486,17 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         for (b in bullets) {
             if (b.mine) {
                 paint.style = Paint.Style.STROKE; paint.strokeCap = Paint.Cap.ROUND
-                paint.strokeWidth = 2.1f * s; paint.color = 0x8855EFFF.toInt()
-                c.drawLine(b.x * s, (b.y + 2.5f) * s, (b.x - b.vx * 0.012f) * s, (b.y + 7f) * s, paint)
-                paint.strokeWidth = 0.9f * s; paint.color = 0xFFFFF2A6.toInt()
-                c.drawLine(b.x * s, (b.y + 1f) * s, (b.x - b.vx * 0.007f) * s, (b.y + 4.5f) * s, paint)
+                paint.strokeWidth = 1.35f * s; paint.color = 0x8855EFFF.toInt()
+                c.drawLine(b.x * s, (b.y + 1.4f) * s, (b.x - b.vx * 0.0045f) * s, (b.y + 3.2f) * s, paint)
+                paint.strokeWidth = 0.65f * s; paint.color = 0xFFFFF2A6.toInt()
+                c.drawLine(b.x * s, (b.y + 0.8f) * s, (b.x - b.vx * 0.0025f) * s, (b.y + 2.2f) * s, paint)
                 paint.style = Paint.Style.FILL; paint.color = 0x7755EFFF.toInt()
-                c.drawCircle(b.x * s, b.y * s, 3.1f * s, paint)
+                c.drawCircle(b.x * s, b.y * s, 2.4f * s, paint)
             }
-            c.save(); c.scale(0.72f, 0.72f, b.x * s, b.y * s); spr(c, if (b.mine) bPB else bEB, b.x, b.y); c.restore()
+            c.save()
+            if (b.mine) c.scale(0.68f, 0.38f, b.x * s, b.y * s) else c.scale(0.72f, 0.72f, b.x * s, b.y * s)
+            spr(c, if (b.mine) bPB else bEB, b.x, b.y)
+            c.restore()
         }
         for (arc in chainArcs) {
             paint.style = Paint.Style.STROKE; paint.strokeWidth = (1f + arc.life * 4f) * s
@@ -2609,10 +2612,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             paint.color = DRED
             c.drawRoundRect(96f*s, 27f*s, (96f + 88f*frac)*s, 31f*s, 1.5f*s, 1.5f*s, paint)
             paint.style = Paint.Style.STROKE; paint.strokeWidth = 0.65f*s; paint.color = RED
-            c.drawRoundRect(96f*s, 21f*s, 184f*s, 25f*s, 1.5f*s, 1.5f*s, paint)
+            c.drawRoundRect(96f*s, 27f*s, 184f*s, 31f*s, 1.5f*s, 1.5f*s, paint)
             paint.style = Paint.Style.FILL
             activeBoss.bossSkills.take(2).forEachIndexed { index, skill ->
-                val iconX = 105f + index * 18f
+                val iconX = 155f + index * 19f
                 val iconColor = abilityColor(skill)
                 paint.style = Paint.Style.FILL
                 paint.color = 0xD9101B2A.toInt()
