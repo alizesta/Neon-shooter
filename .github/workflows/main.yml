@@ -211,6 +211,8 @@ jobs:
               "regular enemy health doubles after wave 25": "val hp = ceil(baseHp * difficulty * if (wave > 25) 2f else 1f).toInt()" in game,
               "boss health doubles after wave 25": "val bossHp = if (wave > 25) earlyBossAdjustedHp * 2 else earlyBossAdjustedHp" in game,
               "first boss at wave five has 30 percent less health": "wave == 5" in game and "bossBaseHp * 0.70f" in game,
+              "player projectile body and trails are visibly shortened": "c.scale(0.68f, 0.38f, b.x * s, b.y * s)" in game and "b.y + 3.2f" in game and "b.vx * 0.0045f" in game,
+              "boss HUD health bar and skill icons occupy separate rows and columns": "c.drawRoundRect(96f*s, 27f*s, 184f*s, 31f*s" in game and "val iconX = 155f + index * 19f" in game and "c.drawRoundRect(96f*s, 21f*s, 184f*s, 25f*s" not in game,
               "boss HUD is drawn once with no duplicate overlapping label or health bar": game.count('drawFittedText(c, "باس " + bossConstellationName(bossId)') == 1 and "enemies.firstOrNull { it.type == 2 }?.let { bs ->" not in game,
               "all upgradeable abilities stop at rank five": "abilityRank(id) < 5" in game and "min(5, missileLevel + 1)" in game and "min(5, weaponLevel + 1)" in game and "min(5, phoenixRank + 1)" in game and '"/5"' in game and '"/۵"' in game and "min(6," not in game[game.index("private fun applyUpgrade(id: String) {"):game.index("private fun activeCombo()")],
               "guided missiles gain stronger tracking at higher levels": "val homingSpeed = 175f + missileLevel * 8f" in game and "val steering = 320f + missileLevel * 24f" in game,
