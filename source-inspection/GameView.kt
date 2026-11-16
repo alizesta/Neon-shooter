@@ -730,30 +730,39 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         else -> 5
     }
 
-    private fun upgradeAbilityPool(): List<String> {
-        val coreAbilities = listOf("firepower", "missile", "laser", "drone", "magnet")
-        val allAbilities = coreAbilities + listOf("shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield",
+    private fun upgradeAbilityPool(): List<String> =
+        listOf("firepower", "missile", "laser", "drone", "magnet",
+            "shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield",
             "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix")
-        if (!extraAbilitiesUnlocked && wave >= 25 && coreAbilities.all { abilityRank(it) >= 5 }) extraAbilitiesUnlocked = true
-        return if (extraAbilitiesUnlocked) allAbilities else coreAbilities
+
+    // Every ability is visible from the start. Upgrade capacity grows by five
+    // whenever the current five-ability block has been fully maxed.
+    private fun upgradeCapacity(): Int =
+        min(upgradeAbilityPool().size, 5 + (selectedAbilities.count { abilityRank(it) >= 5 } / 5) * 5)
+
+    private fun eligibleUpgradeChoices(): List<String> {
+        val capacity = upgradeCapacity()
+        return upgradeAbilityPool().filter { id ->
+            abilityRank(id) < 5 && (id in selectedAbilities || selectedAbilities.size < capacity)
+        }
     }
+
     private fun prepareUpgradeChoices() {
         upgradeRefreshUsed = false
-        val eligible = upgradeAbilityPool().filter { abilityRank(it) < 5 }
-        upgradeChoices = eligible.shuffled().take(3)
+        upgradeChoices = eligibleUpgradeChoices().shuffled().take(3)
         if (upgradeChoices.isEmpty()) { st = St.PLAY; waiting = true; waveT = 0.75f }
     }
     private fun canRefreshUpgradeChoices(): Boolean {
         if (upgradeRefreshUsed) return false
-        return upgradeAbilityPool().count { abilityRank(it) < 5 && it !in upgradeChoices } >= 3
+        return eligibleUpgradeChoices().count { it !in upgradeChoices } >= 3
     }
     private fun refreshUpgradeChoices() {
         if (!canRefreshUpgradeChoices()) {
-            adStatusText = if (upgradeRefreshUsed) "رفرش این مرحله قبلاً استفاده شده" else "سه قابلیت تازه باقی نمانده است"
+            adStatusText = if (upgradeRefreshUsed) "رفرش این مرحله قبلاً استفاده شده" else "سه گزینه متفاوت و مجاز باقی نمانده است"
             adStatusTimer = 1.8f
             return
         }
-        upgradeChoices = upgradeAbilityPool().filter { abilityRank(it) < 5 && it !in upgradeChoices }.shuffled().take(3)
+        upgradeChoices = eligibleUpgradeChoices().filter { it !in upgradeChoices }.shuffled().take(3)
         upgradeRefreshUsed = true
         sfx.play("power")
     }
@@ -820,6 +829,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         upgradeSelectionTimer = 0f
         if (index !in upgradeChoices.indices) return
         val chosen = upgradeChoices[index]
+        if (chosen !in selectedAbilities && selectedAbilities.size >= upgradeCapacity()) return
         selectedAbilities.add(chosen)
         applyUpgrade(chosen)
         upgradeChoices = emptyList()
@@ -1168,7 +1178,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         eventKind = 0; eventTimer = 0f; meteorTimer = 0f; goldenCrateSpawned = false
         pendingWaveEnemies.clear(); waveKills = 0; waveTarget = 1
         shieldReflectCooldown = 0f; dashCooldown = 0f; chainCooldown = 0f
-        upgradesTaken = 0; intermissionHandledWave = -1; shopHandledWave = -1; upgradeHandledWave = -1; upgradeChoices = emptyList()
+        upgradesTaken = 0; selectedAbilities.clear(); extraAbilitiesUnlocked = false; intermissionHandledWave = -1; shopHandledWave = -1; upgradeHandledWave = -1; upgradeChoices = emptyList()
         selectedAbilities.clear(); extraAbilitiesUnlocked = false; hullRank = 0; healthRegenRank = 0; armorRank = 0; criticalRank = 0; overdriveRank = 0
         explosiveRank = 0; piercingRank = 0; stasisRank = 0; scavengerRank = 0; multishotRank = 0; phoenixRank = 0
         healthRegenTimer = 0f; empPulseTimer = 0f; empRank = 0; phoenixUsed = false; legendaryTime = 0f; legendaryCharge = 0; legendaryChargeSuppressed = false
