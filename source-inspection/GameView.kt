@@ -510,7 +510,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                         else buttons().firstOrNull { it.r.contains(x,y) }?.let { pressedButtonId=it.id; buttonPulse=0.18f; onBtn(it.id) }
                     } else if (st == St.PLAY) {
                         if (y >= wh-34f && x in 48f..108f) { activateLegendary(); controlTouch=true }
-                        else if (x >= W-32f && y <= 30f) { st=St.PAUSE; syncMusic(); controlTouch=true }
+                        else if (x >= W-32f && y <= 30f) {
+                            st = St.PAUSE
+                            syncMusic()
+                            controlTouch = true
+                        }
                         else if (y >= wh-34f && x <= 42f) { performDash(); controlTouch=true }
                         else if (y >= wh-34f && x >= W-96f) { if (x >= W-52f) fireLaser() else launchMissiles(); controlTouch=true }
                     } else if (!(st == St.OVER && overT < 0.7f)) {
@@ -564,7 +568,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
         dailyAdPending = true
         try {
-            TapsellAds.showRewarded(act as androidx.fragment.app.FragmentActivity) { confirmed ->
+            TapsellAds.showRewarded(act) { confirmed ->
                 act.runOnUiThread {
                     synchronized(lock) {
                         dailyAdPending = false
@@ -1014,7 +1018,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "extraLife" -> {
                 if (st == St.OVER && !rewardedContinueUsed && !rewardedContinuePending) {
                     rewardedContinuePending = true
-                    TapsellAds.showRewarded(act as androidx.fragment.app.FragmentActivity) { rewardConfirmed ->
+                    TapsellAds.showRewarded(act) { rewardConfirmed ->
                         act.runOnUiThread {
                             synchronized(lock) {
                                 rewardedContinuePending = false
@@ -1611,7 +1615,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                         interstitialShownThroughWave = wave
                         st = St.AD_BREAK
                         act.runOnUiThread {
-                            TapsellAds.showInterstitial(act as androidx.fragment.app.FragmentActivity) {
+                            TapsellAds.showInterstitial(act) {
                                 synchronized(lock) {
                                     if (st == St.AD_BREAK) { st = St.PLAY; bannerT = max(bannerT, 0.55f) }
                                 }
@@ -3340,7 +3344,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             return
         }
         if (id.startsWith("upgrade_")) {
-            c.drawLine(x, y - 8f * s, x, y + 3f * s, paint
+            c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)
             c.drawLine(x, y + 3f * s, x - 4.5f * s, y - 1.5f * s, paint)
             c.drawLine(x, y + 3f * s, x + 4.5f * s, y - 1.5f * s, paint)
             c.drawLine(x - 8f * s, y + 7f * s, x + 8f * s, y + 7f * s, paint)
