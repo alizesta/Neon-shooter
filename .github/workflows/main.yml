@@ -98,13 +98,37 @@ jobs:
               raise SystemExit("Expected exactly one Android compileSdk declaration")
           s = re.sub(r"\bcompileSdk\s*=\s*\d+", "compileSdk = 35", s, count=1)
           s = s.replace('versionName = "2.7.8"', 'versionName = "2.7.8"\n        manifestPlaceholders["TapsellMediationAppKey"] = System.getenv("TAPSELL_APP_ID")\n        resValue("string", "tapsell_rewarded_zone_id", System.getenv("TAPSELL_REWARDED_ZONE_ID"))\n        resValue("string", "tapsell_interstitial_zone_id", System.getenv("TAPSELL_INTERSTITIAL_ZONE_ID"))', 1)
-          if 'implementation("ir.tapsell:tapsell:1.4.0-alpha04")' not in s:
-              dependency_marker = re.search(r"(?m)^dependencies\s*\{", s)
-              if not dependency_marker:
-                  raise SystemExit("Could not locate app dependencies block for Tapsell SDK")
-              insert_at = dependency_marker.end()
-              sdk_dependencies = '\n    implementation("ir.tapsell:tapsell:1.4.0-alpha04")\n    implementation("ir.tapsell.mediation.adapter:legacy:1.4.0-alpha04")'
-              s = s[:insert_at] + sdk_dependencies + s[insert_at:]
+          dependency_marker = re.search(r"(?m)^dependencies\s*\{", s)
+          if not dependency_marker:
+              raise SystemExit("Could not locate app dependencies block")
+          insert_at = dependency_marker.end()
+          required_dependencies = [
+              '    implementation("com.google.android.gms:play-services-games-v2:19.0.0")',
+              '    implementation("ir.tapsell:tapsell:1.4.0-alpha04")',
+              '    implementation("ir.tapsell.mediation.adapter:legacy:1.4.0-alpha04")',
+          ]
+          for dependency in required_dependencies:
+              if dependency not in s:
+                  s = s[:insert_at] + "\\n" + dependency + s[insert_at:]
+                  insert_at += len(dependency) + 1
+          p.write_text(s, encoding="utf-8")
+          settings_path = Path("NeonShooter/settings.gradle.kts")
+          settings = settings_path.read_text(encoding="utf-8")
+          if "https://maven.tapsell.ir" not in settings:
+              marker = "mavenCentral()"
+              repo_index = settings.rfind(marker)
+              if repo_index < 0:
+                  raise SystemExit("Could not locate dependency repositories in settings.gradle.kts")
+              insert_at = repo_index + len(marker)
+              settings = settings[:insert_at] + '; maven("https://maven.tapsell.ir")' + settings[insert_at:]
+          settings_path.write_text(settings, encoding="utf-8")
+          strings_path = Path("NeonShooter/app/src/main/res/values/strings.xml")
+          strings = strings_path.read_text(encoding="utf-8")
+          if 'name="leaderboard_high_score"' not in strings:
+              if "</resources>" not in strings:
+                  raise SystemExit("Could not locate strings.xml resource closing tag")
+              strings = strings.replace("</resources>", '    <string name="leaderboard_high_score" translatable="false">REPLACE_ME</string>\\n</resources>', 1)
+          strings_path.write_text(strings, encoding="utf-8")
           p.write_text(s, encoding="utf-8")
           settings_path = Path("NeonShooter/settings.gradle.kts")
           settings = settings_path.read_text(encoding="utf-8")
@@ -205,6 +229,8 @@ jobs:
               "music uses game audio attributes and starts the media player": "AudioAttributes.CONTENT_TYPE_MUSIC" in game and "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game and "player.start()" in game,
               "music initialization can retry after a failed resource load": "musicPrepared = false" in game and "Background music resource could not be opened" in game,
               "music and SFX have separate persistent controls": all(x in game for x in ["music_volume", "sfx_volume", "St.AUDIO_SETTINGS", "drawAudioSettings", "updateAudioSliderFromX"]) and "sfx.volume = sfxVolume" in game and "var volume = 0.23f" in Path("source-inspection/Sfx.kt").read_text(encoding="utf-8"),
+              "Google Play Games SDK and leaderboard resource are present": 'implementation("com.google.android.gms:play-services-games-v2:19.0.0")' in gradle and 'name="leaderboard_high_score"' in Path("NeonShooter/app/src/main/res/values/strings.xml").read_text(encoding="utf-8"),
+              "Tapsell preload helper is wired": "fun preloadAll()" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8"),
               "Tapsell SDK dependencies are present in the app module": 'implementation("ir.tapsell:tapsell:1.4.0-alpha04")' in gradle and 'implementation("ir.tapsell.mediation.adapter:legacy:1.4.0-alpha04")' in gradle,
               "Tapsell Maven repository is present": "maven.tapsell.ir" in Path("NeonShooter/settings.gradle.kts").read_text(encoding="utf-8"),
               "rewarded and interstitial use current SDK callbacks": "Tapsell.requestRewardedAd" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8") and "override fun onRewarded()" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8") and "Tapsell.requestInterstitialAd" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8"),
