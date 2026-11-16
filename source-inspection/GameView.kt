@@ -519,6 +519,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                         else if (y >= wh-34f && x >= W-96f) { if (x >= W-52f) fireLaser() else launchMissiles(); controlTouch=true }
                     } else if (!(st == St.OVER && overT < 0.7f)) {
                         buttons().firstOrNull { it.r.contains(x,y) }?.let { pressedButtonId=it.id; buttonPulse=0.18f; onBtn(it.id) }
+                    } else {
+                        Unit
                     }
                 }
                 MotionEvent.ACTION_MOVE -> when {
@@ -528,12 +530,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                         py = (py + (e.y-ly)/s).coerceIn(30f,wh-48f)
                         lx=e.x; ly=e.y
                     }
+                    else -> Unit
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (st == St.AUDIO_SETTINGS && activeAudioSlider > 0) updateAudioSliderFromX(x,true)
                     activeAudioSlider=0
                     controlTouch=false
                 }
+                else -> Unit
             }
         }
         return true
