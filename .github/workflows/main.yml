@@ -130,6 +130,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           import re
+          import os
           game = Path("NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt").read_text(encoding="utf-8")
           gradle = Path("NeonShooter/app/build.gradle.kts").read_text(encoding="utf-8")
           checks = {
@@ -200,7 +201,7 @@ jobs:
               "music and SFX have separate persistent controls": all(x in game for x in ["music_volume", "sfx_volume", "St.AUDIO_SETTINGS", "drawAudioSettings", "updateAudioSliderFromX"]) and "sfx.volume = sfxVolume" in game and "var volume = 0.23f" in Path("source-inspection/Sfx.kt").read_text(encoding="utf-8"),
               "Tapsell SDK dependency and Maven repository are configured": 'implementation("ir.tapsell:tapsell:1.4.0-alpha04")' in gradle and "maven.tapsell.ir" in Path("NeonShooter/settings.gradle.kts").read_text(encoding="utf-8"),
               "rewarded and interstitial use current SDK callbacks": "Tapsell.requestRewardedAd" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8") and "override fun onRewarded()" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8") and "Tapsell.requestInterstitialAd" in Path("NeonShooter/app/src/main/java/com/claude/neonshooter/TapsellAds.kt").read_text(encoding="utf-8"),
-              "App key and two ad zones are provided by workflow environment": all(x in gradle for x in ['manifestPlaceholders["TapsellMediationAppKey"]','resValue("string", "tapsell_rewarded_zone_id"','resValue("string", "tapsell_interstitial_zone_id"']) and all(x in workflow for x in ["TAPSELL_APP_ID","TAPSELL_REWARDED_ZONE_ID","TAPSELL_INTERSTITIAL_ZONE_ID"]),
+              "App key and two ad zones are provided by workflow environment": all(x in gradle for x in ['manifestPlaceholders["TapsellMediationAppKey"]','resValue("string", "tapsell_rewarded_zone_id"','resValue("string", "tapsell_interstitial_zone_id"']) and all(os.environ.get(x) for x in ["TAPSELL_APP_ID","TAPSELL_REWARDED_ZONE_ID","TAPSELL_INTERSTITIAL_ZONE_ID"]),
               "coin balance appears in menu and gameplay HUD": "drawCoinCounter(c, 177f" in game and "drawCoinCounter(c, 159f" in game,
               "probe glow preserves the original neon silhouette treatment": "BlurMaskFilter(7.5f" in game and "silhouette.addPath(filled)" in game and "paint.strokeWidth = 2.2f" in game,
               "hangar spacecraft artwork is enlarged and keeps its neon glow": "c.scale(0.52f, 0.52f, x, y)" in game and "BlurMaskFilter(7.5f" in game,
