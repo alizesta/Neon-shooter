@@ -109,7 +109,7 @@ jobs:
           ]
           for dependency in required_dependencies:
               if dependency not in s:
-                  s = s[:insert_at] + "\\n" + dependency + s[insert_at:]
+                  s = s[:insert_at] + "\n" + dependency + s[insert_at:]
                   insert_at += len(dependency) + 1
           p.write_text(s, encoding="utf-8")
           settings_path = Path("NeonShooter/settings.gradle.kts")
@@ -127,7 +127,7 @@ jobs:
           if 'name="leaderboard_high_score"' not in strings:
               if "</resources>" not in strings:
                   raise SystemExit("Could not locate strings.xml resource closing tag")
-              strings = strings.replace("</resources>", '    <string name="leaderboard_high_score" translatable="false">REPLACE_ME</string>\\n</resources>', 1)
+              strings = strings.replace("</resources>", '    <string name="leaderboard_high_score" translatable="false">REPLACE_ME</string>\n</resources>', 1)
           strings_path.write_text(strings, encoding="utf-8")
           p.write_text(s, encoding="utf-8")
           settings_path = Path("NeonShooter/settings.gradle.kts")
