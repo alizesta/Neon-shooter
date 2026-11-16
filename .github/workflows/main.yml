@@ -90,9 +90,11 @@ jobs:
               raise SystemExit("Unexpected base version before v2.7.8")
           s = s.replace("versionCode = 25", "versionCode = 45", 1)
           s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.8"', 1)
-          if s.count("compileSdk = 34") != 1:
-              raise SystemExit("Unexpected compileSdk marker")
-          s = s.replace("compileSdk = 34", "compileSdk = 35", 1)
+          import re
+          sdk_matches = re.findall(r"\\bcompileSdk\\s*=\\s*\\d+", s)
+          if len(sdk_matches) != 1:
+              raise SystemExit("Expected exactly one Android compileSdk declaration")
+          s = re.sub(r"\\bcompileSdk\\s*=\\s*\\d+", "compileSdk = 35", s, count=1)
           s = s.replace('versionName = "2.7.8"', 'versionName = "2.7.8"\n        manifestPlaceholders["TapsellMediationAppKey"] = System.getenv("TAPSELL_APP_ID")\n        resValue("string", "tapsell_rewarded_zone_id", System.getenv("TAPSELL_REWARDED_ZONE_ID"))\n        resValue("string", "tapsell_interstitial_zone_id", System.getenv("TAPSELL_INTERSTITIAL_ZONE_ID"))', 1)
           if 'implementation("ir.tapsell:tapsell:1.4.0-alpha04")' not in s:
               s = s.replace('    implementation("com.google.android.gms:play-services-games-v2:19.0.0")',
