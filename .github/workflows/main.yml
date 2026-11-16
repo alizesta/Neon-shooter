@@ -207,7 +207,7 @@ jobs:
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
               "pause panel renders acquired abilities in a compact four-column roster": "drawOwnedAbilityList(c, wh * 0.70f, wh * 0.915f, 4, 4.0f, 23f, 197f)" in game and "drawAbilityIcon(c, id, iconX, centerY)" in game and "val iconScale = min(0.20f, iconRadius / 12f)" in game and "private fun ownedAbilityIds()" in game and "abilityRank(it) > 0 || it in selectedAbilities" in game,
-              "new ability pool unlocks after all five core abilities reach rank five at wave 25": 'coreAbilities = listOf("firepower", "missile", "laser", "drone", "magnet")' in game and "wave >= 25 && coreAbilities.all { abilityRank(it) >= 5 }" in game and "return if (extraAbilitiesUnlocked) allAbilities else coreAbilities" in game,
+              "ability slots expand by five after each five selected abilities reach rank five": "private fun upgradeCapacity()" in game and "5 + (selectedAbilities.count { abilityRank(it) >= 5 } / 5) * 5" in game and "id in selectedAbilities || selectedAbilities.size < capacity" in game,
               "regular enemy health doubles after wave 25": "val hp = ceil(baseHp * difficulty * if (wave > 25) 2f else 1f).toInt()" in game,
               "boss health doubles after wave 25": "val bossHp = if (wave > 25) earlyBossAdjustedHp * 2 else earlyBossAdjustedHp" in game,
               "all upgradeable abilities stop at rank five": "abilityRank(it) < 5" in game and "min(5, missileLevel + 1)" in game and "min(5, weaponLevel + 1)" in game and "min(5, phoenixRank + 1)" in game and '"/5"' in game and '"/۵"' in game and "min(6," not in game[game.index("private fun applyUpgrade(id: String) {"):game.index("private fun activeCombo()")],
@@ -242,7 +242,7 @@ jobs:
               "wave progress resets for every new wave": "private fun spawnWave() {\n        wave++\n        waveKills = 0" in game,
               "five ships have recognizable real spacecraft designs": all(x in game for x in ["Hubble: optical telescope", "James Webb:", "Voyager 1:", "Voyager 2:", "Phoenix Mars lander:"]),
               "spacecraft retain their neon color palette and glow": "val colors = intArrayOf(0xFFFFD34F.toInt(), 0xFF45E6FF.toInt(), 0xFFFF8758.toInt(), 0xFFB78CFF.toInt(), 0xFFFF6EB5.toInt())" in game and "BlurMaskFilter(7.5f" in game and "paint.strokeWidth = 2.2f" in game,
-              "score, stage, boss health and progress marker avoid HUD collisions": 'drawFittedText(c, "امتیاز $score", 6f, 14f, 6.2f, YEL, 58f' in game and "96f*s, 21f*s, 184f*s, 25f*s" in game and "val top = 56f * s" in game,
+              "score, stage, boss health and progress marker avoid HUD collisions": 'drawFittedText(c, "امتیاز $score", 6f, 14f, 6.2f, YEL, 58f' in game and "96f*s, 27f*s, 184f*s, 31f*s" in game and "val top = 56f * s" in game,
               "boss banner avoids repeating the stage number": '"نبرد با " + bossName' in game and "stageIntroTimer > 0f && st == St.PLAY" in game and "drawFittedText(c, stageDescription(wave)" in game,
               "Persian UI text is constrained to one line unless explicitly wrapped": ".setMaxLines(1)" in game and ".setEllipsize(TextUtils.TruncateAt.END)" in game and "TextUtils.ellipsize(value, tp" in game and "tp.textAlign = Paint.Align.LEFT" in game,
               "ability choice panel lists previously collected abilities in its lower card": "قابلیت‌های گرفته‌شده" in game and "drawOwnedAbilityList(c, wh * 0.682f" in game and "drawOwnedAbilityList(c, wh * 0.70f" in game and "ownedAbilityIds().size" in game,
@@ -268,7 +268,7 @@ jobs:
               "ability icon and label rectangles have a fixed horizontal gap": "val iconX = cellX + min(3.7f, cellWidth * 0.10f)" in game and "val labelLeft = cellX + 7.2f" in game and "val labelWidth = max(2f, cellWidth - 8.4f)" in game,
               "five ship upgrades show distinct icons and real effect descriptions": "private fun shipUpgradeDescription(stat: String)" in game and all(f'"{key}" ->' in game[game.index("private fun shipUpgradeDescription"):game.index("private fun drawShipUpgrades")] for key in ["attack", "armor", "mobility", "hull", "gold"]) and "drawShipUpgradeIcon(c, id.substringAfter(\"_\"), cx, cy)" in game and "shipUpgradeDescription(stat)" in game,
           }
-          ability_ids = ["drone", "missile", "laser", "firepower", "magnet", "shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield", "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix"]
+          ability_ids = ["drone", "missile", "laser", "firepower", "magnet", "shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield", "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix", "projectile_speed"]
           icon_start = game.index("private fun drawAbilityIcon")
           icon_end = game.index("private fun drawFittedText", icon_start)
           icon_source = game[icon_start:icon_end]
@@ -510,8 +510,8 @@ jobs:
             - Enemy and boss coins drop in smaller pieces and more frequently; magnet pickup has a shorter, bounded radius.
             - Boss bitmap artwork is replaced by ten glowing constellation-shaped bosses made from connected stars; each boss name matches its milestone stage.
             - Pause ability inventory shows a larger, distinct glyph for each acquired ability.
-            - The expanded ability pool unlocks after wave 25; regular enemies and bosses have double HP after wave 25.
-            - Every ability has a five-rank maximum; only the five core abilities appear until all reach rank five and wave 25 is reached.
+            - The ability pool is available from the start; capacity expands by five after each five selected abilities reach rank five. Regular enemies and bosses have double HP after wave 25.
+            - Every ability has a five-rank maximum; all abilities are eligible from the beginning, within the current five-slot capacity.
             - Homing missiles gain extra projectiles, damage, steering strength and tracking speed as they level up.
             - Ship workshop rows are compact, non-overlapping, and use five distinct stat icons.
             - The five ship-specific golden ultimates charge on kills and can be activated from the first wave.
