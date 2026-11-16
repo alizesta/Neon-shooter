@@ -22,7 +22,7 @@ import kotlin.random.Random
 
 class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Callback, Runnable {
 
-    private enum class St { MENU, PLAY, PAUSE, OVER, UPGRADE, SHOP, AD_BREAK, ABOUT, SHIPS, SHIP_UPGRADE }
+    private enum class St { MENU, PLAY, PAUSE, OVER, UPGRADE, SHOP, AD_BREAK, ABOUT, SHIPS, SHIP_UPGRADE, AUDIO_SETTINGS }
     private class B(var x: Float, var y: Float, var vx: Float, var vy: Float, var mine: Boolean) { val hitEnemies = HashSet<E>() }
     private class E(var x: Float, var y: Float, val type: Int, var hp: Int, val bx: Float, val amp: Float, val t0: Float) {
         var bossSkills: List<String> = emptyList()
@@ -62,6 +62,11 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
 
     // palette: gray / yellow / red / white (+ orange warning)
     private val BG = 0xFF111318.toInt(); private val STAR = 0xFF454D59.toInt()
+    private val stageBackgrounds = intArrayOf(0xFF111318.toInt(),0xFF07152F.toInt(),0xFF180C2D.toInt(),0xFF062629.toInt(),0xFF2A0B1A.toInt())
+    private val stageStarColors = intArrayOf(0xFFD0D4DA.toInt(),0xFFFF5964.toInt(),0xFFC18CFF.toInt(),0xFF39E6D0.toInt(),0xFFFFD166.toInt())
+    private fun stagePaletteIndex(): Int = ((max(1,wave)-1)/25)%stageBackgrounds.size
+    private fun stageBackgroundColor(): Int = stageBackgrounds[stagePaletteIndex()]
+    private fun stageStarColor(): Int = stageStarColors[stagePaletteIndex()]
     private val YEL = 0xFFFFE08A.toInt(); private val YGL = 0xFFFFFF75.toInt()
     private val RED = 0xFFFF6268.toInt(); private val RGL = 0xFFFFB4B8.toInt()
     private val DRED = 0xFFFFA044.toInt(); private val ORG = 0xFFFFB547.toInt()
@@ -76,6 +81,10 @@ class GameView(private val act: Activity) : SurfaceView(act), SurfaceHolder.Call
     private var st = St.MENU
     private val sfx = Sfx(act)
     private val prefs = act.getSharedPreferences("neon", 0)
+    private var musicVolume = prefs.getFloat("music_volume", 0.84f).coerceIn(0f, 1f)
+    private var sfxVolume = prefs.getFloat("sfx_volume", 0.23f).coerceIn(0f, 1f)
+    private var audioReturnState = St.MENU
+    private var activeAudioSlider = 0
     private var best = prefs.getInt("best", 0)
 
     private val bullets = ArrayList<B>(); private val enemies = ArrayList<E>()
@@ -295,7 +304,10 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private var dailyDay = prefs.getLong("daily_day", -1L)
     private var dailyKills = prefs.getInt("daily_kills", 0)
     private var dailyDone = prefs.getBoolean("daily_done", false)
+    private var dailyAdRewardDay = prefs.getInt("daily_ad_reward_day", -1)
+    private var dailyAdPending = false
     private var upgradeChoices = emptyList<String>()
+    private var upgradeRefreshUsed = false
     private var upgradesTaken = 0
     private var intermissionHandledWave = -1
     private var rewardedContinueUsed = false
@@ -340,7 +352,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     private var musicPrepared = false
 
     init {
-        sfx.enabled = prefs.getBoolean("sound_enabled", true)
+        sfx.enabled = true
+        sfx.volume = sfxVolume
         for (i in 1..currentShip) prefs.edit().putBoolean("ship_unlocked_" + i, true).apply()
         refreshDaily()
         holder.addCallback(this)
@@ -362,7 +375,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 return
             }
             player.isLooping = true
-            player.setVolume(0.48f, 0.48f)
+            player.setVolume(musicVolume, musicVolume)
             player.setOnErrorListener { failedPlayer, what, extra ->
                 Log.e("NeonShooter", "Background music playback failed: $what/$extra")
                 try { failedPlayer.release() } catch (_: Exception) {}
@@ -388,9 +401,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             return
         }
         try {
-            val volume = if (st == St.PAUSE) 0.24f else 0.48f
-            player.setVolume(volume, volume)
-            if (sfx.enabled) {
+            val gain = (musicVolume * if (st == St.PAUSE) 0.82f else 1f).coerceIn(0f, 1f)
+            player.setVolume(gain, gain)
+            if (musicVolume > 0.001f) {
                 if (!player.isPlaying) player.start()
             } else if (player.isPlaying) {
                 player.pause()
@@ -482,35 +495,41 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     // ---------- input ----------
     override fun onTouchEvent(e: MotionEvent): Boolean {
         synchronized(lock) {
+            val x = e.x / s
+            val y = e.y / s
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     lx = e.x; ly = e.y; controlTouch = false
-                    if (st == St.PLAY) {
-                        val x = e.x / s; val y = e.y / s
-                        if (y >= wh - 34f && x in 48f..108f) {
-                            activateLegendary()
-                            controlTouch = true
-                        } else if (x >= W - 32f && y <= 30f) {
-                            st = St.PAUSE
-                            syncMusic()
-                            controlTouch = true
-                        } else if (y >= wh - 34f && x <= 42f) {
-                            performDash()
-                            controlTouch = true
-                        } else if (y >= wh - 34f && x >= W - 96f) {
-                            if (x >= W - 52f) fireLaser() else launchMissiles()
-                            controlTouch = true
+                    if (st == St.AUDIO_SETTINGS) {
+                        activeAudioSlider = when {
+                            abs(y - wh * 0.485f) <= 13f && x in 20f..200f -> 1
+                            abs(y - wh * 0.655f) <= 13f && x in 20f..200f -> 2
+                            else -> 0
                         }
+                        if (activeAudioSlider > 0) updateAudioSliderFromX(x)
+                        else buttons().firstOrNull { it.r.contains(x,y) }?.let { pressedButtonId=it.id; buttonPulse=0.18f; onBtn(it.id) }
+                    } else if (st == St.PLAY) {
+                        if (y >= wh-34f && x in 48f..108f) { activateLegendary(); controlTouch=true }
+                        else if (x >= W-32f && y <= 30f) { st=St.PAUSE; syncMusic(); controlTouch=true }
+                        else if (y >= wh-34f && x <= 42f) { performDash(); controlTouch=true }
+                        else if (y >= wh-34f && x >= W-96f) { if (x >= W-52f) fireLaser() else launchMissiles(); controlTouch=true }
                     } else if (!(st == St.OVER && overT < 0.7f)) {
-                        buttons().firstOrNull { it.r.contains(e.x / s, e.y / s) }?.let { pressedButtonId = it.id; buttonPulse = 0.18f; onBtn(it.id) }
+                        buttons().firstOrNull { it.r.contains(x,y) }?.let { pressedButtonId=it.id; buttonPulse=0.18f; onBtn(it.id) }
                     }
                 }
-                MotionEvent.ACTION_MOVE -> if (st == St.PLAY && !controlTouch) {
-                    px = (px + (e.x - lx) / s * shipMoveMultiplier()).coerceIn(10f, W - 10f)
-                    py = (py + (e.y - ly) / s).coerceIn(30f, wh - 48f)
-                    lx = e.x; ly = e.y
+                MotionEvent.ACTION_MOVE -> when {
+                    st == St.AUDIO_SETTINGS && activeAudioSlider > 0 -> updateAudioSliderFromX(x)
+                    st == St.PLAY && !controlTouch -> {
+                        px = (px + (e.x-lx)/s*shipMoveMultiplier()).coerceIn(10f,W-10f)
+                        py = (py + (e.y-ly)/s).coerceIn(30f,wh-48f)
+                        lx=e.x; ly=e.y
+                    }
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> controlTouch = false
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (st == St.AUDIO_SETTINGS && activeAudioSlider > 0) updateAudioSliderFromX(x,true)
+                    activeAudioSlider=0
+                    controlTouch=false
+                }
             }
         }
         return true
@@ -526,6 +545,69 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         }
     }
 
+    private fun localDayKey(): Int {
+        val c = java.util.Calendar.getInstance()
+        return c.get(java.util.Calendar.YEAR) * 1000 + c.get(java.util.Calendar.DAY_OF_YEAR)
+    }
+    private fun dailyAdButtonLabel(): String = when {
+        dailyAdPending -> "در انتظار تبلیغ..."
+        dailyAdRewardDay == localDayKey() -> "پاداش امروز دریافت شد"
+        else -> "تماشای تبلیغ • ۱۰۰ سکه"
+    }
+    private fun claimDailyCoinReward() {
+        val day = localDayKey()
+        if (dailyAdPending) return
+        if (dailyAdRewardDay == day) {
+            adStatusText = "پاداش تبلیغ امروز قبلاً دریافت شده است"
+            adStatusTimer = 1.8f
+            return
+        }
+        dailyAdPending = true
+        try {
+            TapsellAds.showRewarded(act as androidx.fragment.app.FragmentActivity) { confirmed ->
+                act.runOnUiThread {
+                    synchronized(lock) {
+                        dailyAdPending = false
+                        if (confirmed && dailyAdRewardDay != day) {
+                            dailyAdRewardDay = day
+                            credits += 100
+                            prefs.edit().putInt("daily_ad_reward_day", day).putInt("credits", credits).apply()
+                            adStatusText = "۱۰۰ سکه به موجودی اضافه شد"
+                            adStatusTimer = 2.2f
+                        } else if (!confirmed) {
+                            adStatusText = "تبلیغ کامل نشد؛ سکه‌ای پرداخت نشد"
+                            adStatusTimer = 2.0f
+                        }
+                    }
+                }
+            }
+        } catch (e: Throwable) {
+            dailyAdPending = false
+            adStatusText = "تبلیغ در دسترس نیست"
+            adStatusTimer = 2.0f
+            Log.e("NeonShooter", "Daily rewarded ad unavailable", e)
+        }
+    }
+    private fun updateAudioSliderFromX(x: Float, persist: Boolean = false) {
+        val v = ((x - 30f) / 160f).coerceIn(0f, 1f)
+        when (activeAudioSlider) {
+            1 -> {
+                musicVolume = v
+                val gain = (musicVolume * if (st == St.PAUSE) 0.82f else 1f).coerceIn(0f, 1f)
+                try { musicPlayer?.setVolume(gain, gain) } catch (_: Exception) {}
+                if (musicVolume > 0.001f) {
+                    try { if (musicPlayer != null && musicPlayer?.isPlaying == false) musicPlayer?.start() } catch (_: Exception) {}
+                } else try { musicPlayer?.pause() } catch (_: Exception) {}
+                if (persist) prefs.edit().putFloat("music_volume", musicVolume).apply()
+            }
+            2 -> {
+                sfxVolume = v
+                sfx.volume = v
+                if (persist) prefs.edit().putFloat("sfx_volume", v).apply()
+            }
+        }
+    }
+
     private fun shipName(id: Int = currentShip): String = when (id) {
         1 -> "کاوشگر جیمز وب"
         2 -> "کاوشگر ویجر ۱"
@@ -534,9 +616,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         else -> "کاوشگر هابل"
     }
 
-    private fun shipPrice(id: Int): Int = intArrayOf(0, 1200, 2800, 5600, 9800)[id.coerceIn(0, 4)]
+    private fun shipPrice(id: Int): Int = intArrayOf(0, 6500, 18000, 42000, 85000)[id.coerceIn(0, 4)]
     private fun shipDescription(id: Int): String = when (id) {
-        1 -> "آینه شش‌ضلعی و سپر خورشیدی"
+        1 -> "آینه طلایی ۱۸بخشی و سپر خورشیدی پنج‌لایه"
         2 -> "ماموریت اعماق فضا"
         3 -> "کاوشگر سیاره‌ای با شلیک سریع"
         4 -> "مریخ‌نشین سه‌پایه با بدنه مقاوم"
@@ -633,17 +715,32 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         else -> 5
     }
 
-    private fun prepareUpgradeChoices() {
+    private fun upgradeAbilityPool(): List<String> {
         val coreAbilities = listOf("firepower", "missile", "laser", "drone", "magnet")
         val allAbilities = coreAbilities + listOf("shield", "dash", "chain", "hull", "emp", "ricochet", "gravity_well", "overload", "nanobots", "scanner", "salvage_drone", "kill_streak", "ricochet_shield",
             "health_regen", "armor", "critical", "overdrive", "explosive", "piercing", "stasis", "scavenger", "multishot", "phoenix")
-        if (!extraAbilitiesUnlocked && wave >= 25 && coreAbilities.all { abilityRank(it) >= 5 }) {
-            extraAbilitiesUnlocked = true
-        }
-        val pool = if (extraAbilitiesUnlocked) allAbilities else coreAbilities
-        val eligible = pool.filter { abilityRank(it) < 5 }
+        if (!extraAbilitiesUnlocked && wave >= 25 && coreAbilities.all { abilityRank(it) >= 5 }) extraAbilitiesUnlocked = true
+        return if (extraAbilitiesUnlocked) allAbilities else coreAbilities
+    }
+    private fun prepareUpgradeChoices() {
+        upgradeRefreshUsed = false
+        val eligible = upgradeAbilityPool().filter { abilityRank(it) < 5 }
         upgradeChoices = eligible.shuffled().take(3)
         if (upgradeChoices.isEmpty()) { st = St.PLAY; waiting = true; waveT = 0.75f }
+    }
+    private fun canRefreshUpgradeChoices(): Boolean {
+        if (upgradeRefreshUsed) return false
+        return upgradeAbilityPool().count { abilityRank(it) < 5 && it !in upgradeChoices } >= 3
+    }
+    private fun refreshUpgradeChoices() {
+        if (!canRefreshUpgradeChoices()) {
+            adStatusText = if (upgradeRefreshUsed) "رفرش این مرحله قبلاً استفاده شده" else "سه قابلیت تازه باقی نمانده است"
+            adStatusTimer = 1.8f
+            return
+        }
+        upgradeChoices = upgradeAbilityPool().filter { abilityRank(it) < 5 && it !in upgradeChoices }.shuffled().take(3)
+        upgradeRefreshUsed = true
+        sfx.play("power")
     }
 
     private fun applyUpgrade(id: String) {
@@ -885,6 +982,9 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "menu" -> { st = St.MENU; syncMusic() }
             "about" -> st = St.ABOUT
             "aboutBack" -> st = St.MENU
+            "audio" -> { audioReturnState = st; st = St.AUDIO_SETTINGS }
+            "audioBack" -> { st = audioReturnState; activeAudioSlider = 0; syncMusic() }
+            "dailyAd" -> claimDailyCoinReward()
             "telegram" -> try { act.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/gateneon"))) } catch (e: Exception) { Log.e("NeonShooter", "Telegram link unavailable", e) }
             "resume" -> { st = St.PLAY; syncMusic() }
             "pauseRestart" -> startGame()
@@ -909,12 +1009,8 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             "upgrade_0" -> chooseUpgrade(0)
             "upgrade_1" -> chooseUpgrade(1)
             "upgrade_2" -> chooseUpgrade(2)
+            "upgrade_refresh" -> refreshUpgradeChoices()
             "shop_weapon", "shop_shield", "shop_dash", "shop_continue" -> buyShop(id)
-            "sound" -> {
-                sfx.enabled = !sfx.enabled
-                prefs.edit().putBoolean("sound_enabled", sfx.enabled).apply()
-                syncMusic()
-            }
             "extraLife" -> {
                 if (st == St.OVER && !rewardedContinueUsed && !rewardedContinuePending) {
                     rewardedContinuePending = true
@@ -953,10 +1049,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             St.MENU -> {
                 val y = wh * 0.44f
                 add("play", "شروع بازی", y)
-                add("sound", if (sfx.enabled) "صدا: روشن" else "صدا: خاموش", y + 22f)
+                add("audio", "تنظیم صدا", y + 22f)
                 add("ship", "آشیانه کاوشگرها", y + 44f)
                 add("shipup", "ارتقای کاوشگر", y + 66f)
                 add("about", "درباره", y + 88f)
+                add("dailyAd", dailyAdButtonLabel(), y + 110f)
             }
             St.ABOUT -> {
                 val y = wh * 0.62f
@@ -965,39 +1062,27 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             }
             St.PAUSE -> {
                 val y = wh * 0.365f
-                val rows = listOf(
-                    "resume" to "ادامه",
-                    "pauseRestart" to "شروع مجدد",
-                    "sound" to if (sfx.enabled) "صدا: روشن" else "صدا: خاموش",
-                    "menu" to "منوی اصلی"
-                )
+                val rows = listOf("resume" to "ادامه", "pauseRestart" to "شروع مجدد", "audio" to "تنظیم صدا", "menu" to "منوی اصلی")
                 rows.forEachIndexed { index, pair ->
                     l.add(Btn(pair.first, pair.second, RectF(54f, y + index * 22f, 166f, y + index * 22f + 18f)))
                 }
             }
+            St.AUDIO_SETTINGS -> add("audioBack", "بازگشت", wh * 0.78f)
             St.OVER -> {
-                if (rewardedContinuePending) {
-                    add("extraLife", "در انتظار تبلیغ...", wh * 0.49f)
-                } else if (!rewardedContinueUsed) {
-                    val y = wh * 0.49f
-                    add("extraLife", "جان اضافه | تماشای تبلیغ", y)
-                    add("play", "تلاش دوباره", y + 28f)
-                    add("menu", "منو", y + 56f)
-                } else {
-                    val y = wh * 0.58f
-                    add("play", "تلاش دوباره", y)
-                    add("menu", "منو", y + 30f)
-                }
+                val y = wh * 0.54f
+                add("play", "تلاش دوباره", y)
+                add("menu", "منو", y + 30f)
             }
             St.UPGRADE -> {
-                val milestone = wave in 10..50 && wave % 10 == 0
-                val top = wh * 0.85f
+                val top = wh * 0.895f
                 val gap = 4f
-                val width = (W - 10f - gap * 2f) / 3f
+                val width = (W - 18f - gap * 2f) / 3f
                 for (i in 0..2) {
-                    val left = 5f + i * (width + gap)
-                    l.add(Btn("upgrade_$i", "انتخاب", RectF(left, top, left + width, top + 25f)))
+                    val left = 9f + i * (width + gap)
+                    l.add(Btn("upgrade_$i", "انتخاب قابلیت", RectF(left, top, left + width, top + 19f)))
                 }
+                val label = if (upgradeRefreshUsed) "استفاده شد" else if (canRefreshUpgradeChoices()) "تازه‌سازی ۳ قابلیت" else "۳ گزینه تازه نیست"
+                l.add(Btn("upgrade_refresh", label, RectF(60f, wh * 0.832f, 160f, wh * 0.832f + 17f)))
             }
             St.SHOP -> {
                 val y = wh * 0.46f
@@ -1014,11 +1099,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             }
             St.SHIPS -> {
                 val y = wh * 0.37f
+                val cardHeight = 25f
+                val rowStep = ((wh * 0.82f - y - cardHeight) / 4f).coerceIn(29.75f, 48f)
                 for (i in 0..4) {
                     val id = if (shipOwned(i)) "ship_select_$i" else "ship_buy_$i"
-                    l.add(Btn(id, shipName(i), RectF(10f, y + i * 27f, 210f, y + i * 27f + 22f)))
+                    val top = y + i * rowStep
+                    l.add(Btn(id, shipName(i), RectF(9f, top, 211f, top + cardHeight)))
                 }
-                add("shipBack", "بازگشت", wh * 0.79f)
+                add("shipBack", "بازگشت", wh * 0.87f)
             }
             St.SHIP_UPGRADE -> {
                 val y = wh * 0.405f
@@ -2122,11 +2210,11 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun renderFrame(c: Canvas) {
         if (!::bPlayer.isInitialized) return
-        c.drawColor(BG)
+        c.drawColor(stageBackgroundColor())
         paint.style = Paint.Style.FILL
         for (star in stars) {
             val pulse = (sin(star.phase) + 1f) * 0.5f
-            paint.color = 0xFFD0D4DA.toInt()
+            paint.color = stageStarColor()
             paint.alpha = if (star.twinkle) (95f + pulse * 105f).toInt().coerceIn(80, 205) else 145
             val radius = star.sz * if (star.twinkle) (0.55f + pulse * 0.35f) else 0.62f
             var wx = star.x; var wy = star.y
@@ -2152,7 +2240,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.style = Paint.Style.STROKE
         paint.strokeCap = Paint.Cap.ROUND
         paint.strokeWidth = 0.48f * s
-        paint.color = 0xFFD4D8DE.toInt()
+        paint.color = stageStarColor()
         for (comet in comets) {
             val fade = (115f * (comet.life / comet.maxLife)).toInt().coerceIn(24, 115)
             val velocity = max(1f, hypot(comet.vx, comet.vy))
@@ -2181,6 +2269,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             St.SHOP -> drawShop(c)
             St.SHIPS -> drawShipHangar(c)
             St.SHIP_UPGRADE -> drawShipUpgrades(c)
+            St.AUDIO_SETTINGS -> drawAudioSettings(c)
         }
         c.restore()
         if (damageFlash > 0f) { paint.style = Paint.Style.FILL; paint.color = Color.argb((58f * damageFlash / 0.22f).toInt().coerceIn(0, 58), 255, 42, 66); c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint) }
@@ -3110,14 +3199,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun drawUpgrade(c: Canvas) {
         paint.color = 0xB807101D.toInt(); c.drawRect(0f, 0f, sw.toFloat(), sh.toFloat(), paint)
-        drawGlassPanel(c, 5f, wh * 0.30f, W - 5f, wh * 0.975f, 0xFF47DFFF.toInt(), 232)
+        drawGlassPanel(c, 9f, wh * 0.31f, W - 9f, wh * 0.965f, 0xFF47DFFF.toInt(), 232)
         text(c, "یک قابلیت را انتخاب کن", W / 2f, wh * 0.365f, 8.4f, 0xFF9CEBFF.toInt())
         text(c, if (extraAbilitiesUnlocked) "قابلیت‌های تازه باز شده‌اند" else "قابلیت‌های انتخاب‌شده", W / 2f, wh * 0.402f, 5.0f, 0xFFFFD45C.toInt())
         val optionGap = 4f
-        val optionWidth = (W - 14f - optionGap * 2f) / 3f
+        val optionWidth = (W - 18f - optionGap * 2f) / 3f
         for (i in 0..2) {
             val id = upgradeChoices.getOrNull(i) ?: continue
-            val left = 7f + i * (optionWidth + optionGap)
+            val left = 9f + i * (optionWidth + optionGap)
             val right = left + optionWidth
             val cx = (left + right) / 2f
             c.save()
@@ -3125,16 +3214,16 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             drawGlassPanel(c, left, wh * 0.43f, right, wh * 0.60f, abilityColor(id), 190)
             drawAbilityIcon(c, id, cx, wh * 0.462f)
             val rank = abilityRank(id)
-            drawFittedText(c, upgradeTitle(id), cx, wh * 0.512f, 4.6f, WHT, optionWidth - 6f)
-            drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.4f, 0xFFFFD45C.toInt(), optionWidth - 8f)
-            drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 3.7f, 0xFF9CEBFF.toInt(), optionWidth - 8f)
+            drawFittedText(c, upgradeTitle(id), cx, wh * 0.512f, 4.9f, WHT, optionWidth - 6f)
+            drawFittedText(c, "LVL " + (rank + 1) + "/5", cx, wh * 0.531f, 3.7f, 0xFFFFD45C.toInt(), optionWidth - 8f)
+            drawWrappedCardText(c, upgradeInfo(id), cx, wh * 0.557f, 4.0f, 0xFF9CEBFF.toInt(), optionWidth - 8f)
             c.restore()
         }
-        drawGlassPanel(c, 7f, wh * 0.615f, W - 7f, wh * 0.825f, 0xFFFFD45C.toInt(), 220)
+        drawGlassPanel(c, 9f, wh * 0.615f, W - 9f, wh * 0.825f, 0xFFFFD45C.toInt(), 220)
         drawFittedText(c, "قابلیت‌های گرفته‌شده  •  " + ownedAbilityIds().size, W / 2f, wh * 0.637f, 4.7f, 0xFFFFD45C.toInt(), 180f)
         drawFittedText(c, "توان ویژه: " + legendaryName(), W / 2f, wh * 0.653f, 3.7f, 0xFFFFEBC1.toInt(), 180f)
-        drawFittedText(c, legendaryDescription(), W / 2f, wh * 0.667f, 2.65f, 0xFFB9D9E8.toInt(), 180f)
-        drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 4, 2.45f, 10f, W - 10f)
+        drawFittedText(c, legendaryDescription(), W / 2f, wh * 0.667f, 2.9f, 0xFFB9D9E8.toInt(), 180f)
+        drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 4, 2.85f, 12f, W - 12f)
         drawButtons(c)
     }
 
@@ -3240,8 +3329,18 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         paint.style = Paint.Style.STROKE; paint.strokeCap = Paint.Cap.ROUND; paint.strokeJoin = Paint.Join.ROUND
         paint.strokeWidth = 1.8f * s; paint.color = color
         val x = cx * s; val y = cy * s
+        if (id == "upgrade_refresh") {
+            val rect = RectF(x-8f*s,y-8f*s,x+8f*s,y+8f*s)
+            c.drawArc(rect,205f,245f,false,paint)
+            c.drawLine(x-7f*s,y-4f*s,x-7f*s,y+1f*s,paint)
+            c.drawLine(x-7f*s,y-4f*s,x-2f*s,y-4f*s,paint)
+            c.drawLine(x+7f*s,y+4f*s,x+7f*s,y-1f*s,paint)
+            c.drawLine(x+7f*s,y+4f*s,x+2f*s,y+4f*s,paint)
+            paint.style=Paint.Style.FILL
+            return
+        }
         if (id.startsWith("upgrade_")) {
-            c.drawLine(x, y - 8f * s, x, y + 3f * s, paint)
+            c.drawLine(x, y - 8f * s, x, y + 3f * s, paint
             c.drawLine(x, y + 3f * s, x - 4.5f * s, y - 1.5f * s, paint)
             c.drawLine(x, y + 3f * s, x + 4.5f * s, y - 1.5f * s, paint)
             c.drawLine(x - 8f * s, y + 7f * s, x + 8f * s, y + 7f * s, paint)
@@ -3255,19 +3354,20 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         if (id.startsWith("ship_")) {
             val shipId = id.substringAfterLast("_").toIntOrNull() ?: 0
             c.save()
-            c.scale(0.42f, 0.42f, x, y)
+            c.scale(0.52f, 0.52f, x, y)
             drawPlayerShip(c, cx, cy, shipId)
             c.restore()
             return
         }
         when (id) {
             "play", "resume", "shop_continue" -> { val p=Path().apply { moveTo(x-6f*s,y-9f*s); lineTo(x+9f*s,y); lineTo(x-6f*s,y+9f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint) }
-            "sound" -> { val p=Path().apply { moveTo(x-10f*s,y-4f*s); lineTo(x-5f*s,y-4f*s); lineTo(x+1f*s,y-9f*s); lineTo(x+1f*s,y+9f*s); lineTo(x-5f*s,y+4f*s); lineTo(x-10f*s,y+4f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawArc(x-4f*s,y-9f*s,x+13f*s,y+9f*s,-60f,120f,false,paint); c.drawArc(x-7f*s,y-13f*s,x+18f*s,y+13f*s,-60f,120f,false,paint) }
+            "sound", "audio" -> { val p=Path().apply { moveTo(x-10f*s,y-4f*s); lineTo(x-5f*s,y-4f*s); lineTo(x+1f*s,y-9f*s); lineTo(x+1f*s,y+9f*s); lineTo(x-5f*s,y+4f*s); lineTo(x-10f*s,y+4f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawArc(x-4f*s,y-9f*s,x+13f*s,y+9f*s,-60f,120f,false,paint); c.drawArc(x-7f*s,y-13f*s,x+18f*s,y+13f*s,-60f,120f,false,paint) }
             "ship" -> { val p=Path().apply { moveTo(x,y-11f*s); lineTo(x+8f*s,y+9f*s); lineTo(x,y+5f*s); lineTo(x-8f*s,y+9f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawLine(x-11f*s,y+3f*s,x-6f*s,y+5f*s,paint); c.drawLine(x+11f*s,y+3f*s,x+6f*s,y+5f*s,paint) }
             "about" -> { c.drawCircle(x,y,9f*s,paint); paint.style=Paint.Style.FILL; c.drawCircle(x,y-5f*s,1.4f*s,paint); c.drawRoundRect(x-1.5f*s,y-1f*s,x+1.5f*s,y+6f*s,1f*s,1f*s,paint) }
-            "aboutBack", "menu", "shipBack", "shipUpgradeBack" -> { if(id=="menu") { for(row in -1..1) for(col in -1..1) c.drawCircle(x+col*6f*s,y+row*6f*s,1.9f*s,paint) } else { c.drawLine(x+9f*s,y,x-8f*s,y,paint); c.drawLine(x-8f*s,y,x-1f*s,y-7f*s,paint); c.drawLine(x-8f*s,y,x-1f*s,y+7f*s,paint) } }
+            "aboutBack", "audioBack", "menu", "shipBack", "shipUpgradeBack" -> { if(id=="menu") { for(row in -1..1) for(col in -1..1) c.drawCircle(x+col*6f*s,y+row*6f*s,1.9f*s,paint) } else { c.drawLine(x+9f*s,y,x-8f*s,y,paint); c.drawLine(x-8f*s,y,x-1f*s,y-7f*s,paint); c.drawLine(x-8f*s,y,x-1f*s,y+7f*s,paint) } }
             "pauseRestart" -> { c.drawArc(x-9f*s,y-9f*s,x+9f*s,y+9f*s,35f,285f,false,paint); c.drawLine(x+7f*s,y-8f*s,x+10f*s,y-1f*s,paint); c.drawLine(x+7f*s,y-8f*s,x,y-8f*s,paint) }
             "telegram" -> { val p=Path().apply { moveTo(x-11f*s,y-2f*s); lineTo(x+11f*s,y-8f*s); lineTo(x+4f*s,y+10f*s); lineTo(x,y+3f*s); close() }; paint.style=Paint.Style.FILL; c.drawPath(p,paint); paint.style=Paint.Style.STROKE; c.drawLine(x,y+3f*s,x+7f*s,y-4f*s,paint) }
+            "dailyAd" -> { c.drawCircle(x,y,8f*s,paint); c.drawCircle(x,y,5f*s,paint); c.drawLine(x,y-3f*s,x,y+3f*s,paint) }
             "extraLife", "shop_repair" -> { val p=Path().apply { moveTo(x,y+9f*s); cubicTo(x-17f*s,y-2f*s,x-8f*s,y-13f*s,x,y-6f*s); cubicTo(x+8f*s,y-13f*s,x+17f*s,y-2f*s,x,y+9f*s) }; c.drawPath(p,paint) }
             "shop_weapon" -> {
                 c.drawCircle(x,y,5.5f*s,paint)
@@ -3312,6 +3412,14 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 val cy = (r.top + r.bottom) / 2f
                 drawButtonIcon(c, b.id, r.left + 18f, cy)
                 drawFittedText(c, b.label, (r.left + r.right) / 2f + 10f, cy + 2.1f, 6.1f, 0xFFEAFBFF.toInt(), 82f)
+            } else if (st == St.AUDIO_SETTINGS) {
+                val cy = (r.top + r.bottom) / 2f
+                drawButtonIcon(c, b.id, r.left + 18f, cy)
+                drawFittedText(c, b.label, (r.left+r.right)/2f + 8f, cy+2f, 5.8f, 0xFFEAFBFF.toInt(), 80f)
+            } else if (st == St.UPGRADE) {
+                val cy = (r.top + r.bottom) / 2f
+                drawButtonIcon(c, b.id, r.left + 15f, cy)
+                drawFittedText(c, b.label, (r.left+r.right)/2f + 8f, cy+2f, 4.8f, 0xFFB9F4FF.toInt(), 82f)
             } else if (st == St.SHOP) {
                 val cy = (r.top + r.bottom) / 2f
                 val centerX = (r.left + r.right) / 2f + 17f
@@ -3325,18 +3433,18 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
                 val cy = (r.top + r.bottom) / 2f
                 val shipId = b.id.substringAfterLast("_").toIntOrNull() ?: 0
                 c.save()
-                c.scale(0.72f, 0.72f, (r.left + 18f) * s, cy * s)
+                c.scale(0.90f, 0.90f, (r.left + 18f) * s, cy * s)
                 drawButtonIcon(c, b.id, r.left + 18f, cy)
                 c.restore()
                 val centerX = (r.left + r.right) / 2f + 11f
                 val titleColor = if (currentShip == shipId) 0xFFFFD45C.toInt() else 0xFFEAFBFF.toInt()
-                drawFittedText(c, shipName(shipId), centerX, cy - 1.7f, 4.8f, titleColor, 142f)
+                drawFittedText(c, shipName(shipId), centerX, cy - 1.9f, 5.5f, titleColor, 142f)
                 val state = when {
                     !shipOwned(shipId) -> "قیمت: " + shipPrice(shipId) + " سکه"
                     currentShip == shipId -> "فعال • " + shipDescription(shipId)
                     else -> "آزادشده • " + shipDescription(shipId)
                 }
-                drawFittedText(c, state, centerX, cy + 6.7f, 3.25f, 0xFF9CEBFF.toInt(), 142f)
+                drawFittedText(c, state, centerX, cy + 7.0f, 3.9f, 0xFF9CEBFF.toInt(), 142f)
             } else if ((st == St.SHIPS || st == St.SHIP_UPGRADE) && (b.id.startsWith("ship_") || b.id.startsWith("shipup_") || b.id == "shipBack" || b.id == "shipUpgradeBack")) {
                 val cy = (r.top + r.bottom) / 2f
                 c.save()
@@ -3543,7 +3651,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
 
     private fun drawShipHangar(c: Canvas) {
         paint.color = 0xE807101D.toInt(); c.drawRect(0f,0f,sw.toFloat(),sh.toFloat(),paint)
-        drawGlassPanel(c,5f,wh*0.27f,W-5f,wh*0.86f,0xFFFFD45C.toInt(),244)
+        drawGlassPanel(c,8f,wh*0.255f,W-8f,wh*0.95f,0xFFFFD45C.toInt(),244)
         text(c,"آشیانه ناوگان",W/2f,wh*0.32f,12f,0xFFFFD45C.toInt())
         text(c,"سکه: $credits",W/2f,wh*0.35f,7f,WHT)
         drawButtons(c)
@@ -3589,7 +3697,7 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
     }
 
     private fun drawMenu(c: Canvas) {
-        drawGlassPanel(c, 18f, wh * 0.35f, 202f, wh * 0.80f, 0xFF47DFFF.toInt(), 224)
+        drawGlassPanel(c, 20f, wh * 0.35f, 200f, wh * 0.88f, 0xFF47DFFF.toInt(), 224)
         text(c, "نئون", W / 2, wh * 0.16f, 34f, YEL)
         text(c, "شوتر", W / 2, wh * 0.16f + 26f, 24f, RED)
         drawPlayerShip(c, W / 2, wh * 0.33f + sin(System.nanoTime() / 4e8f) * 3f)
@@ -3598,7 +3706,38 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         text(c, if (dailyDone) "ماموریت روزانه کامل شد: +۵۰۰" else "ماموریت روزانه: ۲۵ نابودی " + dailyKills + "/۲۵", W / 2f, wh * 0.397f, 6f, 0xFFFFD45C.toInt())
         text(c, "بهترین امتیاز: $best   رکورد مرحله: $bestWave", W / 2, wh * 0.419f, 7f, WHT)
         drawButtons(c)
-        drawAdSlot(c, wh * 0.83f)
+        if (adStatusTimer > 0f) drawFittedText(c, adStatusText, W / 2f, wh * 0.868f, 5.0f, 0xFFFFD45C.toInt(), 180f)
+        drawAdSlot(c, wh * 0.946f)
+    }
+
+    private fun drawAudioSlider(c: Canvas, y: Float, value: Float, label: String, color: Int) {
+        drawFittedText(c, label, 110f, y - 18f, 6.8f, 0xFFEAFBFF.toInt(), 150f)
+        drawFittedText(c, "\${(value * 100f).roundToInt()}٪", 190f, y - 18f, 5.5f, color, 26f)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 3.2f * s
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.color = 0xFF465769.toInt()
+        c.drawLine(30f*s, y*s, 190f*s, y*s, paint)
+        paint.color = color
+        c.drawLine(30f*s, y*s, (30f+160f*value)*s, y*s, paint)
+        paint.style = Paint.Style.FILL
+        paint.color = 0xFF0B1B2B.toInt()
+        c.drawCircle((30f+160f*value)*s, y*s, 7f*s, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1.6f*s
+        paint.color = color
+        c.drawCircle((30f+160f*value)*s, y*s, 7f*s, paint)
+        paint.style = Paint.Style.FILL
+    }
+    private fun drawAudioSettings(c: Canvas) {
+        paint.color = 0xE807101D.toInt()
+        c.drawRect(0f,0f,sw.toFloat(),sh.toFloat(),paint)
+        drawGlassPanel(c,10f,wh*0.28f,W-10f,wh*0.88f,0xFF47DFFF.toInt(),242)
+        text(c,"تنظیم جداگانه صدا",W/2f,wh*0.36f,13f,0xFF9CEBFF.toInt())
+        drawAudioSlider(c,wh*0.485f,musicVolume,"موسیقی",0xFF47DFFF.toInt())
+        drawAudioSlider(c,wh*0.655f,sfxVolume,"افکت‌ها (SFX)",0xFFFF8F70.toInt())
+        text(c,"هر صدا مستقل ذخیره می‌شود",W/2f,wh*0.72f,5.1f,0xFF9CEBFF.toInt())
+        drawButtons(c)
     }
 
     private fun drawAbout(c: Canvas) {
@@ -3621,7 +3760,6 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
         text(c, if (score >= best) "رکورد جدید!" else "بهترین: $best", W / 2, wh * 0.3f + 34f, 8f, WHT)
         if (adStatusTimer > 0f) text(c, adStatusText, W / 2f, wh * 0.45f, 7f, 0xFFFFD45C.toInt())
         if (overT >= 0.7f) drawButtons(c)
-        drawAdSlot(c, wh * 0.84f)
     }
 
     private fun drawAdBreak(c: Canvas) {

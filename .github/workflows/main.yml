@@ -1,4 +1,4 @@
-name: Build Neon Shooter 2.7.6 • ship progression
+name: Build Neon Shooter 2.7.7 • ship progression
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - '.github/workflows/main.yml'
       - 'build-assets/v24/source.part*'
       - 'source-inspection/GameView.kt'
+      - 'source-inspection/Sfx.kt'
   workflow_dispatch:
 
 permissions:
@@ -72,16 +73,17 @@ jobs:
         run: |
           set -euo pipefail
           cp source-inspection/GameView.kt NeonShooter/app/src/main/java/com/claude/neonshooter/GameView.kt
+          cp source-inspection/Sfx.kt NeonShooter/app/src/main/java/com/claude/neonshooter/Sfx.kt
           python3 - <<'PY'
           from pathlib import Path
           p = Path("NeonShooter/app/build.gradle.kts")
           s = p.read_text(encoding="utf-8")
           if s.count("versionCode = 25") != 1 or s.count('versionName = "2.4.1"') != 1:
-              raise SystemExit("Unexpected base version before v2.7.6")
-          s = s.replace("versionCode = 25", "versionCode = 43", 1)
-          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.6"', 1)
+              raise SystemExit("Unexpected base version before v2.7.7")
+          s = s.replace("versionCode = 25", "versionCode = 44", 1)
+          s = s.replace('versionName = "2.4.1"', 'versionName = "2.7.7"', 1)
           p.write_text(s, encoding="utf-8")
-          print("PATCH full gameplay source and version 2.7.6")
+          print("PATCH full gameplay source and version 2.7.7")
           PY
 
       - name: Generate original cinematic background music
@@ -106,10 +108,14 @@ jobs:
               "five real spacecraft probes are implemented": all(name in game for name in ["کاوشگر هابل", "کاوشگر جیمز وب", "کاوشگر ویجر ۱", "کاوشگر ویجر ۲", "کاوشگر فونیکس"]) and "private fun drawPlayerShip" in game,
               "buttons use icon drawing": "drawButtonIcon(c, b.id" in game and "text(c, b.label" not in game,
               "intermission shop buttons show names and real effects": all(x in game for x in ["افزایش قدرت سلاح و آسیب شلیک", "ارتقای سپر و بازیابی مقاومت آن", "دریافت یک شارژ جهش اضافه", "ادامه نبرد و ورود به موج بعد"]) and "st == St.SHOP" in game and "drawFittedText(c, shopButtonDescription(b.id)" in game,
+              "daily reward ad grants 100 coins once per local day after provider confirmation": 'add("dailyAd", dailyAdButtonLabel()' in game and "daily_ad_reward_day" in game and "credits += 100" in game and "confirmed && dailyAdRewardDay != day" in game,
+              "Game Over no longer offers an extra life ad": 'St.OVER -> {\n                val y = wh * 0.54f' in game and 'add("extraLife"' not in game[game.index("private fun buttons(): List<Btn>"):game.index("// ---------- game logic ----------")],
+              "upgrade refresh replaces choices with three different eligible abilities once": "private fun refreshUpgradeChoices()" in game and "upgradeRefreshUsed = true" in game and "it !in upgradeChoices" in game,
+              "background and stars cycle colors every 25 stages": "stagePaletteIndex()" in game and "c.drawColor(stageBackgroundColor())" in game and "paint.color = stageStarColor()" in game,
               "weapon and dash shop icons are visually distinct": "c.drawCircle(x,y,5.5f*s,paint)" in game and "val bolt = Path().apply" in game and "shop_weapon" in game and "shop_dash" in game,
               "hangar cards draw the ship title, description and price inside each card": "st == St.SHIPS && b.id.startsWith(\"ship_\")" in game and "shipDescription(shipId)" in game and "drawFittedText(c, state" in game,
-              "hangar prices are progressively higher": "intArrayOf(0, 1200, 2800, 5600, 9800)" in game,
-              "hangar cards have five-unit gaps and a separated back button": "i * 27f" in game and "top + 22f" in game and 'add("shipBack", "بازگشت", wh * 0.79f)' in game,
+              "hangar prices are progressively higher": "intArrayOf(0, 6500, 18000, 42000, 85000)" in game,
+              "hangar cards have responsive spacing and a separate back row": "val cardHeight = 25f" in game and "val rowStep = ((wh * 0.82f - y - cardHeight) / 4f).coerceIn(29.75f, 48f)" in game and 'add("shipBack", "بازگشت", wh * 0.87f)' in game,
               "hangar does not draw duplicate ship labels behind the buttons": "private fun drawShipHangar(c: Canvas)" in game and "for (i in 0..4)" not in game[game.index("private fun drawShipHangar(c: Canvas)"):game.index("private fun shipUpgradeDescription")],
               "about page and Telegram link exist": "درباره نئون شوتر" in game and "https://t.me/gateneon" in game,
               "background music player is wired": "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game,
@@ -131,7 +137,7 @@ jobs:
               "chain explosive combo creates splash damage": "splash.hp -= explosiveRank" in game and "ImpactRing(next.x, next.y, 0.30f, 0.30f)" in game,
               "phase-three bosses summon reinforcements": "e.phaseSummonTimer -= enemyDt" in game and "summonedEnemies.add(E(sx, e.y + 12f, 6" in game,
               "boss phases have distinct visual rings": "if (e.type == 2 && e.phase >= 2)" in game and "0xFFFF65C8.toInt()" in game,
-              "release version is 2.7.6": "versionCode = 43" in gradle and 'versionName = "2.7.6"' in gradle,
+              "release version is 2.7.7": "versionCode = 44" in gradle and 'versionName = "2.7.7"' in gradle,
               "coin drops are smaller and more plentiful": "val coinScale = if (item.type == 13) 0.48f else 1f" in game and "Random.nextFloat() < 0.82f" in game and "val coinPieces = 3" in game and "repeat(10)" in game,
               "magnet pickup radius is bounded by distance": "val magnetRange = when" in game and "val itemDistance = hypot(item.x - px, item.y - py)" in game and "itemDistance < magnetRange" in game,
               "bosses display constellation names and diagrams": "private val bossConstellationNames" in game and "private fun drawBossConstellation" in game and "bossConstellationName(bossId)" in game and "drawBossConstellation(c, bossId" in game,
@@ -157,10 +163,10 @@ jobs:
 
               "music uses game audio attributes and starts the media player": "AudioAttributes.CONTENT_TYPE_MUSIC" in game and "MediaPlayer.create(act, R.raw.ambient_theme, attributes, 0)" in game and "player.start()" in game,
               "music initialization can retry after a failed resource load": "musicPrepared = false" in game and "Background music resource could not be opened" in game,
-              "sound toggle is available in pause and persists": '"sound" to if (sfx.enabled)' in game and 'putBoolean("sound_enabled", sfx.enabled)' in game,
+              "music and SFX have separate persistent controls": all(x in game for x in ["music_volume", "sfx_volume", "St.AUDIO_SETTINGS", "drawAudioSettings", "updateAudioSliderFromX"]) and "sfx.volume = sfxVolume" in game and "var volume = 0.23f" in Path("source-inspection/Sfx.kt").read_text(encoding="utf-8"),
               "coin balance appears in menu and gameplay HUD": "drawCoinCounter(c, 177f" in game and "drawCoinCounter(c, 159f" in game,
               "probe glow preserves the original neon silhouette treatment": "BlurMaskFilter(7.5f" in game and "silhouette.addPath(filled)" in game and "paint.strokeWidth = 2.2f" in game,
-              "hangar ship icons are scaled to fit their tabs": "c.scale(0.42f, 0.42f, x, y)" in game,
+              "hangar spacecraft artwork is enlarged and keeps its neon glow": "c.scale(0.52f, 0.52f, x, y)" in game and "BlurMaskFilter(7.5f" in game,
               "upgrade headline and card labels are centered and separated from level text": 'text(c, "یک قابلیت را انتخاب کن"' in game and "drawFittedText(c, upgradeTitle(id), cx" in game and 'drawFittedText(c, "LVL "' in game,
               "wave progress resets for every new wave": "private fun spawnWave() {\n        wave++\n        waveKills = 0" in game,
               "five ships have recognizable real spacecraft designs": all(x in game for x in ["Hubble: optical telescope", "James Webb:", "Voyager 1:", "Voyager 2:", "Phoenix Mars lander:"]),
@@ -178,13 +184,13 @@ jobs:
               "five probes have added optical, antenna, mirror, boom and lander hardware detail": all(x in game for x in ["Hubble optical baffle rings", "Six visible primary-mirror segments", "High-gain dish ribs", "Separate dish ribs", "Phoenix weather mast"]),
               "stage and constellation introduction remains visible for five seconds": "stageIntroTimer = 5.0f" in game and "stageIntroTimer = max(0f, stageIntroTimer - dt)" in game and "if (stageIntroTimer > 0f && st == St.PLAY)" in game and "drawFittedText(c, stageDescription(wave)" in game,
               "stage number is Persian and rendered as an isolated numeric run": "persianNumber(level)" in game and "Regex(\"([0-9۰-۹٠-٩]+)\")" in game and '"مرحله " + persianNumber(level)' in game,
-              "all three upgrade cards are positioned inside the panel bounds": "val optionWidth = (W - 14f - optionGap * 2f) / 3f" in game and "c.clipRect(left * s, (wh * 0.425f) * s, right * s, (wh * 0.605f) * s)" in game,
-              "all upgrade buttons stay inside the screen width": "val width = (W - 10f - gap * 2f) / 3f" in game and "RectF(left, top, left + width, top + 25f)" in game,
+              "upgrade cards stay inset and clipped inside their panel": "val optionWidth = (W - 18f - optionGap * 2f) / 3f" in game and "val left = 9f + i * (optionWidth + optionGap)" in game and "c.clipRect(left * s, (wh * 0.425f) * s, right * s, (wh * 0.605f) * s)" in game,
+              "upgrade buttons and refresh control fit inside panel": "val width = (W - 18f - gap * 2f) / 3f" in game and "RectF(left, top, left + width, top + 19f)" in game and "upgrade_refresh" in game,
               "owned ability list is clipped both to its viewport and to each cell": "c.clipRect(left * s, top * s, right * s, bottom * s)" in game and "c.clipRect(cellX * s, cellTop * s" in game,
               "fitted text is width-limited with ellipsis": "TextUtils.ellipsize(value, tp" in game and "c.clipRect(left * s, 0f, (left + safeWidth) * s" in game,
               "stage title is not overridden by random event title": 'else waveTitle(wave)' in game and 'else if (eventKind > 0) eventName()' not in game,
               "ability grid uses 4 bounded columns with scaled icons": "safeColumns = columns.coerceIn(1, min(owned.size, 5))" in game and "val iconScale = min(0.20f, iconRadius / 12f)" in game and "val labelSize = min(fontSize" in game,
-              "upgrade panel contains its owned ability card and action buttons": "wh * 0.975f" in game and "drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 4" in game and "val width = (W - 10f - gap * 2f) / 3f" in game,
+              "upgrade panel contains compact ability inventory and refresh controls": "wh * 0.965f" in game and "drawOwnedAbilityList(c, wh * 0.682f, wh * 0.816f, 4, 2.85f, 12f, W - 12f)" in game and "val width = (W - 18f - gap * 2f) / 3f" in game and "upgrade_refresh" in game,
               "pause inventory remains inside the pause card": "drawGlassPanel(c, 18f, wh * 0.29f, 202f, wh * 0.93f" in game and "wh * 0.915f, 4, 2.8f, 23f, 197f" in game,
               "golden skill description is a single clipped line above the ability roster": "drawFittedText(c, legendaryDescription(), W / 2f, wh * 0.667f" in game and "drawWrappedCardText(c, legendaryDescription()" not in game,
               "upgrade and pause cards have non-overlapping vertical regions": "wh * 0.667f" in game and "drawOwnedAbilityList(c, wh * 0.682f" in game and "drawOwnedAbilityList(c, wh * 0.70f" in game,
@@ -271,18 +277,22 @@ jobs:
                           cell_bottom = min(bottom, cell_top + row_height)
                           assert left <= cell_left < cell_right <= right
                           assert top <= cell_top < cell_bottom <= bottom
-              assert 0.30 * logical_height < 0.975 * logical_height <= logical_height
-              assert 0.85 * logical_height + 25.0 < 0.975 * logical_height
-          # Hangar rows use identical drawing and touch bounds, with 5 logical units between cards.
-          hangar_row_step, hangar_card_height = 27.0, 22.0
+              assert 0.31 * logical_height < 0.965 * logical_height <= logical_height
+              refresh_top = logical_height * 0.832
+              refresh_bottom = refresh_top + 17.0
+              choose_top = logical_height * 0.895
+              choose_bottom = choose_top + 19.0
+              assert 0.825 * logical_height < refresh_top < refresh_bottom < choose_top < choose_bottom <= 0.965 * logical_height
+          # Hangar card hitboxes use the same responsive spacing as the rendered cards.
           for logical_height in (320.0, 360.0, 390.0, 430.0, 480.0, 560.0):
               hangar_top = logical_height * 0.37
-              hangar_cards = [(hangar_top + i * hangar_row_step,
-                               hangar_top + i * hangar_row_step + hangar_card_height) for i in range(5)]
-              assert all(abs((hangar_cards[i + 1][0] - hangar_cards[i][1]) - 5.0) < 1e-6 for i in range(4))
-              back_top = logical_height * 0.79
-              assert hangar_cards[-1][1] <= back_top
-              assert back_top + 22.0 <= logical_height * 0.86
+              card_height = 25.0
+              row_step = min(48.0, max(29.75, (logical_height * 0.82 - hangar_top - card_height) / 4.0))
+              cards = [(hangar_top + i * row_step, hangar_top + i * row_step + card_height) for i in range(5)]
+              assert all(cards[i][1] < cards[i + 1][0] for i in range(4))
+              assert cards[-1][1] <= logical_height * 0.82 + 1e-6
+              back_top = logical_height * 0.87
+              assert cards[-1][1] < back_top and back_top + 22.0 <= logical_height * 0.95
           print("PASS hangar cards and back button have non-overlapping geometry across six portrait sizes")
           print("PASS zero-overflow geometry across six portrait sizes and five ability counts")
           failed = [name for name, ok in checks.items() if not ok]
@@ -298,13 +308,13 @@ jobs:
           PY
 
       - name: Package complete Android project
-        run: zip -qr NeonShooter-Android-Project-v2.7.6.zip NeonShooter
+        run: zip -qr NeonShooter-Android-Project-v2.7.7.zip NeonShooter
 
       - name: Upload Android project artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Android-Project-v2.7.6
-          path: NeonShooter-Android-Project-v2.7.6.zip
+          name: NeonShooter-Android-Project-v2.7.7
+          path: NeonShooter-Android-Project-v2.7.7.zip
           if-no-files-found: error
           retention-days: 30
 
@@ -367,16 +377,16 @@ jobs:
           sha256sum "$APK"
           stat -c 'APK_SIZE_BYTES=%s' "$APK"
 
-      - name: Record verified v2.7.6 APK build
+      - name: Record verified v2.7.7 APK build
         shell: bash
         run: |
           set -euo pipefail
           APK="NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk"
           test -s "$APK"
-          cat > release-proof-v2.7.6.txt <<EOF
+          cat > release-proof-v2.7.7.txt <<EOF
           run_id=${GITHUB_RUN_ID}
           source_commit=${GITHUB_SHA}
-          app_version=2.7.6
+          app_version=2.7.7
           apk_sha256=$(sha256sum "$APK" | cut -d " " -f 1)
           apk_size_bytes=$(stat -c "%s" "$APK")
           signature=verified-by-apksigner
@@ -385,24 +395,24 @@ jobs:
       - name: Upload APK verification proof
         uses: actions/upload-artifact@v4
         with:
-          name: NeonShooter-Release-Proof-v2.7.6
-          path: release-proof-v2.7.6.txt
+          name: NeonShooter-Release-Proof-v2.7.7
+          path: release-proof-v2.7.7.txt
           if-no-files-found: error
           retention-days: 30
 
       - name: Upload signed APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Neon-Shooter-v2.7.6-APK
+          name: Neon-Shooter-v2.7.7-APK
           path: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish Neon Shooter 2.7.6
+      - name: Publish Neon Shooter 2.7.7
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v2.7.6
-          name: Neon Shooter v2.7.6
+          tag_name: v2.7.7
+          name: Neon Shooter v2.7.7
           body: |
             Actual gameplay update:
             - Five distinct playable ships with separate silhouettes, persistent selection, and coin-based unlocking.
@@ -449,7 +459,12 @@ jobs:
             - Ability inventories remain inside the lower upgrade card and Pause panel, with no text crossing neighboring cells.
             - Probe artwork has more telescope, mirror, antenna, boom, solar-array and lander hardware detail; original neon colors and bloom remain unchanged.
             - Shop options now display clear names, prices and concise effects instead of unexplained symbols.
-            - Hangar ship cards have distinct spacing and higher progressive unlock prices.
+            - Hangar cards show larger neon probe artwork, including the James Webb segmented mirror, with progressive prices (6,500 / 18,000 / 42,000 / 85,000 coins).
+            - Daily rewarded video is in the main menu and pays 100 coins once per local day only after provider confirmation.
+            - Music and SFX have separate persistent volume sliders; default music is louder and SFX gain is reduced.
+            - Background and star colors rotate every 25 stages through navy/red, purple, teal and gold palettes.
+            - Upgrade choice screen offers one free refresh for three different eligible abilities.
+            - Compact panels and larger fitted labels retain clipping and safe card bounds.
             - Persian About page and Telegram channel link.
           files: NeonShooter/app/build/outputs/apk/release/Neon-Shooter.apk
           fail_on_unmatched_files: true
