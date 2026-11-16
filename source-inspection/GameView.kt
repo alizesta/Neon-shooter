@@ -2611,7 +2611,19 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             paint.style = Paint.Style.STROKE; paint.strokeWidth = 0.65f*s; paint.color = RED
             c.drawRoundRect(96f*s, 21f*s, 184f*s, 25f*s, 1.5f*s, 1.5f*s, paint)
             paint.style = Paint.Style.FILL
-            activeBoss.bossSkills.take(2).forEachIndexed { index, skill -> drawAbilityIcon(c, skill, 105f + index * 18f, 43f) }
+            activeBoss.bossSkills.take(2).forEachIndexed { index, skill ->
+                val iconX = 105f + index * 18f
+                val iconColor = abilityColor(skill)
+                paint.style = Paint.Style.FILL
+                paint.color = 0xD9101B2A.toInt()
+                c.drawRoundRect((iconX - 7.5f) * s, 35f * s, (iconX + 7.5f) * s, 51f * s, 3f * s, 3f * s, paint)
+                paint.style = Paint.Style.STROKE
+                paint.strokeWidth = 0.75f * s
+                paint.color = Color.argb(190, Color.red(iconColor), Color.green(iconColor), Color.blue(iconColor))
+                c.drawRoundRect((iconX - 7.5f) * s, 35f * s, (iconX + 7.5f) * s, 51f * s, 3f * s, 3f * s, paint)
+                paint.style = Paint.Style.FILL
+                drawAbilityIcon(c, skill, iconX, 43f)
+            }
         }
         if (comboCount >= 3) drawFittedText(c, "ترکیب x" + (1 + comboCount / 5).coerceAtMost(5), 105f, 48f, 5.2f, 0xFFFFD45C.toInt(), 70f)
         val powerLabel = when {
@@ -2645,15 +2657,6 @@ private var rocketTimer = 0f; private var magnetTimer = 0f
             }
             drawLegendaryControl(c)
             drawPauseControl(c)
-        }
-        enemies.firstOrNull { it.type == 2 }?.let { bs ->
-            val bossId = bs.t0.toInt().coerceIn(0, 9)
-            drawFittedText(c, bossConstellationName(bossId) + " • فاز " + bs.phase, 105f, 14f, 4.7f, WHT, 68f)
-            bs.bossSkills.take(2).forEachIndexed { index, skill -> drawAbilityIcon(c, skill, W / 2f - 13f + index * 26f, 34f) }
-            val frac = bs.hp.toFloat() / bs.maxHp
-            paint.color = DRED; c.drawRect(20f * s, 22f * s, (20f + 140f * frac) * s, 25f * s, paint)
-            paint.style = Paint.Style.STROKE; paint.strokeWidth = s * 0.6f; paint.color = RED
-            c.drawRect(20f * s, 22f * s, 160f * s, 25f * s, paint); paint.style = Paint.Style.FILL
         }
         if (waveTarget > 0 && (st == St.PLAY || st == St.PAUSE)) {
             val x = (W - 5f) * s; val top = 56f * s; val bottom = (wh - 48f) * s
